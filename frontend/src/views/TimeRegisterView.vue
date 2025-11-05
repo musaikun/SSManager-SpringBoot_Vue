@@ -63,39 +63,19 @@
           :key="workDay.date"
           class="work-day-card"
           :class="{ removed: workDay.isRemoved, modified: workDay.isModified }"
+          @click="handleTimeClick(index, 'both')"
         >
-          <div class="card-header">
-            <span class="date-display">{{ workDay.displayDate }}</span>
-            <button @click="handleRemoveDay(index)" class="remove-btn">
-              {{ workDay.isRemoved ? '復活' : '削除' }}
-            </button>
+          <div class="card-content-horizontal">
+            <div class="card-date">{{ workDay.displayDate }}</div>
+            <div class="card-time-section">
+              <span class="time-value">{{ workDay.startTime }}</span>
+              <span class="time-separator">〜</span>
+              <span class="time-value">{{ workDay.endTime }}</span>
+            </div>
           </div>
-          <div class="card-body">
-            <div class="time-display">
-              <div class="time-item">
-                <span class="label">開始</span>
-                <button
-                  @click="handleTimeClick(index, 'start')"
-                  class="time-btn"
-                >
-                  {{ workDay.startTime }}
-                </button>
-              </div>
-              <div class="time-separator">〜</div>
-              <div class="time-item">
-                <span class="label">終了</span>
-                <button
-                  @click="handleTimeClick(index, 'end')"
-                  class="time-btn"
-                >
-                  {{ workDay.endTime }}
-                </button>
-              </div>
-            </div>
-            <div class="work-time-display">
-              <span class="work-time-label">勤務時間:</span>
-              <span class="work-time-value">{{ formatWorkTime(workDay) }}</span>
-            </div>
+          <div class="card-hours">
+            <span class="hours-icon">💼</span>
+            <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
           </div>
         </div>
       </div>
@@ -136,42 +116,109 @@
       </div>
     </div>
 
-    <!-- 時刻選択モーダル（簡易版） -->
+    <!-- 時刻選択モーダル（OLD_S-SManager風） -->
     <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>時刻設定</h3>
-        </div>
-        <div class="modal-body">
-          <div class="modal-date-info" v-if="currentEditIndex !== null">
-            {{ workDays[currentEditIndex].displayDate }}
-          </div>
-          <div class="modal-time-inputs">
-            <div class="modal-time-group">
-              <label>開始時刻</label>
-              <input
-                type="time"
-                v-model="tempStartTime"
-                class="modal-time-input"
-              />
-            </div>
-            <div class="modal-time-group">
-              <label>終了時刻</label>
-              <input
-                type="time"
-                v-model="tempEndTime"
-                class="modal-time-input"
-              />
+      <div class="modal-content time-picker-modal" @click.stop>
+        <h3 class="modal-title" v-if="currentEditIndex !== null">
+          {{ workDays[currentEditIndex].displayDate }}
+        </h3>
+
+        <!-- 開始時間 -->
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <label class="modal-label">開始時間</label>
+            <div class="toggle-switch">
+              <input type="checkbox" id="startPeriodToggle" v-model="startPm" class="toggle-input">
+              <label for="startPeriodToggle" class="toggle-label">
+                <span class="toggle-text-am">午前</span>
+                <span class="toggle-text-pm">午後</span>
+                <span class="toggle-slider"></span>
+              </label>
             </div>
           </div>
+
+          <!-- 時間選択 -->
+          <div class="hour-selector-row">
+            <button
+              v-for="hour in 12"
+              :key="'start-' + hour"
+              class="hour-btn"
+              :class="{ active: selectedStartHour === hour }"
+              @click="selectedStartHour = hour"
+            >
+              {{ hour }}
+            </button>
+          </div>
+
+          <!-- 分選択 -->
+          <div class="minute-selector-row">
+            <button
+              v-for="minute in [0, 15, 30, 45]"
+              :key="'start-min-' + minute"
+              class="minute-btn"
+              :class="{ active: selectedStartMinute === minute }"
+              @click="selectedStartMinute = minute"
+            >
+              {{ String(minute).padStart(2, '0') }}
+            </button>
+          </div>
+
+          <div class="time-preview">選択: <span>{{ formattedStartTime }}</span></div>
         </div>
-        <div class="modal-footer">
-          <button @click="cancelTimeEdit" class="modal-btn cancel-btn">
-            キャンセル
-          </button>
-          <button @click="confirmTimeEdit" class="modal-btn confirm-btn">
-            OK
-          </button>
+
+        <!-- 終了時間 -->
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <label class="modal-label">終了時間</label>
+            <div class="toggle-switch">
+              <input type="checkbox" id="endPeriodToggle" v-model="endPm" class="toggle-input">
+              <label for="endPeriodToggle" class="toggle-label">
+                <span class="toggle-text-am">午前</span>
+                <span class="toggle-text-pm">午後</span>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 時間選択 -->
+          <div class="hour-selector-row">
+            <button
+              v-for="hour in 12"
+              :key="'end-' + hour"
+              class="hour-btn"
+              :class="{ active: selectedEndHour === hour }"
+              @click="selectedEndHour = hour"
+            >
+              {{ hour }}
+            </button>
+          </div>
+
+          <!-- 分選択 -->
+          <div class="minute-selector-row">
+            <button
+              v-for="minute in [0, 15, 30, 45]"
+              :key="'end-min-' + minute"
+              class="minute-btn"
+              :class="{ active: selectedEndMinute === minute }"
+              @click="selectedEndMinute = minute"
+            >
+              {{ String(minute).padStart(2, '0') }}
+            </button>
+          </div>
+
+          <div class="time-preview">選択: <span>{{ formattedEndTime }}</span></div>
+        </div>
+
+        <div class="modal-work-hours">
+          勤務時間: <span>{{ calculatedWorkHours }}</span>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="confirmTimeEdit" class="btn-modal btn-primary-modal">設定する</button>
+          <div class="modal-buttons-row">
+            <button @click="cancelTimeEdit" class="btn-modal btn-secondary-modal">キャンセル</button>
+            <button @click="handleRemoveFromModal" class="btn-modal btn-danger-modal">シフトを外す</button>
+          </div>
         </div>
       </div>
     </div>
@@ -199,16 +246,42 @@ const { totalSummary } = storeToRefs(timeRegisterStore)
 const { formatMinutesToHours } = useTimeFormat()
 const { calculateBreakTime } = useTimeCalculation()
 
-// 簡易時刻選択モーダルの状態
+// 時刻選択モーダルの状態
 const showTimeModal = ref(false)
 const currentEditIndex = ref<number | null>(null)
-const currentEditType = ref<'start' | 'end'>('start')
-const tempStartTime = ref('09:00')
-const tempEndTime = ref('18:00')
+const startPm = ref(false) // 午前=false, 午後=true
+const endPm = ref(true)
+const selectedStartHour = ref(9)
+const selectedStartMinute = ref(0)
+const selectedEndHour = ref(6)
+const selectedEndMinute = ref(0)
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
   return workDays.value
+})
+
+// 選択された開始時刻をフォーマット
+const formattedStartTime = computed(() => {
+  const hour24 = startPm.value
+    ? (selectedStartHour.value === 12 ? 12 : selectedStartHour.value + 12)
+    : (selectedStartHour.value === 12 ? 0 : selectedStartHour.value)
+  return `${String(hour24).padStart(2, '0')}:${String(selectedStartMinute.value).padStart(2, '0')}`
+})
+
+// 選択された終了時刻をフォーマット
+const formattedEndTime = computed(() => {
+  const hour24 = endPm.value
+    ? (selectedEndHour.value === 12 ? 12 : selectedEndHour.value + 12)
+    : (selectedEndHour.value === 12 ? 0 : selectedEndHour.value)
+  return `${String(hour24).padStart(2, '0')}:${String(selectedEndMinute.value).padStart(2, '0')}`
+})
+
+// 計算された勤務時間
+const calculatedWorkHours = computed(() => {
+  const { calculateWorkMinutes } = useTimeCalculation()
+  const minutes = calculateWorkMinutes(formattedStartTime.value, formattedEndTime.value)
+  return formatMinutesToHours(minutes)
 })
 
 // 初期化
@@ -269,12 +342,44 @@ const handleRemoveDay = (index: number) => {
 }
 
 // 時刻選択
-const handleTimeClick = (index: number, type: 'start' | 'end') => {
+const handleTimeClick = (index: number, type: string) => {
   const workDay = workDays.value[index]
   currentEditIndex.value = index
-  currentEditType.value = type
-  tempStartTime.value = workDay.startTime
-  tempEndTime.value = workDay.endTime
+
+  // 開始時刻のパース
+  const [startHourStr, startMinStr] = workDay.startTime.split(':').map(Number)
+  if (startHourStr === 0) {
+    startPm.value = false
+    selectedStartHour.value = 12
+  } else if (startHourStr < 12) {
+    startPm.value = false
+    selectedStartHour.value = startHourStr
+  } else if (startHourStr === 12) {
+    startPm.value = true
+    selectedStartHour.value = 12
+  } else {
+    startPm.value = true
+    selectedStartHour.value = startHourStr - 12
+  }
+  selectedStartMinute.value = startMinStr
+
+  // 終了時刻のパース
+  const [endHourStr, endMinStr] = workDay.endTime.split(':').map(Number)
+  if (endHourStr === 0) {
+    endPm.value = false
+    selectedEndHour.value = 12
+  } else if (endHourStr < 12) {
+    endPm.value = false
+    selectedEndHour.value = endHourStr
+  } else if (endHourStr === 12) {
+    endPm.value = true
+    selectedEndHour.value = 12
+  } else {
+    endPm.value = true
+    selectedEndHour.value = endHourStr - 12
+  }
+  selectedEndMinute.value = endMinStr
+
   showTimeModal.value = true
 }
 
@@ -288,9 +393,18 @@ const cancelTimeEdit = () => {
 const confirmTimeEdit = () => {
   if (currentEditIndex.value !== null) {
     timeRegisterStore.updateWorkDay(currentEditIndex.value, {
-      startTime: tempStartTime.value,
-      endTime: tempEndTime.value
+      startTime: formattedStartTime.value,
+      endTime: formattedEndTime.value
     })
+  }
+  showTimeModal.value = false
+  currentEditIndex.value = null
+}
+
+// モーダルからシフトを外す
+const handleRemoveFromModal = () => {
+  if (currentEditIndex.value !== null) {
+    timeRegisterStore.toggleRemoveDay(currentEditIndex.value)
   }
   showTimeModal.value = false
   currentEditIndex.value = null
@@ -453,16 +567,24 @@ const handleNext = () => {
 .work-days-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
 }
 
 .work-day-card {
   background: white;
-  border-radius: 12px;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.work-day-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border-left-color: #667eea;
 }
 
 .work-day-card.removed {
@@ -471,111 +593,54 @@ const handleNext = () => {
 }
 
 .work-day-card.modified {
-  border-left: 4px solid #10b981;
+  border-left-color: #fbbf24;
+  background: #fffbeb;
 }
 
-.card-header {
+.card-content-horizontal {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
-.date-display {
-  font-size: 1.125rem;
+.card-date {
+  font-size: 1rem;
   font-weight: 700;
   color: #333;
 }
 
-.remove-btn {
-  padding: 0.5rem 1rem;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.work-day-card.removed .remove-btn {
-  background: #10b981;
-}
-
-.remove-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.time-display {
+.card-time-section {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
-.time-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.time-item .label {
-  font-size: 0.75rem;
-  color: #666;
+.time-value {
+  font-size: 1rem;
   font-weight: 600;
-}
-
-.time-btn {
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.time-btn:hover {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  color: #667eea;
 }
 
 .time-separator {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #999;
-  margin-top: 1.25rem;
-}
-
-.work-time-display {
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.work-time-label {
   font-size: 0.875rem;
-  font-weight: 600;
+  color: #999;
+}
+
+.card-hours {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
   color: #666;
 }
 
-.work-time-value {
+.hours-icon {
   font-size: 1rem;
-  font-weight: 700;
-  color: #667eea;
+}
+
+.hours-text {
+  font-weight: 600;
 }
 
 /* 合計統計 */
@@ -669,26 +734,30 @@ const handleNext = () => {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-/* モーダル */
+/* 時刻選択モーダル */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   padding: 1rem;
+  overflow-y: auto;
 }
 
-.modal-content {
+.time-picker-modal {
   background: white;
-  border-radius: 16px;
-  max-width: 400px;
+  border-radius: 12px;
+  max-width: 500px;
   width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.5rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   animation: modalSlideIn 0.3s ease;
 }
@@ -696,80 +765,214 @@ const handleNext = () => {
 @keyframes modalSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-20px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-.modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.modal-header h3 {
-  margin: 0;
+.modal-title {
+  margin: 0 0 1.5rem 0;
   font-size: 1.25rem;
-  color: #333;
-  font-weight: 700;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.modal-date-info {
-  font-size: 1.125rem;
   font-weight: 700;
   color: #667eea;
-  margin-bottom: 1.5rem;
   text-align: center;
 }
 
-.modal-time-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+.modal-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
 }
 
-.modal-time-group {
+.modal-section-header {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
-.modal-time-group label {
+.modal-label {
   font-size: 0.875rem;
+  font-weight: 700;
+  color: #333;
+}
+
+/* トグルスイッチ */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+}
+
+.toggle-input {
+  display: none;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  background: #e0e0e0;
+  border-radius: 20px;
+  padding: 2px;
+  cursor: pointer;
+  position: relative;
+  width: 100px;
+  height: 32px;
+}
+
+.toggle-text-am,
+.toggle-text-pm {
+  flex: 1;
+  text-align: center;
+  font-size: 0.75rem;
   font-weight: 600;
+  z-index: 2;
+  transition: color 0.3s ease;
   color: #666;
 }
 
-.modal-time-input {
-  padding: 0.875rem;
+.toggle-input:checked ~ .toggle-label .toggle-text-am {
+  color: #666;
+}
+
+.toggle-input:checked ~ .toggle-label .toggle-text-pm {
+  color: white;
+}
+
+.toggle-input:not(:checked) ~ .toggle-label .toggle-text-am {
+  color: white;
+}
+
+.toggle-input:not(:checked) ~ .toggle-label .toggle-text-pm {
+  color: #666;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 48px;
+  height: 28px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 18px;
+  transition: transform 0.3s ease;
+}
+
+.toggle-input:checked ~ .toggle-label .toggle-slider {
+  transform: translateX(48px);
+}
+
+/* 時間選択ボタン */
+.hour-selector-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.hour-btn {
+  padding: 0.75rem;
   border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1.125rem;
+  background: white;
+  border-radius: 6px;
+  font-size: 0.875rem;
   font-weight: 600;
-  transition: all 0.3s ease;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.modal-time-input:focus {
-  outline: none;
+.hour-btn:hover {
   border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: rgba(102, 126, 234, 0.05);
 }
 
-.modal-footer {
-  padding: 1.5rem;
-  border-top: 1px solid #e0e0e0;
+.hour-btn.active {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  transform: scale(1.05);
+}
+
+/* 分選択ボタン */
+.minute-selector-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.minute-btn {
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.minute-btn:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.minute-btn.active {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  transform: scale(1.05);
+}
+
+.time-preview {
+  font-size: 0.875rem;
+  color: #666;
+  text-align: center;
+}
+
+.time-preview span {
+  font-weight: 700;
+  color: #667eea;
+  font-size: 1rem;
+}
+
+/* 勤務時間表示 */
+.modal-work-hours {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.modal-work-hours span {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+/* モーダルボタン */
+.modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-buttons-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
-.modal-btn {
+.btn-modal {
   padding: 0.875rem;
   border: none;
   border-radius: 8px;
@@ -779,24 +982,32 @@ const handleNext = () => {
   transition: all 0.3s ease;
 }
 
-.cancel-btn {
-  background: #f5f5f5;
-  color: #666;
-}
-
-.cancel-btn:hover {
-  background: #e0e0e0;
-  transform: translateY(-2px);
-}
-
-.confirm-btn {
+.btn-primary-modal {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
 }
 
-.confirm-btn:hover {
+.btn-primary-modal:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary-modal {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.btn-secondary-modal:hover {
+  background: #e0e0e0;
+}
+
+.btn-danger-modal {
+  background: #fee;
+  color: #ef4444;
+}
+
+.btn-danger-modal:hover {
+  background: #fdd;
 }
 
 /* レスポンシブ */
@@ -825,17 +1036,19 @@ const handleNext = () => {
 }
 
 @media (max-width: 480px) {
-  .time-display {
-    flex-direction: column;
-    gap: 0.5rem;
+  .hour-selector-row {
+    grid-template-columns: repeat(4, 1fr);
   }
 
-  .time-separator {
-    transform: rotate(90deg);
-    margin: 0;
+  .minute-selector-row {
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  .modal-footer {
+  .time-picker-modal {
+    padding: 1rem;
+  }
+
+  .modal-buttons-row {
     grid-template-columns: 1fr;
   }
 }
