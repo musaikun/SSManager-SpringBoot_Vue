@@ -170,15 +170,25 @@ const handleLogin = () => {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 4rem;
+  font-size: clamp(2rem, 8vw, 4rem); /* レスポンシブ: 最小2rem、最大4rem */
   letter-spacing: 0.05em;
   gap: 8px;
   margin: 0;
+  padding: 0 1rem; /* 左右に余白を追加 */
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 5;
+  white-space: nowrap; /* 折り返しを防ぐ */
+}
+
+/* スマホ対応: さらに小さい画面 */
+@media (max-width: 480px) {
+  .wind-text {
+    font-size: clamp(1.5rem, 10vw, 2.5rem);
+    gap: 4px;
+  }
 }
 
 .title-s, .title-s2 {
@@ -230,6 +240,7 @@ const handleLogin = () => {
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
+  transition: opacity 0.3s ease;
 }
 
 .main-btn {
@@ -254,6 +265,14 @@ const handleLogin = () => {
   transform: translateY(0);
 }
 
+/* スマホ対応: ボタン */
+@media (max-width: 480px) {
+  .main-btn {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+  }
+}
+
 /* === ログインフォーム === */
 .login-form {
   position: absolute;
@@ -264,6 +283,8 @@ const handleLogin = () => {
   flex-direction: column;
   gap: 1rem;
   padding: 2rem;
+  width: min(400px, 90vw); /* レスポンシブ幅 */
+  max-width: 400px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-radius: 16px;
@@ -286,6 +307,8 @@ const handleLogin = () => {
   border: none;
   border-radius: 8px;
   outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .login-form button {
@@ -298,11 +321,30 @@ const handleLogin = () => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 100%;
 }
 
 .login-form button:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(111, 58, 208, 0.4);
+}
+
+/* スマホ対応: ログインフォーム */
+@media (max-width: 480px) {
+  .login-form {
+    padding: 1.5rem;
+    gap: 0.75rem;
+  }
+
+  .login-form input {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  .login-form button {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+  }
 }
 
 /* === 著作権 === */
