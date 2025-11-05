@@ -81,7 +81,6 @@
           @click="handleDateClick(cell)"
         >
           <div class="date-number">{{ cell.date.getDate() }}</div>
-          <div v-if="cell.isHoliday" class="holiday-name">{{ cell.holidayName }}</div>
         </div>
       </div>
     </div>
@@ -411,28 +410,22 @@ const navigateToTimeRegister = () => {
   font-weight: 700;
 }
 
-.date-cell.holiday:not(.selected):not(.past) {
-  background: rgba(255, 107, 163, 0.15);
-}
-
-.date-cell.saturday:not(.selected):not(.holiday):not(.past) {
+.date-cell.saturday:not(.selected):not(.holiday):not(.past) .date-number {
   color: #6ba3ff;
 }
 
-.date-cell.sunday:not(.selected):not(.holiday):not(.past) {
+.date-cell.sunday:not(.selected):not(.holiday):not(.past) .date-number {
   color: #ff6ba3;
+}
+
+.date-cell.holiday:not(.selected):not(.past) .date-number {
+  color: #ff0000;
+  font-weight: 700;
 }
 
 .date-number {
   font-size: 1.125rem;
   font-weight: 600;
-}
-
-.holiday-name {
-  font-size: 0.625rem;
-  margin-top: 0.25rem;
-  text-align: center;
-  line-height: 1.2;
 }
 
 /* フッター */
@@ -542,10 +535,6 @@ const navigateToTimeRegister = () => {
 
   .date-number {
     font-size: 0.9rem;
-  }
-
-  .holiday-name {
-    font-size: 0.5rem;
   }
 
   .next-btn {
