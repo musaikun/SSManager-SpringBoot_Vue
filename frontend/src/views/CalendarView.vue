@@ -2,10 +2,13 @@
   <div class="calendar-view">
     <!-- ヘッダー -->
     <header class="calendar-header">
-      <button @click="goToToday" class="today-btn">今月</button>
-      <button @click="previousMonth" class="nav-btn">‹</button>
+      <button @click="setThisMonth" class="month-btn" :class="{ active: isThisMonth }">
+        今月
+      </button>
+      <button @click="setNextMonth" class="month-btn" :class="{ active: isNextMonth }">
+        来月
+      </button>
       <h1 class="current-month">{{ currentMonthInfo.displayText }}</h1>
-      <button @click="nextMonth" class="nav-btn">›</button>
     </header>
 
     <!-- ツールバー -->
@@ -16,7 +19,6 @@
           :key="index"
           @click="selectByWeekday(index)"
           class="weekday-btn"
-          :class="{ weekend: index === 0 || index === 6 }"
         >
           {{ day }}
         </button>
@@ -24,8 +26,6 @@
       <div class="action-buttons">
         <button @click="selectAll" class="action-btn">全選択</button>
         <button @click="clearAll" class="action-btn">クリア</button>
-        <button @click="loadTemplate" class="action-btn">テンプレート読込</button>
-        <button @click="showSaveTemplateDialog" class="action-btn">テンプレート保存</button>
       </div>
     </div>
 
@@ -65,21 +65,6 @@
       </div>
     </div>
 
-    <!-- 選択済みリスト -->
-    <div v-if="selectedCount > 0" class="selected-list">
-      <h3>選択済み: {{ selectedCount }}日</h3>
-      <div class="selected-dates">
-        <span
-          v-for="dateStr in selectedDates.slice(0, 10)"
-          :key="dateStr"
-          class="selected-date-chip"
-        >
-          {{ formatDisplayShort(dateStr) }}
-        </span>
-        <span v-if="selectedCount > 10">... 他{{ selectedCount - 10 }}日</span>
-      </div>
-    </div>
-
     <!-- 次へボタン -->
     <div class="footer">
       <button
@@ -90,56 +75,51 @@
         次へ（時間登録）
       </button>
     </div>
-
-    <!-- テンプレート保存ダイアログ（簡易版） -->
-    <div v-if="showTemplateDialog" class="dialog-overlay" @click="hideTemplateDialog">
-      <div class="dialog" @click.stop>
-        <h3>テンプレート保存</h3>
-        <input v-model="templateName" placeholder="テンプレート名" />
-        <div class="dialog-actions">
-          <button @click="saveTemplateConfirm">保存</button>
-          <button @click="hideTemplateDialog">キャンセル</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCalendar } from '../composables/useCalendar'
 import { useHolidays } from '../composables/useHolidays'
 import { useCalendarStore } from '../stores/calendar'
-import { formatDisplayDate } from '../utils/dateUtils'
 import type { CalendarCell } from '../types/calendar'
 
 const router = useRouter()
 const store = useCalendarStore()
 
+// 今月と来月の情報
+const today = new Date()
+const thisMonth = { year: today.getFullYear(), month: today.getMonth() }
+const nextMonthDate = new Date(thisMonth.year, thisMonth.month + 1, 1)
+const nextMonth = { year: nextMonthDate.getFullYear(), month: nextMonthDate.getMonth() }
+
 // Composables
 const {
   calendarCells,
   currentMonthInfo,
-  selectedDates,
   selectedCount,
   toggleDate,
   selectAll,
   clearAll,
   selectByWeekday,
-  goToToday,
-  previousMonth,
-  nextMonth,
-  saveTemplate,
-  loadTemplate
+  setMonth
 } = useCalendar()
 
 const { fetchHolidaysWithCache } = useHolidays()
 
 // ローカル状態
 const weekdays = ['日', '月', '火', '水', '木', '金', '土']
-const showTemplateDialog = ref(false)
-const templateName = ref('')
+
+// 今月・来月の判定
+const isThisMonth = computed(() => {
+  return store.currentYear === thisMonth.year && store.currentMonth === thisMonth.month
+})
+
+const isNextMonth = computed(() => {
+  return store.currentYear === nextMonth.year && store.currentMonth === nextMonth.month
+})
 
 // 初期化
 onMounted(async () => {
@@ -155,32 +135,12 @@ const handleDateClick = (cell: CalendarCell) => {
   toggleDate(cell.dateString)
 }
 
-const formatDisplayShort = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return formatDisplayDate(date)
+const setThisMonth = () => {
+  setMonth(thisMonth.year, thisMonth.month)
 }
 
-const showSaveTemplateDialog = () => {
-  if (selectedCount.value === 0) {
-    alert('選択された日付がありません')
-    return
-  }
-  showTemplateDialog.value = true
-}
-
-const hideTemplateDialog = () => {
-  showTemplateDialog.value = false
-  templateName.value = ''
-}
-
-const saveTemplateConfirm = () => {
-  if (!templateName.value.trim()) {
-    alert('テンプレート名を入力してください')
-    return
-  }
-  saveTemplate(templateName.value)
-  hideTemplateDialog()
-  alert('テンプレートを保存しました')
+const setNextMonth = () => {
+  setMonth(nextMonth.year, nextMonth.month)
 }
 
 const navigateToTimeRegister = () => {
@@ -214,7 +174,7 @@ const navigateToTimeRegister = () => {
   text-align: center;
 }
 
-.today-btn, .nav-btn {
+.month-btn {
   padding: 0.5rem 1rem;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -222,16 +182,17 @@ const navigateToTimeRegister = () => {
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-weight: 600;
 }
 
-.today-btn:hover, .nav-btn:hover {
+.month-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
 }
 
-.nav-btn {
-  font-size: 1.5rem;
-  padding: 0.5rem 1.25rem;
+.month-btn.active {
+  background: linear-gradient(135deg, #6f3ad0, #a36bff);
+  border-color: #a36bff;
 }
 
 /* ツールバー */
@@ -250,27 +211,26 @@ const navigateToTimeRegister = () => {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
 
 .weekday-btn {
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #6f3ad0, #a36bff);
-  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   color: white;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s ease;
-}
-
-.weekday-btn.weekend {
-  background: linear-gradient(135deg, #d03a6f, #ff6ba3);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .weekday-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(111, 58, 208, 0.4);
 }
 
 .action-buttons {
@@ -343,8 +303,9 @@ const navigateToTimeRegister = () => {
 }
 
 .date-cell:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(100, 150, 255, 0.2);
   transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(100, 150, 255, 0.6);
 }
 
 .date-cell.other-month {
@@ -361,7 +322,7 @@ const navigateToTimeRegister = () => {
 }
 
 .date-cell.selected {
-  background: linear-gradient(135deg, #6f3ad0, #a36bff);
+  background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
   font-weight: 700;
 }
@@ -388,32 +349,6 @@ const navigateToTimeRegister = () => {
   margin-top: 0.25rem;
   text-align: center;
   line-height: 1.2;
-}
-
-/* 選択済みリスト */
-.selected-list {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.selected-list h3 {
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-}
-
-.selected-dates {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.selected-date-chip {
-  padding: 0.375rem 0.75rem;
-  background: rgba(111, 58, 208, 0.3);
-  border-radius: 16px;
-  font-size: 0.875rem;
 }
 
 /* フッター */
@@ -443,79 +378,6 @@ const navigateToTimeRegister = () => {
   background: rgba(255, 255, 255, 0.2);
   cursor: not-allowed;
   opacity: 0.5;
-}
-
-/* ダイアログ */
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.dialog {
-  background: rgba(30, 30, 30, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 2rem;
-  width: min(400px, 90vw);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.dialog h3 {
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-}
-
-.dialog input {
-  width: 100%;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: white;
-  font-size: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.dialog input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.dialog-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.dialog-actions button {
-  flex: 1;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.dialog-actions button:first-child {
-  background: linear-gradient(135deg, #6f3ad0, #a36bff);
-  color: white;
-}
-
-.dialog-actions button:last-child {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-.dialog-actions button:hover {
-  transform: translateY(-2px);
 }
 
 /* レスポンシブ */
