@@ -2,19 +2,19 @@
   <div class="home-container">
     <!-- タイトルを3つに分割 -->
     <h1 class="wind-text">
-      <span class="title-s">S</span>
-      <span class="shine-x">×</span>
-      <span class="title-s2">S Manager</span>
+      <span ref="titleSRef" class="title-s" :class="{ 'fade-out-left': isAnimating }">S</span>
+      <span ref="shineXRef" class="shine-x" :class="{ exploding: isExploding }">×</span>
+      <span ref="titleS2Ref" class="title-s2" :class="{ 'fade-out-right': isAnimating }">S Manager</span>
     </h1>
 
     <!-- 始めるボタン（中央配置） -->
-    <div class="btn-wrapper">
-      <button class="main-btn" @click="startAnimation">始める</button>
+    <div class="btn-wrapper" :class="{ hidden: isAnimating }">
+      <button class="main-btn" @click="startAnimation" :disabled="animationPlayed">始める</button>
     </div>
 
     <!-- ログインフォーム（初期非表示） -->
     <div class="login-form" :class="{ show: showLoginForm }">
-      <input type="text" placeholder="ユーザーID">
+      <input ref="firstInputRef" type="text" placeholder="ユーザーID">
       <input type="password" placeholder="パスワード">
       <button @click="handleLogin">新規登録</button>
     </div>
@@ -27,25 +27,106 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const showLoginForm = ref(false)
 const animationPlayed = ref(false)
+const isAnimating = ref(false)
+const isExploding = ref(false)
+
+// 要素への参照
+const titleSRef = ref<HTMLElement | null>(null)
+const titleS2Ref = ref<HTMLElement | null>(null)
+const shineXRef = ref<HTMLElement | null>(null)
+const firstInputRef = ref<HTMLInputElement | null>(null)
 
 /**
  * アニメーション開始
  */
-const startAnimation = () => {
+const startAnimation = async () => {
   if (animationPlayed.value) return
   animationPlayed.value = true
+  isAnimating.value = true
 
-  // TODO: アニメーション実装
-  // 今は単純にログインフォームを表示
+  // DOM更新を待つ
+  await nextTick()
+
+  // 700ms後に星分解アニメーション開始
+  setTimeout(() => {
+    explodeShine()
+    showLoginFormDelayed()
+  }, 700)
+}
+
+/**
+ * × を星に分解するアニメーション
+ */
+const explodeShine = () => {
+  if (!shineXRef.value) return
+
+  const rect = shineXRef.value.getBoundingClientRect()
+  const xCenter = rect.left + rect.width / 2
+  const yCenter = rect.top + rect.height / 2
+
+  // 星パーティクルを生成（40個）
+  const particleCount = 40
+  for (let i = 0; i < particleCount; i++) {
+    createParticle(xCenter, yCenter)
+  }
+
+  // × 本体をクラス追加でズームアウト＆フェードアウト
+  isExploding.value = true
+}
+
+/**
+ * パーティクルを生成・アニメーション
+ */
+const createParticle = (xCenter: number, yCenter: number) => {
+  const star = document.createElement('div')
+  star.classList.add('x-star')
+
+  // ランダム方向・距離を計算
+  const angle = Math.random() * Math.PI * 2
+  const distance = Math.random() * 160 + 40
+  const tx = Math.cos(angle) * distance
+  const ty = Math.sin(angle) * distance
+
+  // CSS変数に設定
+  star.style.setProperty('--tx', `${tx}px`)
+  star.style.setProperty('--ty', `${ty}px`)
+
+  // 位置を設定
+  star.style.left = `${xCenter}px`
+  star.style.top = `${yCenter}px`
+
+  // DOMに追加してアニメーション開始
+  document.body.appendChild(star)
+  star.style.animation = `starExplode 1.5s ease-out forwards`
+  star.style.opacity = '1'
+
+  // アニメーション終了後にDOM削除
+  setTimeout(() => {
+    if (star.parentNode) {
+      star.remove()
+    }
+  }, 1600)
+}
+
+/**
+ * ログインフォーム表示
+ */
+const showLoginFormDelayed = () => {
   setTimeout(() => {
     showLoginForm.value = true
-  }, 500)
+    // フォーカスを最初の入力欄に移動
+    nextTick(() => {
+      if (firstInputRef.value) {
+        firstInputRef.value.focus()
+      }
+    })
+  }, 1600)
 }
 
 /**
@@ -232,5 +313,61 @@ const handleLogin = () => {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.875rem;
   z-index: 5;
+}
+
+/* === アニメーション === */
+/* タイトルのフェードアウト（左） */
+.title-s.fade-out-left {
+  transform: translateX(-60px);
+  opacity: 0;
+}
+
+/* タイトルのフェードアウト（右） */
+.title-s2.fade-out-right {
+  transform: translateX(60px);
+  opacity: 0;
+}
+
+/* ボタンの非表示 */
+.btn-wrapper.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ×の爆発エフェクト */
+.shine-x.exploding {
+  animation: none !important;
+  transition: opacity 1.5s ease-out, transform 1.5s ease-in, filter 1.5s ease-out !important;
+  opacity: 0 !important;
+  transform: scale(15) !important;
+  filter: drop-shadow(0 0 0px rgba(0,0,0,0)) !important;
+  visibility: hidden !important;
+}
+</style>
+
+<style>
+/* グローバルスタイル: 星パーティクル（scoped外で定義） */
+.x-star {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, #a36bff 0%, rgba(255,255,255,0) 80%);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+  z-index: 100;
+}
+
+@keyframes starExplode {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(0.5);
+  }
 }
 </style>
