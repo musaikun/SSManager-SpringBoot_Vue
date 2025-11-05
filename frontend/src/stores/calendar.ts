@@ -95,10 +95,19 @@ export const useCalendarStore = defineStore('calendar', {
     },
 
     /**
-     * 全ての日付を選択
+     * 全ての日付を選択（トグル対応）
      */
     selectAll(dates: DateString[]) {
-      dates.forEach(date => this.selectedDates.add(date))
+      // 全ての対象日付が選択済みかチェック
+      const allSelected = dates.every(date => this.selectedDates.has(date))
+
+      if (allSelected) {
+        // 全て選択済みなら解除
+        dates.forEach(date => this.selectedDates.delete(date))
+      } else {
+        // 選択されていない日付がある場合は全て選択
+        dates.forEach(date => this.selectedDates.add(date))
+      }
     },
 
     /**
@@ -109,15 +118,25 @@ export const useCalendarStore = defineStore('calendar', {
     },
 
     /**
-     * 曜日で選択
+     * 曜日で選択（トグル対応）
      */
     selectByWeekday(dates: DateString[], targetDayOfWeek: number) {
-      dates.forEach(dateString => {
+      // 対象曜日の日付を抽出
+      const targetDates = dates.filter(dateString => {
         const date = new Date(dateString)
-        if (date.getDay() === targetDayOfWeek) {
-          this.selectedDates.add(dateString)
-        }
+        return date.getDay() === targetDayOfWeek
       })
+
+      // 対象曜日の日付が全て選択済みかチェック
+      const allSelected = targetDates.every(date => this.selectedDates.has(date))
+
+      if (allSelected) {
+        // 全て選択済みなら解除
+        targetDates.forEach(date => this.selectedDates.delete(date))
+      } else {
+        // 選択されていない日付がある場合は全て選択
+        targetDates.forEach(date => this.selectedDates.add(date))
+      }
     },
 
     /**

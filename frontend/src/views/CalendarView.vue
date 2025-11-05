@@ -22,7 +22,7 @@
 
       <!-- アクションボタン：全選択・クリア -->
       <div class="action-buttons">
-        <button @click="selectAll" class="action-btn">全選択</button>
+        <button @click="selectAll" class="action-btn" :class="{ selected: isAllSelected }">全選択</button>
         <button @click="clearAll" class="action-btn">クリア</button>
       </div>
 
@@ -33,25 +33,10 @@
           :key="index"
           @click="selectByWeekday(index)"
           class="weekday-btn"
+          :class="{ selected: isWeekdayFullySelected(index) }"
         >
           {{ day }}
         </button>
-      </div>
-
-      <!-- 統計情報 -->
-      <div class="calendar-stats">
-        <div class="stat-item">
-          <span class="stat-label">選択日数:</span>
-          <span class="stat-value">{{ selectedCount }}日</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">平日:</span>
-          <span class="stat-value">{{ weekdayCount }}日</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">休日:</span>
-          <span class="stat-value">{{ holidayCount }}日</span>
-        </div>
       </div>
 
       <!-- 曜日ヘッダー -->
@@ -60,7 +45,10 @@
           v-for="(day, index) in weekdays"
           :key="index"
           class="weekday-header"
-          :class="{ weekend: index === 0 || index === 6 }"
+          :class="{
+            sunday: index === 0,
+            saturday: index === 6
+          }"
         >
           {{ day }}
         </div>
@@ -84,6 +72,17 @@
           @click="handleDateClick(cell)"
         >
           <div class="date-number">{{ cell.date.getDate() }}</div>
+        </div>
+      </div>
+
+      <!-- 統計情報 -->
+      <div class="calendar-stats">
+        <div class="stat-summary">
+          <span class="stat-label">選択日数:</span>
+          <span class="stat-value">{{ selectedCount }}日</span>
+        </div>
+        <div class="stat-comment">
+          （{{ currentMonthInfo.month + 1 }}月の平日は{{ weekdayCount }}日、休日は{{ holidayCount }}日です）
         </div>
       </div>
     </div>
@@ -126,6 +125,8 @@ const {
   selectedCount,
   weekdayCount,
   holidayCount,
+  isAllSelected,
+  isWeekdayFullySelected,
   toggleDate,
   selectAll,
   clearAll,
@@ -275,6 +276,12 @@ const navigateToTimeRegister = () => {
   transform: translateY(-2px);
 }
 
+.action-btn.selected {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
 /* 曜日一括選択ボタン */
 .weekday-buttons {
   display: grid;
@@ -302,34 +309,46 @@ const navigateToTimeRegister = () => {
   transform: translateY(-2px);
 }
 
+.weekday-btn.selected {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
 /* 統計情報 */
 .calendar-stats {
-  display: flex;
-  gap: 1.5rem;
-  justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
   padding: 1rem;
   background: #f9f9f9;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
+  text-align: center;
 }
 
-.stat-item {
+.stat-summary {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .stat-label {
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: #666;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .stat-value {
-  font-size: 1.1rem;
-  color: #333;
+  font-size: 1.25rem;
+  color: #667eea;
   font-weight: 700;
+}
+
+.stat-comment {
+  font-size: 0.875rem;
+  color: #999;
+  font-style: italic;
 }
 
 /* 曜日ヘッダー */
@@ -348,8 +367,12 @@ const navigateToTimeRegister = () => {
   color: #666;
 }
 
-.weekday-header.weekend {
+.weekday-header.sunday {
   color: #ff6ba3;
+}
+
+.weekday-header.saturday {
+  color: #6ba3ff;
 }
 
 /* カレンダー日付グリッド */

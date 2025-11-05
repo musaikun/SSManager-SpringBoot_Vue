@@ -42,19 +42,6 @@
         </transition>
       </div>
 
-      <!-- 休憩時間設定 -->
-      <div class="break-time-section">
-        <label class="break-time-toggle">
-          <input
-            type="checkbox"
-            v-model="includeBreak"
-            @change="handleBreakToggle"
-          />
-          <span>休憩時間を引く</span>
-          <button @click="showBreakHelp" class="help-btn">?</button>
-        </label>
-      </div>
-
       <!-- 勤務日カードリスト -->
       <div class="work-days-list">
         <div
@@ -77,6 +64,19 @@
             <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
           </div>
         </div>
+      </div>
+
+      <!-- 休憩時間設定 -->
+      <div class="break-time-section">
+        <label class="break-time-toggle">
+          <input
+            type="checkbox"
+            v-model="includeBreak"
+            @change="handleBreakToggle"
+          />
+          <span>休憩時間を引く</span>
+          <button @click="showBreakHelp" class="help-btn">?</button>
+        </label>
       </div>
 
       <!-- 合計統計 -->
@@ -129,7 +129,10 @@
           </h3>
 
           <!-- シフトを外すボタン（個別設定のみ） -->
-          <button @click="handleRemoveFromModal" class="remove-shift-btn" v-if="!isBulkMode && currentEditIndex !== null && workDays[currentEditIndex]">
+          <button @click="handleRemoveFromModal"
+            class="remove-shift-btn"
+            :class="{ restore: currentEditIndex !== null && workDays[currentEditIndex] && workDays[currentEditIndex].isRemoved }"
+            v-if="!isBulkMode && currentEditIndex !== null && workDays[currentEditIndex]">
             {{ workDays[currentEditIndex].isRemoved ? 'シフトを戻す' : 'シフトを外す' }}
           </button>
         </div>
@@ -277,7 +280,7 @@ const { formatMinutesToHours } = useTimeFormat()
 const { calculateBreakTime } = useTimeCalculation()
 
 // アコーディオンの開閉状態
-const isBulkAccordionOpen = ref(true) // デフォルトで開いている
+const isBulkAccordionOpen = ref(false) // デフォルトで閉じている
 
 // 時刻選択モーダルの状態（24時間制）
 const showTimeModal = ref(false)
@@ -969,6 +972,15 @@ const handleNext = () => {
 .remove-shift-btn:hover {
   background: #fdd;
   transform: translateY(-1px);
+}
+
+.remove-shift-btn.restore {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.remove-shift-btn.restore:hover {
+  background: #bfdbfe;
 }
 
 .modal-section {

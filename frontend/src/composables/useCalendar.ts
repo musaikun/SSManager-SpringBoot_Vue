@@ -192,6 +192,27 @@ export function useCalendar() {
     }).length
   })
 
+  /**
+   * 指定曜日の日付が全て選択されているか
+   */
+  const isWeekdayFullySelected = (dayOfWeek: number): boolean => {
+    const targetDates = currentMonthFutureDates.value.filter(dateString => {
+      const date = new Date(dateString)
+      return date.getDay() === dayOfWeek
+    })
+
+    if (targetDates.length === 0) return false
+    return targetDates.every(date => store.isDateSelected(date))
+  }
+
+  /**
+   * 全ての日付が選択されているか
+   */
+  const isAllSelected = computed<boolean>(() => {
+    if (currentMonthFutureDates.value.length === 0) return false
+    return currentMonthFutureDates.value.every(date => store.isDateSelected(date))
+  })
+
   return {
     // Computed
     calendarCells,
@@ -200,6 +221,7 @@ export function useCalendar() {
     calendarWeeks,
     weekdayCount,
     holidayCount,
+    isAllSelected,
 
     // Store state (readonly)
     currentYear: computed(() => store.currentYear),
@@ -220,6 +242,9 @@ export function useCalendar() {
     saveTemplate,
     loadTemplate,
     copyPreviousMonth,
-    savePreviousMonthData
+    savePreviousMonthData,
+
+    // Utils
+    isWeekdayFullySelected
   }
 }
