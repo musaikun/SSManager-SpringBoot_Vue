@@ -37,33 +37,35 @@ body {
 /* 左へスライド（次へ進む） */
 .slide-left-enter-active,
 .slide-left-leave-active {
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  will-change: transform, opacity;
 }
 
 .slide-left-enter-from {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translate3d(100%, 0, 0);
 }
 
 .slide-left-leave-to {
   opacity: 0;
-  transform: translateX(-100%);
+  transform: translate3d(-100%, 0, 0);
 }
 
 /* 右へスライド（戻る） */
 .slide-right-enter-active,
 .slide-right-leave-active {
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  will-change: transform, opacity;
 }
 
 .slide-right-enter-from {
   opacity: 0;
-  transform: translateX(-100%);
+  transform: translate3d(-100%, 0, 0);
 }
 
 .slide-right-leave-to {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translate3d(100%, 0, 0);
 }
 
 /* トランジションなし */

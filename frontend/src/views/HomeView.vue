@@ -29,8 +29,10 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { useNavigationStore } from '../stores/navigation'
 
 const router = useRouter()
+const navigationStore = useNavigationStore()
 const showLoginForm = ref(false)
 const animationPlayed = ref(false)
 const isAnimating = ref(false)
@@ -135,6 +137,7 @@ const showLoginFormDelayed = () => {
 const handleLogin = () => {
   // TODO: 認証処理
   // 今はカレンダーページに遷移
+  navigationStore.setNone() // トランジションを無効化
   router.push('/calendar')
 }
 </script>

@@ -2,7 +2,7 @@
   <div
     class="time-register-view"
     @touchstart="handleViewTouchStart"
-    @touchmove="handleViewTouchMove"
+    @touchmove.passive="handleViewTouchMove"
     @touchend="handleViewTouchEnd"
   >
     <!-- 進捗インジケーター -->
@@ -456,6 +456,8 @@ const handleTouchStart = (event: TouchEvent, index: number) => {
 }
 
 const handleTouchMove = (event: TouchEvent, index: number) => {
+  if (isSwiping.value) return // すでにスワイプ中なら処理しない
+
   const touchCurrentX = event.touches[0].clientX
   const touchCurrentY = event.touches[0].clientY
   const diffX = touchStartX.value - touchCurrentX

@@ -2,7 +2,7 @@
   <div
     class="calendar-view"
     @touchstart="handleTouchStart"
-    @touchmove="handleTouchMove"
+    @touchmove.passive="handleTouchMove"
     @touchend="handleTouchEnd"
   >
     <!-- 進捗インジケーター -->
