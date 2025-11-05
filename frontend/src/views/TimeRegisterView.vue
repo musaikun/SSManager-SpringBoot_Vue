@@ -125,8 +125,8 @@
           </h3>
 
           <!-- シフトを外すボタン -->
-          <button @click="handleRemoveFromModal" class="remove-shift-btn">
-            シフトを外す
+          <button @click="handleRemoveFromModal" class="remove-shift-btn" v-if="currentEditIndex !== null && workDays[currentEditIndex]">
+            {{ workDays[currentEditIndex].isRemoved ? 'シフトを戻す' : 'シフトを外す' }}
           </button>
         </div>
 
@@ -958,10 +958,11 @@ const handleNext = () => {
   grid-template-columns: repeat(6, 1fr);
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+  min-width: 0; /* グリッドアイテムが縮小できるように */
 }
 
 .hour-btn {
-  padding: 0.75rem;
+  padding: 0.75rem 0.25rem;
   border: 2px solid #e0e0e0;
   background: white;
   border-radius: 6px;
@@ -970,6 +971,8 @@ const handleNext = () => {
   color: #333;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .hour-btn:hover {
@@ -990,10 +993,11 @@ const handleNext = () => {
   grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+  min-width: 0;
 }
 
 .minute-btn {
-  padding: 0.75rem;
+  padding: 0.75rem 0.25rem;
   border: 2px solid #e0e0e0;
   background: white;
   border-radius: 6px;
@@ -1002,6 +1006,8 @@ const handleNext = () => {
   color: #333;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .minute-btn:hover {
@@ -1051,16 +1057,19 @@ const handleNext = () => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+  width: 100%;
 }
 
 .btn-modal {
-  padding: 0.875rem;
+  padding: 0.875rem 0.5rem;
   border: none;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .btn-primary-modal {
@@ -1108,20 +1117,19 @@ const handleNext = () => {
 }
 
 @media (max-width: 480px) {
-  .hour-selector-row {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .minute-selector-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .time-picker-modal {
     padding: 1rem;
   }
 
-  .modal-buttons {
-    grid-template-columns: 1fr;
+  .hour-btn,
+  .minute-btn {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.15rem;
+  }
+
+  .btn-modal {
+    font-size: 0.875rem;
+    padding: 0.75rem 0.25rem;
   }
 }
 </style>
