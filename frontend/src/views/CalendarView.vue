@@ -2,17 +2,19 @@
   <div class="calendar-view">
     <!-- カレンダーカード -->
     <div class="calendar-card">
-      <!-- ヘッダー：今月・来月ボタン + 年月 -->
+      <!-- ヘッダー：年月 -->
       <div class="calendar-header">
-        <div class="month-buttons">
-          <button @click="setThisMonth" class="month-btn" :class="{ active: isThisMonth }">
-            今月
-          </button>
-          <button @click="setNextMonth" class="month-btn" :class="{ active: isNextMonth }">
-            来月
-          </button>
-        </div>
         <h1 class="current-month">{{ currentMonthInfo.displayText }}</h1>
+      </div>
+
+      <!-- 月選択ボタン：今月・来月 -->
+      <div class="month-buttons">
+        <button @click="setThisMonth" class="month-btn" :class="{ active: isThisMonth }">
+          今月
+        </button>
+        <button @click="setNextMonth" class="month-btn" :class="{ active: isNextMonth }">
+          来月
+        </button>
       </div>
 
       <!-- アクションボタン：全選択・クリア -->
@@ -31,6 +33,22 @@
         >
           {{ day }}
         </button>
+      </div>
+
+      <!-- 統計情報 -->
+      <div class="calendar-stats">
+        <div class="stat-item">
+          <span class="stat-label">選択日数:</span>
+          <span class="stat-value">{{ selectedCount }}日</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">平日:</span>
+          <span class="stat-value">{{ weekdayCount }}日</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">休日:</span>
+          <span class="stat-value">{{ holidayCount }}日</span>
+        </div>
       </div>
 
       <!-- 曜日ヘッダー -->
@@ -103,6 +121,8 @@ const {
   calendarCells,
   currentMonthInfo,
   selectedCount,
+  weekdayCount,
+  holidayCount,
   toggleDate,
   selectAll,
   clearAll,
@@ -185,17 +205,24 @@ const navigateToTimeRegister = () => {
 
 /* ヘッダー */
 .calendar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f0f0f0;
+  text-align: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
 }
 
+.current-month {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+/* 月選択ボタン */
 .month-buttons {
   display: flex;
   gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
 }
 
 .month-btn {
@@ -219,13 +246,6 @@ const navigateToTimeRegister = () => {
   background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.current-month {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #333;
-  text-align: center;
 }
 
 /* アクションボタン */
@@ -258,7 +278,7 @@ const navigateToTimeRegister = () => {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   flex-wrap: nowrap;
 }
 
@@ -279,6 +299,36 @@ const navigateToTimeRegister = () => {
 .weekday-btn:hover {
   background: #e0e0e0;
   transform: translateY(-2px);
+}
+
+/* 統計情報 */
+.calendar-stats {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 700;
 }
 
 /* 曜日ヘッダー */
@@ -323,7 +373,7 @@ const navigateToTimeRegister = () => {
   border: 2px solid transparent;
 }
 
-.date-cell:hover:not(.other-month):not(.past) {
+.date-cell:hover:not(.other-month):not(.past):not(.selected) {
   background: rgba(102, 126, 234, 0.1);
   transform: scale(1.05);
   box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
@@ -394,17 +444,17 @@ const navigateToTimeRegister = () => {
   font-size: 1.25rem;
   font-weight: 600;
   color: white;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #f97316, #fb923c);
   border: none;
   border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
 }
 
 .next-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
 }
 
 .next-btn:disabled {
@@ -453,12 +503,31 @@ const navigateToTimeRegister = () => {
 
   .weekday-buttons {
     gap: 0.3rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
 
   .weekday-btn {
     padding: 0.4rem 0.6rem;
     font-size: 0.8rem;
+  }
+
+  .calendar-stats {
+    gap: 1rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    gap: 0.3rem;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+  }
+
+  .stat-value {
+    font-size: 1rem;
   }
 
   .calendar-dates {

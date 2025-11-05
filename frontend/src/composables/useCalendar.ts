@@ -60,6 +60,15 @@ export function useCalendar() {
   })
 
   /**
+   * 当月の未来の日付のみ（過去を除外）
+   */
+  const currentMonthFutureDates = computed<DateString[]>(() => {
+    return currentMonthCells.value
+      .filter(cell => !cell.isPast)
+      .map(cell => cell.dateString)
+  })
+
+  /**
    * カレンダーを週ごとに分割
    */
   const calendarWeeks = computed<CalendarCell[][]>(() => {
@@ -81,10 +90,10 @@ export function useCalendar() {
   }
 
   /**
-   * 全選択
+   * 全選択（過去の日付を除外）
    */
   const selectAll = () => {
-    store.selectAll(currentMonthDates.value)
+    store.selectAll(currentMonthFutureDates.value)
   }
 
   /**
@@ -95,10 +104,10 @@ export function useCalendar() {
   }
 
   /**
-   * 曜日で選択
+   * 曜日で選択（過去の日付を除外）
    */
   const selectByWeekday = (dayOfWeek: number) => {
-    store.selectByWeekday(currentMonthDates.value, dayOfWeek)
+    store.selectByWeekday(currentMonthFutureDates.value, dayOfWeek)
   }
 
   /**
@@ -161,12 +170,34 @@ export function useCalendar() {
     store.savePreviousMonthData()
   }
 
+  /**
+   * 当月の平日数（月〜金で祝日でない日）
+   */
+  const weekdayCount = computed<number>(() => {
+    return currentMonthCells.value.filter(cell => {
+      // 月〜金 (1-5) で祝日でない日
+      return cell.dayOfWeek >= 1 && cell.dayOfWeek <= 5 && !cell.isHoliday
+    }).length
+  })
+
+  /**
+   * 当月の休日数（土日または祝日）
+   */
+  const holidayCount = computed<number>(() => {
+    return currentMonthCells.value.filter(cell => {
+      // 土日 (0, 6) または祝日
+      return cell.dayOfWeek === 0 || cell.dayOfWeek === 6 || cell.isHoliday
+    }).length
+  })
+
   return {
     // Computed
     calendarCells,
     currentMonthCells,
     currentMonthDates,
     calendarWeeks,
+    weekdayCount,
+    holidayCount,
 
     // Store state (readonly)
     currentYear: computed(() => store.currentYear),
