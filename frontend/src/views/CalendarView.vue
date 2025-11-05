@@ -1,10 +1,5 @@
 <template>
-  <div
-    class="calendar-view"
-    @touchstart="handleTouchStart"
-    @touchmove.passive="handleTouchMove"
-    @touchend="handleTouchEnd"
-  >
+  <div class="calendar-view">
     <!-- 進捗インジケーター -->
     <ProgressIndicator />
 
@@ -146,12 +141,6 @@ const { fetchHolidaysWithCache, holidays: holidaysData } = useHolidays()
 // ローカル状態
 const weekdays = ['日', '月', '火', '水', '木', '金', '土']
 
-// スワイプジェスチャー用の状態
-const touchStartX = ref(0)
-const touchStartY = ref(0)
-const touchEndX = ref(0)
-const touchEndY = ref(0)
-
 // 今月・来月の判定
 const isThisMonth = computed(() => {
   return store.currentYear === thisMonth.year && store.currentMonth === thisMonth.month
@@ -187,30 +176,6 @@ const navigateToTimeRegister = () => {
   if (selectedCount.value === 0) return
   navigationStore.setForward()
   router.push('/time-register')
-}
-
-// スワイプジェスチャーハンドラ
-const handleTouchStart = (e: TouchEvent) => {
-  touchStartX.value = e.touches[0].clientX
-  touchStartY.value = e.touches[0].clientY
-}
-
-const handleTouchMove = (e: TouchEvent) => {
-  touchEndX.value = e.touches[0].clientX
-  touchEndY.value = e.touches[0].clientY
-}
-
-const handleTouchEnd = () => {
-  const diffX = touchStartX.value - touchEndX.value
-  const diffY = Math.abs(touchStartY.value - touchEndY.value)
-
-  // 横方向のスワイプで、縦方向の移動が少ない場合のみ
-  if (Math.abs(diffX) > 100 && diffY < 100) {
-    // 左スワイプ（次へ進む）
-    if (diffX > 0) {
-      navigateToTimeRegister()
-    }
-  }
 }
 </script>
 

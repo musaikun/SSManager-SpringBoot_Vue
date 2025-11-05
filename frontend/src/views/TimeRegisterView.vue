@@ -1,10 +1,5 @@
 <template>
-  <div
-    class="time-register-view"
-    @touchstart="handleViewTouchStart"
-    @touchmove.passive="handleViewTouchMove"
-    @touchend="handleViewTouchEnd"
-  >
+  <div class="time-register-view">
     <!-- 進捗インジケーター -->
     <ProgressIndicator />
 
@@ -313,12 +308,6 @@ const swipedCardIndex = ref<number | null>(null)
 const touchStartX = ref(0)
 const touchStartY = ref(0)
 const isSwiping = ref(false)
-
-// スワイプジェスチャー用の状態（画面遷移用）
-const viewTouchStartX = ref(0)
-const viewTouchStartY = ref(0)
-const viewTouchEndX = ref(0)
-const viewTouchEndY = ref(0)
 
 // 時刻選択モーダルの状態（24時間制）
 const showTimeModal = ref(false)
@@ -631,30 +620,6 @@ const handleNext = () => {
   }
   navigationStore.setForward()
   console.log('Next to confirmation')
-}
-
-// スワイプジェスチャーハンドラ（画面遷移用）
-const handleViewTouchStart = (e: TouchEvent) => {
-  viewTouchStartX.value = e.touches[0].clientX
-  viewTouchStartY.value = e.touches[0].clientY
-}
-
-const handleViewTouchMove = (e: TouchEvent) => {
-  viewTouchEndX.value = e.touches[0].clientX
-  viewTouchEndY.value = e.touches[0].clientY
-}
-
-const handleViewTouchEnd = () => {
-  const diffX = viewTouchStartX.value - viewTouchEndX.value
-  const diffY = Math.abs(viewTouchStartY.value - viewTouchEndY.value)
-
-  // 横方向のスワイプで、縦方向の移動が少ない場合のみ
-  if (Math.abs(diffX) > 100 && diffY < 100) {
-    // 右スワイプ（戻る）
-    if (diffX < 0) {
-      handleBack()
-    }
-  }
 }
 </script>
 

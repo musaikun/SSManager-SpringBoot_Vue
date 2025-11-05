@@ -1,17 +1,31 @@
 <script setup lang="ts">
-import { useNavigationStore } from './stores/navigation'
-import { storeToRefs } from 'pinia'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import PageSlider from './components/PageSlider.vue'
+import CalendarView from './views/CalendarView.vue'
+import TimeRegisterView from './views/TimeRegisterView.vue'
+import HomeView from './views/HomeView.vue'
 
-const navigationStore = useNavigationStore()
-const { transitionName } = storeToRefs(navigationStore)
+const route = useRoute()
+
+// スライド対象のページ
+const sliderPages = [
+  { name: 'calendar', path: '/calendar', component: CalendarView },
+  { name: 'time-register', path: '/time-register', component: TimeRegisterView }
+]
+
+// ホーム画面かどうか
+const isHomePage = computed(() => route.path === '/')
 </script>
 
 <template>
-  <RouterView v-slot="{ Component, route }">
-    <Transition :name="transitionName" mode="out-in">
-      <component :is="Component" :key="route.path" />
-    </Transition>
-  </RouterView>
+  <div id="app">
+    <!-- ホーム画面は通常表示 -->
+    <HomeView v-if="isHomePage" />
+
+    <!-- カレンダー・時間設定はPageSliderで表示 -->
+    <PageSlider v-else :pages="sliderPages" />
+  </div>
 </template>
 
 <style>
@@ -31,46 +45,6 @@ body {
 #app {
   width: 100%;
   min-height: 100vh;
-}
-
-/* スライドトランジション */
-/* 左へスライド（次へ進む） */
-.slide-left-enter-active,
-.slide-left-leave-active {
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  will-change: transform, opacity;
-}
-
-.slide-left-enter-from {
-  opacity: 0;
-  transform: translate3d(100%, 0, 0);
-}
-
-.slide-left-leave-to {
-  opacity: 0;
-  transform: translate3d(-100%, 0, 0);
-}
-
-/* 右へスライド（戻る） */
-.slide-right-enter-active,
-.slide-right-leave-active {
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  will-change: transform, opacity;
-}
-
-.slide-right-enter-from {
-  opacity: 0;
-  transform: translate3d(-100%, 0, 0);
-}
-
-.slide-right-leave-to {
-  opacity: 0;
-  transform: translate3d(100%, 0, 0);
-}
-
-/* トランジションなし */
-.none-enter-active,
-.none-leave-active {
-  transition: none;
+  overflow: hidden;
 }
 </style>
