@@ -47,21 +47,40 @@
         <div
           v-for="(workDay, index) in activeWorkDays"
           :key="workDay.date"
-          class="work-day-card"
-          :class="{ removed: workDay.isRemoved, modified: workDay.isModified }"
-          @click="handleTimeClick(index, 'both')"
+          class="swipe-container"
         >
-          <div class="card-content-horizontal">
-            <div class="card-date">{{ workDay.displayDate }}</div>
-            <div class="card-time-section">
-              <span class="time-value">{{ workDay.startTime }}</span>
-              <span class="time-separator">〜</span>
-              <span class="time-value">{{ workDay.endTime }}</span>
-            </div>
+          <!-- 削除ボタン（背面） -->
+          <div class="swipe-action">
+            <button
+              @click.stop="handleRemoveDay(index)"
+              class="swipe-delete-btn"
+            >
+              {{ workDay.isRemoved ? 'シフトを戻す' : 'シフトを外す' }}
+            </button>
           </div>
-          <div class="card-hours">
-            <span class="hours-icon">💼</span>
-            <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
+
+          <!-- カード本体 -->
+          <div
+            class="work-day-card"
+            :class="{ removed: workDay.isRemoved, modified: workDay.isModified, swiped: swipedCardIndex === index }"
+            :style="{ transform: swipedCardIndex === index ? 'translateX(-120px)' : 'translateX(0)' }"
+            @click="handleCardClick(index)"
+            @touchstart="handleTouchStart($event, index)"
+            @touchmove="handleTouchMove($event, index)"
+            @touchend="handleTouchEnd(index)"
+          >
+            <div class="card-content-horizontal">
+              <div class="card-date">{{ workDay.displayDate }}</div>
+              <div class="card-time-section">
+                <span class="time-value">{{ workDay.startTime }}</span>
+                <span class="time-separator">〜</span>
+                <span class="time-value">{{ workDay.endTime }}</span>
+              </div>
+            </div>
+            <div class="card-hours">
+              <span class="hours-icon">💼</span>
+              <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -282,6 +301,12 @@ const { calculateBreakTime } = useTimeCalculation()
 // アコーディオンの開閉状態
 const isBulkAccordionOpen = ref(false) // デフォルトで閉じている
 
+// スワイプ関連の状態
+const swipedCardIndex = ref<number | null>(null)
+const touchStartX = ref(0)
+const touchStartY = ref(0)
+const isSwiping = ref(false)
+
 // 時刻選択モーダルの状態（24時間制）
 const showTimeModal = ref(false)
 const currentEditIndex = ref<number | null>(null)
@@ -410,9 +435,61 @@ const showBreakHelp = () => {
   alert('休憩時間のルール:\n\n6時間未満: 休憩なし\n6時間以上8時間未満: 45分\n8時間以上: 60分')
 }
 
+// スワイプイベントハンドラ
+const handleTouchStart = (event: TouchEvent, index: number) => {
+  touchStartX.value = event.touches[0].clientX
+  touchStartY.value = event.touches[0].clientY
+  isSwiping.value = false
+}
+
+const handleTouchMove = (event: TouchEvent, index: number) => {
+  const touchCurrentX = event.touches[0].clientX
+  const touchCurrentY = event.touches[0].clientY
+  const diffX = touchStartX.value - touchCurrentX
+  const diffY = Math.abs(touchStartY.value - touchCurrentY)
+
+  // 横方向のスワイプで、縦方向の移動が少ない場合のみスワイプとして認識
+  if (Math.abs(diffX) > 10 && diffY < 30) {
+    isSwiping.value = true
+    event.preventDefault() // スクロール防止
+  }
+}
+
+const handleTouchEnd = (index: number) => {
+  if (!isSwiping.value) return
+
+  const touchEndX = event ? (event as TouchEvent).changedTouches[0].clientX : touchStartX.value
+  const diff = touchStartX.value - touchEndX
+
+  // 左スワイプ（50px以上）で開く
+  if (diff > 50) {
+    swipedCardIndex.value = index
+  }
+  // 右スワイプで閉じる
+  else if (diff < -50 && swipedCardIndex.value === index) {
+    swipedCardIndex.value = null
+  }
+
+  isSwiping.value = false
+}
+
+// カードクリック（スワイプ中でない場合のみモーダルを開く）
+const handleCardClick = (index: number) => {
+  if (isSwiping.value) return
+
+  // スワイプ中のカードがある場合は閉じる
+  if (swipedCardIndex.value !== null) {
+    swipedCardIndex.value = null
+    return
+  }
+
+  handleTimeClick(index, 'both')
+}
+
 // 日付削除/復活
 const handleRemoveDay = (index: number) => {
   timeRegisterStore.toggleRemoveDay(index)
+  swipedCardIndex.value = null // スワイプ状態をリセット
 }
 
 // 開始時間の選択
@@ -739,18 +816,54 @@ const handleNext = () => {
   margin-bottom: 1.5rem;
 }
 
+/* スワイプコンテナ */
+.swipe-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* スワイプアクション（背面） */
+.swipe-action {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fee;
+}
+
+.swipe-delete-btn {
+  padding: 0.75rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.swipe-delete-btn:hover {
+  background: #dc2626;
+}
+
 .work-day-card {
+  position: relative;
   background: white;
   border-radius: 8px;
   padding: 0.875rem 1rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.3s ease, box-shadow 0.2s ease;
   border-left: 3px solid transparent;
 }
 
 .work-day-card:hover {
-  transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   border-left-color: #667eea;
 }
@@ -761,8 +874,15 @@ const handleNext = () => {
 }
 
 .work-day-card.modified {
-  border-left-color: #fbbf24;
-  background: #fffbeb;
+  border-left-color: #d97706;
+  border-left-width: 4px;
+  background: #fef3c7;
+  border: 3px solid #f59e0b;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.work-day-card.swiped {
+  z-index: 10;
 }
 
 .card-content-horizontal {
