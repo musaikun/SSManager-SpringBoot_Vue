@@ -130,7 +130,7 @@ const {
   setMonth
 } = useCalendar()
 
-const { fetchHolidaysWithCache } = useHolidays()
+const { fetchHolidaysWithCache, holidays: holidaysData } = useHolidays()
 
 // ローカル状態
 const weekdays = ['日', '月', '火', '水', '木', '金', '土']
@@ -148,8 +148,7 @@ const isNextMonth = computed(() => {
 onMounted(async () => {
   // 祝日データを取得してストアに保存
   await fetchHolidaysWithCache()
-  const holidays = useHolidays().holidays.value
-  store.setHolidays(holidays)
+  store.setHolidays(holidaysData.value)
 })
 
 // イベントハンドラ
@@ -379,12 +378,16 @@ const navigateToTimeRegister = () => {
 }
 
 .date-cell.other-month {
-  opacity: 0.3;
+  background: transparent;
+  color: #ccc;
   cursor: not-allowed;
+  border: none;
 }
 
 .date-cell.other-month:hover {
   transform: none;
+  box-shadow: none;
+  background: transparent;
 }
 
 .date-cell.past {
