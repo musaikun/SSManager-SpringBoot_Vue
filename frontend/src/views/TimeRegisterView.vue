@@ -116,12 +116,35 @@
       </div>
     </div>
 
-    <!-- 時刻選択モーダル（OLD_S-SManager風） -->
+    <!-- 時刻選択モーダル -->
     <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit">
       <div class="modal-content time-picker-modal" @click.stop>
-        <h3 class="modal-title" v-if="currentEditIndex !== null && workDays[currentEditIndex]">
-          {{ workDays[currentEditIndex].displayDate }}
-        </h3>
+        <div class="modal-header-row">
+          <h3 class="modal-title" v-if="currentEditIndex !== null && workDays[currentEditIndex]">
+            {{ workDays[currentEditIndex].displayDate }}
+          </h3>
+
+          <!-- 時計タイプ切り替え -->
+          <div class="picker-type-switch">
+            <button
+              @click="useCircularPicker = false"
+              :class="{ active: !useCircularPicker }"
+              class="type-btn"
+            >
+              ボタン式
+            </button>
+            <button
+              @click="useCircularPicker = true"
+              :class="{ active: useCircularPicker }"
+              class="type-btn"
+            >
+              円形
+            </button>
+          </div>
+        </div>
+
+        <!-- ボタン式時計（既存） -->
+        <div v-if="!useCircularPicker" class="button-style-picker">
 
         <!-- 開始時間 -->
         <div class="modal-section">
@@ -220,6 +243,21 @@
             <button @click="handleRemoveFromModal" class="btn-modal btn-danger-modal">シフトを外す</button>
           </div>
         </div>
+        </div><!-- button-style-picker 閉じタグ -->
+
+        <!-- 円形時計（新規） -->
+        <div v-else class="circular-style-picker">
+          <CircularTimePicker
+            ref="circularPickerRef"
+            @update:startTime="handleCircularStartTime"
+            @update:endTime="handleCircularEndTime"
+          />
+          <div class="circular-actions">
+            <button @click="applyCircularTime" class="btn-modal btn-primary-modal">この時刻で設定</button>
+            <button @click="cancelTimeEdit" class="btn-modal btn-secondary-modal">キャンセル</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -230,6 +268,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import ProgressIndicator from '../components/ProgressIndicator.vue'
+import CircularTimePicker from '../components/CircularTimePicker.vue'
 import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
 import { useTimeFormat } from '../composables/useTimeFormat'
@@ -249,12 +288,18 @@ const { calculateBreakTime } = useTimeCalculation()
 // 時刻選択モーダルの状態（24時間制）
 const showTimeModal = ref(false)
 const currentEditIndex = ref<number | null>(null)
+const useCircularPicker = ref(true) // デフォルトで円形ピッカーを使用
 const startPm = ref(false) // 午前=false（0-11）, 午後=true（12-23）
 const endPm = ref(true)
 const selectedStartHour = ref(9) // 0-23の範囲
 const selectedStartMinute = ref(0) // 0, 15, 30, 45
 const selectedEndHour = ref(18) // 0-23の範囲
 const selectedEndMinute = ref(0) // 0, 15, 30, 45
+
+// 円形ピッカーの参照
+const circularPickerRef = ref<InstanceType<typeof CircularTimePicker> | null>(null)
+const circularTempStart = ref<string | null>(null)
+const circularTempEnd = ref<string | null>(null)
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
@@ -443,6 +488,51 @@ const handleRemoveFromModal = () => {
   }
   showTimeModal.value = false
   currentEditIndex.value = null
+}
+
+// 円形ピッカーのイベントハンドラ
+const handleCircularStartTime = (time: string | null) => {
+  circularTempStart.value = time
+}
+
+const handleCircularEndTime = (time: string | null) => {
+  circularTempEnd.value = time
+}
+
+const applyCircularTime = () => {
+  if (currentEditIndex.value !== null) {
+    // 開始・終了のいずれかが設定されていれば適用
+    if (circularTempStart.value || circularTempEnd.value) {
+      const updates: Partial<WorkDay> = {}
+
+      if (circularTempStart.value) {
+        updates.startTime = circularTempStart.value
+      }
+
+      if (circularTempEnd.value) {
+        updates.endTime = circularTempEnd.value
+      }
+
+      // 両方設定されている場合のみ勤務時間を更新
+      if (circularTempStart.value && circularTempEnd.value) {
+        timeRegisterStore.updateWorkDay(currentEditIndex.value, updates)
+      } else {
+        // 片方だけの場合は、既存の値を使用
+        const workDay = workDays.value[currentEditIndex.value]
+        if (workDay) {
+          updates.startTime = circularTempStart.value || workDay.startTime
+          updates.endTime = circularTempEnd.value || workDay.endTime
+          timeRegisterStore.updateWorkDay(currentEditIndex.value, updates)
+        }
+      }
+    }
+  }
+
+  // モーダルを閉じる
+  showTimeModal.value = false
+  currentEditIndex.value = null
+  circularTempStart.value = null
+  circularTempEnd.value = null
 }
 
 // 戻る
@@ -808,12 +898,66 @@ const handleNext = () => {
   }
 }
 
+.modal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
 .modal-title {
-  margin: 0 0 1.5rem 0;
+  margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
   color: #667eea;
-  text-align: center;
+}
+
+/* 時計タイプ切り替え */
+.picker-type-switch {
+  display: flex;
+  gap: 0.5rem;
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.type-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.type-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.type-btn.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.button-style-picker {
+  /* 既存のボタン式スタイル用のコンテナ */
+}
+
+.circular-style-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.circular-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
 }
 
 .modal-section {
