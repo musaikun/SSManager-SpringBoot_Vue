@@ -71,6 +71,17 @@ export function isToday(date: Date): boolean {
 }
 
 /**
+ * 今日を含めて過去の日付かどうか
+ */
+export function isPast(date: Date): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const targetDate = new Date(date)
+  targetDate.setHours(0, 0, 0, 0)
+  return targetDate <= today
+}
+
+/**
  * 土曜日かどうか
  */
 export function isSaturday(date: Date): boolean {

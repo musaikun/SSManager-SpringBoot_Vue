@@ -21,6 +21,7 @@ export interface CalendarCell {
   dayOfWeek: DayOfWeek
   isCurrentMonth: boolean
   isToday: boolean
+  isPast: boolean
   isHoliday: boolean
   holidayName?: string
   isSelected: boolean

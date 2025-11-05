@@ -5,6 +5,7 @@ import {
   formatDateString,
   getDayOfWeek,
   isToday,
+  isPast,
   isSameMonth,
   getCalendarDates,
   getMonthDates
@@ -35,6 +36,7 @@ export function useCalendar() {
         dayOfWeek,
         isCurrentMonth,
         isToday: isToday(date),
+        isPast: isPast(date),
         isHoliday: store.isHoliday(dateString),
         holidayName: store.getHolidayName(dateString),
         isSelected: store.isDateSelected(dateString)

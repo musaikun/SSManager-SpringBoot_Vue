@@ -1,32 +1,38 @@
 <template>
   <div class="calendar-view">
-    <!-- ヘッダー -->
-    <header class="calendar-header">
-      <button @click="setThisMonth" class="month-btn" :class="{ active: isThisMonth }">
-        今月
-      </button>
-      <button @click="setNextMonth" class="month-btn" :class="{ active: isNextMonth }">
-        来月
-      </button>
-      <h1 class="current-month">{{ currentMonthInfo.displayText }}</h1>
-    </header>
+    <!-- カレンダーカード -->
+    <div class="calendar-card">
+      <!-- ヘッダー：今月・来月ボタン + 年月 -->
+      <div class="calendar-header">
+        <div class="month-buttons">
+          <button @click="setThisMonth" class="month-btn" :class="{ active: isThisMonth }">
+            今月
+          </button>
+          <button @click="setNextMonth" class="month-btn" :class="{ active: isNextMonth }">
+            来月
+          </button>
+        </div>
+        <h1 class="current-month">{{ currentMonthInfo.displayText }}</h1>
+      </div>
 
-    <!-- ツールバー -->
-    <div class="calendar-toolbar">
-      <button
-        v-for="(day, index) in weekdays"
-        :key="index"
-        @click="selectByWeekday(index)"
-        class="weekday-btn"
-      >
-        {{ day }}
-      </button>
-      <button @click="selectAll" class="action-btn">全選択</button>
-      <button @click="clearAll" class="action-btn">クリア</button>
-    </div>
+      <!-- アクションボタン：全選択・クリア -->
+      <div class="action-buttons">
+        <button @click="selectAll" class="action-btn">全選択</button>
+        <button @click="clearAll" class="action-btn">クリア</button>
+      </div>
 
-    <!-- カレンダー本体 -->
-    <div class="calendar-grid">
+      <!-- 曜日一括選択ボタン -->
+      <div class="weekday-buttons">
+        <button
+          v-for="(day, index) in weekdays"
+          :key="index"
+          @click="selectByWeekday(index)"
+          class="weekday-btn"
+        >
+          {{ day }}
+        </button>
+      </div>
+
       <!-- 曜日ヘッダー -->
       <div class="calendar-weekdays">
         <div
@@ -48,6 +54,7 @@
           :class="{
             'other-month': !cell.isCurrentMonth,
             'today': cell.isToday,
+            'past': cell.isPast,
             'holiday': cell.isHoliday,
             'saturday': cell.dayOfWeek === 6,
             'sunday': cell.dayOfWeek === 0,
@@ -128,6 +135,7 @@ onMounted(async () => {
 // イベントハンドラ
 const handleDateClick = (cell: CalendarCell) => {
   if (!cell.isCurrentMonth) return
+  if (cell.isPast) return // 過去の日付は選択できない
   toggleDate(cell.dateString)
 }
 
@@ -149,114 +157,131 @@ const navigateToTimeRegister = () => {
 .calendar-view {
   min-height: 100vh;
   padding: 2rem;
-  background: linear-gradient(135deg, #1e3a5f, #2d5a7b, #4a7c9e);
-  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #333;
   font-family: 'Inter', 'Noto Sans JP', sans-serif;
+}
+
+/* カレンダーカード */
+.calendar-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ヘッダー */
 .calendar-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
 }
 
-.current-month {
-  font-size: 2rem;
-  font-weight: 700;
-  min-width: 200px;
-  text-align: center;
+.month-buttons {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .month-btn {
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1.5rem;
+  background: #f0f0f0;
+  border: none;
   border-radius: 8px;
-  color: white;
+  color: #333;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 600;
+  font-size: 1rem;
 }
 
 .month-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #e0e0e0;
   transform: translateY(-2px);
 }
 
 .month-btn.active {
-  background: linear-gradient(135deg, #6f3ad0, #a36bff);
-  border-color: #a36bff;
-}
-
-/* ツールバー */
-.calendar-toolbar {
-  display: flex;
-  gap: 0.4rem;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: nowrap;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-}
-
-.weekday-btn {
-  padding: 0.4rem 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 2rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.weekday-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
+.current-month {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #333;
+  text-align: center;
+}
+
+/* アクションボタン */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
 }
 
 .action-btn {
-  padding: 0.4rem 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  color: white;
+  padding: 0.5rem 1.5rem;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  color: #333;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+/* 曜日一括選択ボタン */
+.weekday-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: nowrap;
+}
+
+.weekday-btn {
+  padding: 0.5rem 1rem;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  color: #333;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
   transition: all 0.3s ease;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.action-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+.weekday-btn:hover {
+  background: #e0e0e0;
   transform: translateY(-2px);
 }
 
-/* カレンダー */
-.calendar-grid {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 1rem;
-  backdrop-filter: blur(10px);
-  margin-bottom: 2rem;
-}
-
+/* 曜日ヘッダー */
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -269,12 +294,14 @@ const navigateToTimeRegister = () => {
   padding: 0.5rem;
   font-weight: 600;
   font-size: 0.875rem;
+  color: #666;
 }
 
 .weekday-header.weekend {
   color: #ff6ba3;
 }
 
+/* カレンダー日付グリッド */
 .calendar-dates {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -285,7 +312,7 @@ const navigateToTimeRegister = () => {
   aspect-ratio: 1;
   padding: 0.5rem;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: #f9f9f9;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -293,12 +320,13 @@ const navigateToTimeRegister = () => {
   align-items: center;
   justify-content: center;
   position: relative;
+  border: 2px solid transparent;
 }
 
-.date-cell:hover {
-  background: rgba(100, 150, 255, 0.2);
+.date-cell:hover:not(.other-month):not(.past) {
+  background: rgba(102, 126, 234, 0.1);
   transform: scale(1.05);
-  box-shadow: 0 0 15px rgba(100, 150, 255, 0.6);
+  box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
 }
 
 .date-cell.other-month {
@@ -310,8 +338,19 @@ const navigateToTimeRegister = () => {
   transform: none;
 }
 
-.date-cell.today {
-  border: 2px solid #42b883;
+.date-cell.past {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #e0e0e0;
+}
+
+.date-cell.past:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.date-cell.today:not(.past) {
+  border: 2px solid #667eea;
 }
 
 .date-cell.selected {
@@ -320,15 +359,15 @@ const navigateToTimeRegister = () => {
   font-weight: 700;
 }
 
-.date-cell.holiday:not(.selected) {
-  background: rgba(255, 107, 163, 0.2);
+.date-cell.holiday:not(.selected):not(.past) {
+  background: rgba(255, 107, 163, 0.15);
 }
 
-.date-cell.saturday:not(.selected):not(.holiday) {
+.date-cell.saturday:not(.selected):not(.holiday):not(.past) {
   color: #6ba3ff;
 }
 
-.date-cell.sunday:not(.selected):not(.holiday) {
+.date-cell.sunday:not(.selected):not(.holiday):not(.past) {
   color: #ff6ba3;
 }
 
@@ -355,22 +394,24 @@ const navigateToTimeRegister = () => {
   font-size: 1.25rem;
   font-weight: 600;
   color: white;
-  background: linear-gradient(135deg, #6f3ad0, #a36bff);
+  background: linear-gradient(135deg, #667eea, #764ba2);
   border: none;
   border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .next-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(111, 58, 208, 0.6);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
 }
 
 .next-btn:disabled {
-  background: rgba(255, 255, 255, 0.2);
+  background: #ccc;
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.6;
+  box-shadow: none;
 }
 
 /* レスポンシブ */
@@ -379,39 +420,45 @@ const navigateToTimeRegister = () => {
     padding: 1rem;
   }
 
-  .calendar-header {
+  .calendar-card {
     padding: 1rem;
-    gap: 0.5rem;
+  }
+
+  .calendar-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .month-buttons {
+    justify-content: center;
   }
 
   .current-month {
     font-size: 1.5rem;
-    min-width: 120px;
   }
 
   .month-btn {
-    padding: 0.4rem 0.75rem;
+    padding: 0.4rem 1rem;
     font-size: 0.875rem;
   }
 
-  .calendar-toolbar {
-    padding: 0.75rem 0.5rem;
-    gap: 0.3rem;
-  }
-
-  .weekday-btn {
-    padding: 0.35rem 0.4rem;
-    font-size: 0.75rem;
-    min-width: 1.75rem;
+  .action-buttons {
+    gap: 0.4rem;
   }
 
   .action-btn {
-    padding: 0.35rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
   }
 
-  .calendar-grid {
-    padding: 0.5rem;
+  .weekday-buttons {
+    gap: 0.3rem;
+    margin-bottom: 1rem;
+  }
+
+  .weekday-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
   }
 
   .calendar-dates {
@@ -423,11 +470,16 @@ const navigateToTimeRegister = () => {
   }
 
   .date-number {
-    font-size: 0.875rem;
+    font-size: 0.9rem;
   }
 
   .holiday-name {
     font-size: 0.5rem;
+  }
+
+  .next-btn {
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
   }
 }
 </style>
