@@ -135,11 +135,51 @@
         </button>
       </div>
     </div>
+
+    <!-- 時刻選択モーダル（簡易版） -->
+    <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>時刻設定</h3>
+        </div>
+        <div class="modal-body">
+          <div class="modal-date-info" v-if="currentEditIndex !== null">
+            {{ workDays[currentEditIndex].displayDate }}
+          </div>
+          <div class="modal-time-inputs">
+            <div class="modal-time-group">
+              <label>開始時刻</label>
+              <input
+                type="time"
+                v-model="tempStartTime"
+                class="modal-time-input"
+              />
+            </div>
+            <div class="modal-time-group">
+              <label>終了時刻</label>
+              <input
+                type="time"
+                v-model="tempEndTime"
+                class="modal-time-input"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="cancelTimeEdit" class="modal-btn cancel-btn">
+            キャンセル
+          </button>
+          <button @click="confirmTimeEdit" class="modal-btn confirm-btn">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import ProgressIndicator from '../components/ProgressIndicator.vue'
@@ -158,6 +198,13 @@ const { totalSummary } = storeToRefs(timeRegisterStore)
 
 const { formatMinutesToHours } = useTimeFormat()
 const { calculateBreakTime } = useTimeCalculation()
+
+// 簡易時刻選択モーダルの状態
+const showTimeModal = ref(false)
+const currentEditIndex = ref<number | null>(null)
+const currentEditType = ref<'start' | 'end'>('start')
+const tempStartTime = ref('09:00')
+const tempEndTime = ref('18:00')
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
@@ -190,8 +237,20 @@ const formatWorkTime = (workDay: WorkDay) => {
 
 // 一括適用
 const handleBulkApply = (type: BulkApplyType) => {
-  // TODO: 確認ダイアログを表示
-  timeRegisterStore.applyBulk(type, 'all')
+  const activeCount = workDays.value.filter(d => !d.isRemoved).length
+  let message = ''
+
+  if (type === 'both') {
+    message = `全${activeCount}日に\n開始: ${bulkSettings.value.startTime}\n終了: ${bulkSettings.value.endTime}\nを適用しますか？`
+  } else if (type === 'start') {
+    message = `全${activeCount}日の開始時刻を\n${bulkSettings.value.startTime}に変更しますか？`
+  } else if (type === 'end') {
+    message = `全${activeCount}日の終了時刻を\n${bulkSettings.value.endTime}に変更しますか？`
+  }
+
+  if (confirm(message)) {
+    timeRegisterStore.applyBulk(type, 'all')
+  }
 }
 
 // 休憩時間トグル
@@ -201,8 +260,7 @@ const handleBreakToggle = () => {
 
 // 休憩時間ヘルプ
 const showBreakHelp = () => {
-  // TODO: ヘルプダイアログを表示
-  alert('休憩時間のルール:\n6時間未満: 0分\n6時間以上8時間未満: 45分\n8時間以上: 60分')
+  alert('休憩時間のルール:\n\n6時間未満: 休憩なし\n6時間以上8時間未満: 45分\n8時間以上: 60分')
 }
 
 // 日付削除/復活
@@ -212,8 +270,30 @@ const handleRemoveDay = (index: number) => {
 
 // 時刻選択
 const handleTimeClick = (index: number, type: 'start' | 'end') => {
-  // TODO: TimePickerModalを開く
-  console.log(`Time picker for day ${index}, type: ${type}`)
+  const workDay = workDays.value[index]
+  currentEditIndex.value = index
+  currentEditType.value = type
+  tempStartTime.value = workDay.startTime
+  tempEndTime.value = workDay.endTime
+  showTimeModal.value = true
+}
+
+// 時刻選択モーダルをキャンセル
+const cancelTimeEdit = () => {
+  showTimeModal.value = false
+  currentEditIndex.value = null
+}
+
+// 時刻選択モーダルを確定
+const confirmTimeEdit = () => {
+  if (currentEditIndex.value !== null) {
+    timeRegisterStore.updateWorkDay(currentEditIndex.value, {
+      startTime: tempStartTime.value,
+      endTime: tempEndTime.value
+    })
+  }
+  showTimeModal.value = false
+  currentEditIndex.value = null
 }
 
 // 戻る
@@ -224,6 +304,11 @@ const handleBack = () => {
 // 次へ
 const handleNext = () => {
   // TODO: 確認画面に遷移
+  const activeCount = workDays.value.filter(d => !d.isRemoved).length
+  if (activeCount === 0) {
+    alert('勤務日が選択されていません')
+    return
+  }
   console.log('Next to confirmation')
 }
 </script>
@@ -584,6 +669,136 @@ const handleNext = () => {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
+/* モーダル */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+  font-weight: 700;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-date-info {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.modal-time-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.modal-time-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-time-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.modal-time-input {
+  padding: 0.875rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.modal-time-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.modal-btn {
+  padding: 0.875rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.cancel-btn:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.confirm-btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
 /* レスポンシブ */
 @media (max-width: 768px) {
   .time-register-view {
@@ -618,6 +833,10 @@ const handleNext = () => {
   .time-separator {
     transform: rotate(90deg);
     margin: 0;
+  }
+
+  .modal-footer {
+    grid-template-columns: 1fr;
   }
 }
 </style>
