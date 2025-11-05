@@ -275,15 +275,14 @@ const navigateToTimeRegister = () => {
 
 /* 曜日一括選択ボタン */
 .weekday-buttons {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   gap: 0.5rem;
-  justify-content: center;
   margin-bottom: 1rem;
-  flex-wrap: nowrap;
 }
 
 .weekday-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.25rem;
   background: #f0f0f0;
   border: none;
   border-radius: 8px;
@@ -293,7 +292,7 @@ const navigateToTimeRegister = () => {
   font-size: 0.9rem;
   transition: all 0.3s ease;
   white-space: nowrap;
-  flex-shrink: 0;
+  text-align: center;
 }
 
 .weekday-btn:hover {
@@ -502,13 +501,13 @@ const navigateToTimeRegister = () => {
   }
 
   .weekday-buttons {
-    gap: 0.3rem;
+    gap: 0.25rem;
     margin-bottom: 0.75rem;
   }
 
   .weekday-btn {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.8rem;
+    padding: 0.4rem 0.15rem;
+    font-size: 0.75rem;
   }
 
   .calendar-stats {

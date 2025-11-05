@@ -176,7 +176,8 @@ export function useCalendar() {
   const weekdayCount = computed<number>(() => {
     return currentMonthCells.value.filter(cell => {
       // 月〜金 (1-5) で祝日でない日
-      return cell.dayOfWeek >= 1 && cell.dayOfWeek <= 5 && !cell.isHoliday
+      const isWeekday = cell.dayOfWeek >= 1 && cell.dayOfWeek <= 5
+      return isWeekday && !cell.isHoliday
     }).length
   })
 
@@ -186,7 +187,8 @@ export function useCalendar() {
   const holidayCount = computed<number>(() => {
     return currentMonthCells.value.filter(cell => {
       // 土日 (0, 6) または祝日
-      return cell.dayOfWeek === 0 || cell.dayOfWeek === 6 || cell.isHoliday
+      const isWeekend = cell.dayOfWeek === 0 || cell.dayOfWeek === 6
+      return isWeekend || cell.isHoliday
     }).length
   })
 
