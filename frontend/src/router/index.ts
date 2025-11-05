@@ -16,7 +16,7 @@ const router = createRouter({
     },
     {
       path: '/time-register',
-      name: 'timeRegister',
+      name: 'time-register',
       component: () => import('../views/TimeRegisterView.vue')
     }
   ]

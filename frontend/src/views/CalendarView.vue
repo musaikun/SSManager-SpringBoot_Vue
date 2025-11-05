@@ -1,5 +1,8 @@
 <template>
   <div class="calendar-view">
+    <!-- 進捗インジケーター -->
+    <ProgressIndicator />
+
     <!-- カレンダーカード -->
     <div class="calendar-card">
       <!-- ヘッダー：年月 -->
@@ -105,6 +108,7 @@ import { useCalendar } from '../composables/useCalendar'
 import { useHolidays } from '../composables/useHolidays'
 import { useCalendarStore } from '../stores/calendar'
 import type { CalendarCell } from '../types/calendar'
+import ProgressIndicator from '../components/ProgressIndicator.vue'
 
 const router = useRouter()
 const store = useCalendarStore()

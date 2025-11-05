@@ -152,6 +152,15 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
     },
 
     /**
+     * 勤務日の削除/復活を切り替え
+     */
+    toggleRemoveDay(index: number) {
+      if (index >= 0 && index < this.workDays.length) {
+        this.workDays[index].isRemoved = !this.workDays[index].isRemoved
+      }
+    },
+
+    /**
      * 一括設定を更新
      */
     updateBulkSettings(settings: Partial<BulkSettings>) {
