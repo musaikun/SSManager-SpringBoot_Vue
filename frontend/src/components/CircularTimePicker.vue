@@ -154,37 +154,33 @@
       </div>
 
       <!-- 確定ボタン（時計のすぐ下） -->
-      <div class="quick-actions">
-        <button
-          @click="confirmTime('start')"
-          :disabled="!canConfirm"
-          class="quick-btn start-btn"
-        >
-          ← 開始時間
-        </button>
-        <button
-          @click="confirmTime('end')"
-          :disabled="!canConfirm"
-          class="quick-btn end-btn"
-        >
-          終了時間 →
-        </button>
+      <div class="time-actions-section">
+        <p class="action-hint">※ 時間を選択後下記のボタンで登録 ※</p>
+        <div class="quick-actions">
+          <button
+            @click="confirmTime('start')"
+            :disabled="!canConfirm"
+            class="quick-btn start-btn"
+          >
+            開始時間
+          </button>
+          <button
+            @click="confirmTime('end')"
+            :disabled="!canConfirm"
+            class="quick-btn end-btn"
+          >
+            終了時間
+          </button>
+        </div>
+        <div class="registered-times">
+          <div class="registered-time">{{ startTime || '--:--' }}</div>
+          <div class="registered-time">{{ endTime || '--:--' }}</div>
+        </div>
       </div>
     </div>
 
-    <!-- 確定済み時刻表示エリア -->
-    <div class="confirm-area">
-      <div class="time-displays">
-        <div class="time-slot" :class="{ filled: startTime !== null }">
-          <div class="slot-label">開始時間</div>
-          <div class="slot-time">{{ startTime || '--:--' }}</div>
-        </div>
-        <div class="time-slot" :class="{ filled: endTime !== null }">
-          <div class="slot-label">終了時間</div>
-          <div class="slot-time">{{ endTime || '--:--' }}</div>
-        </div>
-      </div>
-
+    <!-- リセットボタン -->
+    <div class="bottom-actions">
       <button
         @click="resetSelection"
         class="reset-btn"
@@ -379,6 +375,11 @@ defineExpose({
   cursor: pointer;
   user-select: none;
   touch-action: none; /* スワイプでモーダルがずれるのを防止 */
+  outline: none; /* フォーカスリングを無効化 */
+}
+
+.clock-svg * {
+  outline: none; /* SVG内の全要素でフォーカスリングを無効化 */
 }
 
 /* 時間の円 */
@@ -462,7 +463,7 @@ defineExpose({
 
 .toggle-circle:hover {
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-  transform: scale(1.05);
+  /* transform削除：ずれないように */
 }
 
 .toggle-circle.pm {
@@ -536,12 +537,29 @@ defineExpose({
   color: #4caf50;
 }
 
-/* クイックアクションボタン（時計のすぐ下） */
+/* 時計の下のアクションセクション */
+.time-actions-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.action-hint {
+  font-size: 0.75rem;
+  color: #666;
+  margin: 0;
+  text-align: center;
+}
+
+/* クイックアクションボタン（1行で横並び） */
 .quick-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
-  margin-top: 1rem;
+  width: 100%;
+  max-width: 300px;
 }
 
 .quick-btn {
@@ -553,6 +571,7 @@ defineExpose({
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  outline: none; /* フォーカスリングを無効化 */
 }
 
 .quick-btn:disabled {
@@ -579,6 +598,26 @@ defineExpose({
 .quick-btn.end-btn:not(:disabled):hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+}
+
+/* 登録済み時刻表示 */
+.registered-times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+.registered-time {
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #333;
 }
 
 .reset-btn {
