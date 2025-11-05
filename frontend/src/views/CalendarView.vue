@@ -13,20 +13,16 @@
 
     <!-- ツールバー -->
     <div class="calendar-toolbar">
-      <div class="weekday-buttons">
-        <button
-          v-for="(day, index) in weekdays"
-          :key="index"
-          @click="selectByWeekday(index)"
-          class="weekday-btn"
-        >
-          {{ day }}
-        </button>
-      </div>
-      <div class="action-buttons">
-        <button @click="selectAll" class="action-btn">全選択</button>
-        <button @click="clearAll" class="action-btn">クリア</button>
-      </div>
+      <button
+        v-for="(day, index) in weekdays"
+        :key="index"
+        @click="selectByWeekday(index)"
+        class="weekday-btn"
+      >
+        {{ day }}
+      </button>
+      <button @click="selectAll" class="action-btn">全選択</button>
+      <button @click="clearAll" class="action-btn">クリア</button>
     </div>
 
     <!-- カレンダー本体 -->
@@ -153,7 +149,7 @@ const navigateToTimeRegister = () => {
 .calendar-view {
   min-height: 100vh;
   padding: 2rem;
-  background: linear-gradient(135deg, #1b1b15, #2f3a2a);
+  background: linear-gradient(135deg, #1e3a5f, #2d5a7b, #4a7c9e);
   color: white;
   font-family: 'Inter', 'Noto Sans JP', sans-serif;
 }
@@ -165,6 +161,10 @@ const navigateToTimeRegister = () => {
   justify-content: center;
   gap: 1rem;
   margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
 }
 
 .current-month {
@@ -198,34 +198,30 @@ const navigateToTimeRegister = () => {
 /* ツールバー */
 .calendar-toolbar {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  gap: 0.4rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
   margin-bottom: 2rem;
-  padding: 1.5rem;
+  padding: 1rem;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   backdrop-filter: blur(10px);
 }
 
-.weekday-buttons {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-}
-
 .weekday-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.5rem;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  border-radius: 6px;
   color: white;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.875rem;
   transition: all 0.3s ease;
   white-space: nowrap;
   flex-shrink: 0;
+  min-width: 2rem;
 }
 
 .weekday-btn:hover {
@@ -233,21 +229,18 @@ const navigateToTimeRegister = () => {
   transform: translateY(-2px);
 }
 
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
 .action-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  border-radius: 6px;
   color: white;
   cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .action-btn:hover {
@@ -386,13 +379,51 @@ const navigateToTimeRegister = () => {
     padding: 1rem;
   }
 
+  .calendar-header {
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+
   .current-month {
     font-size: 1.5rem;
-    min-width: 150px;
+    min-width: 120px;
+  }
+
+  .month-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .calendar-toolbar {
+    padding: 0.75rem 0.5rem;
+    gap: 0.3rem;
+  }
+
+  .weekday-btn {
+    padding: 0.35rem 0.4rem;
+    font-size: 0.75rem;
+    min-width: 1.75rem;
+  }
+
+  .action-btn {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .calendar-grid {
+    padding: 0.5rem;
+  }
+
+  .calendar-dates {
+    gap: 0.25rem;
+  }
+
+  .date-cell {
+    padding: 0.25rem;
   }
 
   .date-number {
-    font-size: 1rem;
+    font-size: 0.875rem;
   }
 
   .holiday-name {
