@@ -11,22 +11,18 @@
           <h2>一括設定</h2>
         </div>
         <div class="bulk-settings-content">
-          <div class="time-inputs">
-            <div class="time-input-group">
-              <label>開始時刻</label>
-              <input
-                type="time"
-                v-model="bulkSettings.startTime"
-                class="time-input"
-              />
+          <div class="bulk-time-settings">
+            <div class="bulk-time-item">
+              <button @click="openBulkTimeModal('start')" class="bulk-time-btn">
+                開始時刻設定
+              </button>
+              <div class="bulk-time-display">{{ bulkSettings.startTime }}</div>
             </div>
-            <div class="time-input-group">
-              <label>終了時刻</label>
-              <input
-                type="time"
-                v-model="bulkSettings.endTime"
-                class="time-input"
-              />
+            <div class="bulk-time-item">
+              <button @click="openBulkTimeModal('end')" class="bulk-time-btn">
+                終了時刻設定
+              </button>
+              <div class="bulk-time-display">{{ bulkSettings.endTime }}</div>
             </div>
           </div>
           <div class="bulk-actions">
@@ -120,18 +116,23 @@
     <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit">
       <div class="modal-content time-picker-modal" @click.stop>
         <div class="modal-header-row">
-          <h3 class="modal-title" v-if="currentEditIndex !== null && workDays[currentEditIndex]">
+          <!-- 一括設定モードのヘッダー -->
+          <h3 class="modal-title" v-if="isBulkMode">
+            {{ bulkTimeType === 'start' ? '開始時刻設定' : '終了時刻設定' }}
+          </h3>
+          <!-- 個別設定モードのヘッダー -->
+          <h3 class="modal-title" v-else-if="currentEditIndex !== null && workDays[currentEditIndex]">
             {{ workDays[currentEditIndex].displayDate }}
           </h3>
 
-          <!-- シフトを外すボタン -->
-          <button @click="handleRemoveFromModal" class="remove-shift-btn" v-if="currentEditIndex !== null && workDays[currentEditIndex]">
+          <!-- シフトを外すボタン（個別設定のみ） -->
+          <button @click="handleRemoveFromModal" class="remove-shift-btn" v-if="!isBulkMode && currentEditIndex !== null && workDays[currentEditIndex]">
             {{ workDays[currentEditIndex].isRemoved ? 'シフトを戻す' : 'シフトを外す' }}
           </button>
         </div>
 
         <!-- 開始時間 -->
-        <div class="modal-section">
+        <div class="modal-section" v-if="!isBulkMode || bulkTimeType === 'start'">
           <div class="modal-section-header">
             <label class="modal-label">開始時間</label>
             <div class="toggle-switch">
@@ -185,7 +186,7 @@
         </div>
 
         <!-- 終了時間 -->
-        <div class="modal-section">
+        <div class="modal-section" v-if="!isBulkMode || bulkTimeType === 'end'">
           <div class="modal-section-header">
             <label class="modal-label">終了時間</label>
             <div class="toggle-switch">
@@ -238,7 +239,7 @@
           <div class="time-preview">選択: <span>{{ formattedEndTime }}</span></div>
         </div>
 
-        <div class="modal-work-hours">
+        <div class="modal-work-hours" v-if="!isBulkMode">
           勤務時間: <span>{{ calculatedWorkHours }}</span>
         </div>
 
@@ -275,6 +276,8 @@ const { calculateBreakTime } = useTimeCalculation()
 // 時刻選択モーダルの状態（24時間制）
 const showTimeModal = ref(false)
 const currentEditIndex = ref<number | null>(null)
+const isBulkMode = ref(false) // 一括設定モードかどうか
+const bulkTimeType = ref<'start' | 'end'>('start') // 一括設定の種類（開始 or 終了）
 const startPm = ref(false) // 午前=false（0-11）, 午後=true（12-23）
 const endPm = ref(true)
 const selectedStartHour = ref(9) // 0-23の範囲
@@ -422,10 +425,33 @@ const selectEndMinute = (minute: number) => {
   selectedEndMinute.value = minute
 }
 
-// 時刻選択モーダルを開く
+// 一括設定用のモーダルを開く
+const openBulkTimeModal = (type: 'start' | 'end') => {
+  isBulkMode.value = true
+  bulkTimeType.value = type
+
+  // 一括設定の現在値をパース
+  const timeStr = type === 'start' ? bulkSettings.value.startTime : bulkSettings.value.endTime
+  const [hourStr, minStr] = timeStr.split(':').map(Number)
+
+  if (type === 'start') {
+    selectedStartHour.value = hourStr
+    selectedStartMinute.value = minStr
+    startPm.value = hourStr >= 12
+  } else {
+    selectedEndHour.value = hourStr
+    selectedEndMinute.value = minStr
+    endPm.value = hourStr >= 12
+  }
+
+  showTimeModal.value = true
+}
+
+// 時刻選択モーダルを開く（個別設定用）
 const handleTimeClick = (index: number, type: string) => {
   if (!workDays.value[index]) return // undefinedチェック
 
+  isBulkMode.value = false
   const workDay = workDays.value[index]
   currentEditIndex.value = index
 
@@ -448,18 +474,30 @@ const handleTimeClick = (index: number, type: string) => {
 const cancelTimeEdit = () => {
   showTimeModal.value = false
   currentEditIndex.value = null
+  isBulkMode.value = false
 }
 
 // 時刻選択モーダルを確定
 const confirmTimeEdit = () => {
-  if (currentEditIndex.value !== null) {
-    timeRegisterStore.updateWorkDay(currentEditIndex.value, {
-      startTime: formattedStartTime.value,
-      endTime: formattedEndTime.value
-    })
+  if (isBulkMode.value) {
+    // 一括設定モードの場合
+    if (bulkTimeType.value === 'start') {
+      bulkSettings.value.startTime = formattedStartTime.value
+    } else {
+      bulkSettings.value.endTime = formattedEndTime.value
+    }
+  } else {
+    // 個別設定モードの場合
+    if (currentEditIndex.value !== null) {
+      timeRegisterStore.updateWorkDay(currentEditIndex.value, {
+        startTime: formattedStartTime.value,
+        endTime: formattedEndTime.value
+      })
+    }
   }
   showTimeModal.value = false
   currentEditIndex.value = null
+  isBulkMode.value = false
 }
 
 // モーダルからシフトを外す
@@ -521,36 +559,47 @@ const handleNext = () => {
   gap: 1rem;
 }
 
-.time-inputs {
+.bulk-time-settings {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.time-input-group {
+.bulk-time-item {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.time-input-group label {
+.bulk-time-btn {
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  color: #667eea;
+  border: 2px solid #667eea;
+  border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #666;
-}
-
-.time-input {
-  padding: 0.75rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
+  cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.time-input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+.bulk-time-btn:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.bulk-time-display {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
 }
 
 .bulk-actions {
@@ -1103,7 +1152,7 @@ const handleNext = () => {
     padding: 1rem;
   }
 
-  .time-inputs {
+  .bulk-time-settings {
     grid-template-columns: 1fr;
   }
 
