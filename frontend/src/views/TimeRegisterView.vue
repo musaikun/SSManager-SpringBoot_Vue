@@ -119,7 +119,7 @@
     <!-- 時刻選択モーダル（OLD_S-SManager風） -->
     <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit">
       <div class="modal-content time-picker-modal" @click.stop>
-        <h3 class="modal-title" v-if="currentEditIndex !== null">
+        <h3 class="modal-title" v-if="currentEditIndex !== null && workDays[currentEditIndex]">
           {{ workDays[currentEditIndex].displayDate }}
         </h3>
 
@@ -137,14 +137,14 @@
             </div>
           </div>
 
-          <!-- 時間選択 -->
+          <!-- 時間選択（24時間制：午前0-11、午後12-23） -->
           <div class="hour-selector-row">
             <button
-              v-for="hour in 12"
+              v-for="hour in startHourButtons"
               :key="'start-' + hour"
               class="hour-btn"
               :class="{ active: selectedStartHour === hour }"
-              @click="selectedStartHour = hour"
+              @click="selectStartHour(hour)"
             >
               {{ hour }}
             </button>
@@ -157,7 +157,7 @@
               :key="'start-min-' + minute"
               class="minute-btn"
               :class="{ active: selectedStartMinute === minute }"
-              @click="selectedStartMinute = minute"
+              @click="selectStartMinute(minute)"
             >
               {{ String(minute).padStart(2, '0') }}
             </button>
@@ -180,14 +180,14 @@
             </div>
           </div>
 
-          <!-- 時間選択 -->
+          <!-- 時間選択（24時間制：午前0-11、午後12-23） -->
           <div class="hour-selector-row">
             <button
-              v-for="hour in 12"
+              v-for="hour in endHourButtons"
               :key="'end-' + hour"
               class="hour-btn"
               :class="{ active: selectedEndHour === hour }"
-              @click="selectedEndHour = hour"
+              @click="selectEndHour(hour)"
             >
               {{ hour }}
             </button>
@@ -200,7 +200,7 @@
               :key="'end-min-' + minute"
               class="minute-btn"
               :class="{ active: selectedEndMinute === minute }"
-              @click="selectedEndMinute = minute"
+              @click="selectEndMinute(minute)"
             >
               {{ String(minute).padStart(2, '0') }}
             </button>
@@ -226,7 +226,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import ProgressIndicator from '../components/ProgressIndicator.vue'
@@ -246,35 +246,47 @@ const { totalSummary } = storeToRefs(timeRegisterStore)
 const { formatMinutesToHours } = useTimeFormat()
 const { calculateBreakTime } = useTimeCalculation()
 
-// 時刻選択モーダルの状態
+// 時刻選択モーダルの状態（24時間制）
 const showTimeModal = ref(false)
 const currentEditIndex = ref<number | null>(null)
-const startPm = ref(false) // 午前=false, 午後=true
+const startPm = ref(false) // 午前=false（0-11）, 午後=true（12-23）
 const endPm = ref(true)
-const selectedStartHour = ref(9)
-const selectedStartMinute = ref(0)
-const selectedEndHour = ref(6)
-const selectedEndMinute = ref(0)
+const selectedStartHour = ref(9) // 0-23の範囲
+const selectedStartMinute = ref(0) // 0, 15, 30, 45
+const selectedEndHour = ref(18) // 0-23の範囲
+const selectedEndMinute = ref(0) // 0, 15, 30, 45
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
   return workDays.value
 })
 
-// 選択された開始時刻をフォーマット
-const formattedStartTime = computed(() => {
-  const hour24 = startPm.value
-    ? (selectedStartHour.value === 12 ? 12 : selectedStartHour.value + 12)
-    : (selectedStartHour.value === 12 ? 0 : selectedStartHour.value)
-  return `${String(hour24).padStart(2, '0')}:${String(selectedStartMinute.value).padStart(2, '0')}`
+// 開始時間ボタン配列（午前: 0-11、午後: 12-23）
+const startHourButtons = computed(() => {
+  if (startPm.value) {
+    return [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+  } else {
+    return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+  }
 })
 
-// 選択された終了時刻をフォーマット
+// 終了時間ボタン配列（午前: 0-11、午後: 12-23）
+const endHourButtons = computed(() => {
+  if (endPm.value) {
+    return [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+  } else {
+    return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+  }
+})
+
+// 選択された開始時刻をフォーマット（24時間制なのでそのまま）
+const formattedStartTime = computed(() => {
+  return `${String(selectedStartHour.value).padStart(2, '0')}:${String(selectedStartMinute.value).padStart(2, '0')}`
+})
+
+// 選択された終了時刻をフォーマット（24時間制なのでそのまま）
 const formattedEndTime = computed(() => {
-  const hour24 = endPm.value
-    ? (selectedEndHour.value === 12 ? 12 : selectedEndHour.value + 12)
-    : (selectedEndHour.value === 12 ? 0 : selectedEndHour.value)
-  return `${String(hour24).padStart(2, '0')}:${String(selectedEndMinute.value).padStart(2, '0')}`
+  return `${String(selectedEndHour.value).padStart(2, '0')}:${String(selectedEndMinute.value).padStart(2, '0')}`
 })
 
 // 計算された勤務時間
@@ -282,6 +294,25 @@ const calculatedWorkHours = computed(() => {
   const { calculateWorkMinutes } = useTimeCalculation()
   const minutes = calculateWorkMinutes(formattedStartTime.value, formattedEndTime.value)
   return formatMinutesToHours(minutes)
+})
+
+// 午前/午後トグル切替時の時間調整
+watch(startPm, (isPm) => {
+  // 午前（0-11）と午後（12-23）の範囲をチェック
+  if (isPm && selectedStartHour.value < 12) {
+    selectedStartHour.value = selectedStartHour.value + 12
+  } else if (!isPm && selectedStartHour.value >= 12) {
+    selectedStartHour.value = selectedStartHour.value - 12
+  }
+})
+
+watch(endPm, (isPm) => {
+  // 午前（0-11）と午後（12-23）の範囲をチェック
+  if (isPm && selectedEndHour.value < 12) {
+    selectedEndHour.value = selectedEndHour.value + 12
+  } else if (!isPm && selectedEndHour.value >= 12) {
+    selectedEndHour.value = selectedEndHour.value - 12
+  }
 })
 
 // 初期化
@@ -341,44 +372,48 @@ const handleRemoveDay = (index: number) => {
   timeRegisterStore.toggleRemoveDay(index)
 }
 
-// 時刻選択
+// 開始時間の選択
+const selectStartHour = (hour: number) => {
+  selectedStartHour.value = hour
+  // 時間に応じて午前/午後トグルを自動設定
+  startPm.value = hour >= 12
+}
+
+// 終了時間の選択
+const selectEndHour = (hour: number) => {
+  selectedEndHour.value = hour
+  // 時間に応じて午前/午後トグルを自動設定
+  endPm.value = hour >= 12
+}
+
+// 開始時間の分選択
+const selectStartMinute = (minute: number) => {
+  selectedStartMinute.value = minute
+}
+
+// 終了時間の分選択
+const selectEndMinute = (minute: number) => {
+  selectedEndMinute.value = minute
+}
+
+// 時刻選択モーダルを開く
 const handleTimeClick = (index: number, type: string) => {
+  if (!workDays.value[index]) return // undefinedチェック
+
   const workDay = workDays.value[index]
   currentEditIndex.value = index
 
-  // 開始時刻のパース
+  // 開始時刻のパース（24時間制なのでシンプル）
   const [startHourStr, startMinStr] = workDay.startTime.split(':').map(Number)
-  if (startHourStr === 0) {
-    startPm.value = false
-    selectedStartHour.value = 12
-  } else if (startHourStr < 12) {
-    startPm.value = false
-    selectedStartHour.value = startHourStr
-  } else if (startHourStr === 12) {
-    startPm.value = true
-    selectedStartHour.value = 12
-  } else {
-    startPm.value = true
-    selectedStartHour.value = startHourStr - 12
-  }
+  selectedStartHour.value = startHourStr
   selectedStartMinute.value = startMinStr
+  startPm.value = startHourStr >= 12
 
-  // 終了時刻のパース
+  // 終了時刻のパース（24時間制なのでシンプル）
   const [endHourStr, endMinStr] = workDay.endTime.split(':').map(Number)
-  if (endHourStr === 0) {
-    endPm.value = false
-    selectedEndHour.value = 12
-  } else if (endHourStr < 12) {
-    endPm.value = false
-    selectedEndHour.value = endHourStr
-  } else if (endHourStr === 12) {
-    endPm.value = true
-    selectedEndHour.value = 12
-  } else {
-    endPm.value = true
-    selectedEndHour.value = endHourStr - 12
-  }
+  selectedEndHour.value = endHourStr
   selectedEndMinute.value = endMinStr
+  endPm.value = endHourStr >= 12
 
   showTimeModal.value = true
 }
