@@ -124,27 +124,11 @@
             {{ workDays[currentEditIndex].displayDate }}
           </h3>
 
-          <!-- 時計タイプ切り替え -->
-          <div class="picker-type-switch">
-            <button
-              @click="useCircularPicker = false"
-              :class="{ active: !useCircularPicker }"
-              class="type-btn"
-            >
-              ボタン式
-            </button>
-            <button
-              @click="useCircularPicker = true"
-              :class="{ active: useCircularPicker }"
-              class="type-btn"
-            >
-              円形
-            </button>
-          </div>
+          <!-- シフトを外すボタン -->
+          <button @click="handleRemoveFromModal" class="remove-shift-btn">
+            シフトを外す
+          </button>
         </div>
-
-        <!-- ボタン式時計（既存） -->
-        <div v-if="!useCircularPicker" class="button-style-picker">
 
         <!-- 開始時間 -->
         <div class="modal-section">
@@ -163,7 +147,18 @@
           <!-- 時間選択（24時間制：午前0-11、午後12-23） -->
           <div class="hour-selector-row">
             <button
-              v-for="hour in startHourButtons"
+              v-for="hour in startHourButtons.slice(0, 6)"
+              :key="'start-' + hour"
+              class="hour-btn"
+              :class="{ active: selectedStartHour === hour }"
+              @click="selectStartHour(hour)"
+            >
+              {{ hour }}
+            </button>
+          </div>
+          <div class="hour-selector-row">
+            <button
+              v-for="hour in startHourButtons.slice(6, 12)"
               :key="'start-' + hour"
               class="hour-btn"
               :class="{ active: selectedStartHour === hour }"
@@ -206,7 +201,18 @@
           <!-- 時間選択（24時間制：午前0-11、午後12-23） -->
           <div class="hour-selector-row">
             <button
-              v-for="hour in endHourButtons"
+              v-for="hour in endHourButtons.slice(0, 6)"
+              :key="'end-' + hour"
+              class="hour-btn"
+              :class="{ active: selectedEndHour === hour }"
+              @click="selectEndHour(hour)"
+            >
+              {{ hour }}
+            </button>
+          </div>
+          <div class="hour-selector-row">
+            <button
+              v-for="hour in endHourButtons.slice(6, 12)"
               :key="'end-' + hour"
               class="hour-btn"
               :class="{ active: selectedEndHour === hour }"
@@ -237,27 +243,9 @@
         </div>
 
         <div class="modal-buttons">
-          <button @click="confirmTimeEdit" class="btn-modal btn-primary-modal">設定する</button>
-          <div class="modal-buttons-row">
-            <button @click="cancelTimeEdit" class="btn-modal btn-secondary-modal">キャンセル</button>
-            <button @click="handleRemoveFromModal" class="btn-modal btn-danger-modal">シフトを外す</button>
-          </div>
+          <button @click="cancelTimeEdit" class="btn-modal btn-secondary-modal">キャンセル</button>
+          <button @click="confirmTimeEdit" class="btn-modal btn-primary-modal">設定</button>
         </div>
-        </div><!-- button-style-picker 閉じタグ -->
-
-        <!-- 円形時計（新規） -->
-        <div v-else class="circular-style-picker">
-          <CircularTimePicker
-            ref="circularPickerRef"
-            @update:startTime="handleCircularStartTime"
-            @update:endTime="handleCircularEndTime"
-          />
-          <div class="circular-actions">
-            <button @click="applyCircularTime" class="btn-modal btn-primary-modal">この時刻で設定</button>
-            <button @click="cancelTimeEdit" class="btn-modal btn-secondary-modal">キャンセル</button>
-          </div>
-        </div>
-
       </div>
     </div>
   </div>
@@ -268,7 +256,6 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import ProgressIndicator from '../components/ProgressIndicator.vue'
-import CircularTimePicker from '../components/CircularTimePicker.vue'
 import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
 import { useTimeFormat } from '../composables/useTimeFormat'
@@ -288,18 +275,12 @@ const { calculateBreakTime } = useTimeCalculation()
 // 時刻選択モーダルの状態（24時間制）
 const showTimeModal = ref(false)
 const currentEditIndex = ref<number | null>(null)
-const useCircularPicker = ref(true) // デフォルトで円形ピッカーを使用
 const startPm = ref(false) // 午前=false（0-11）, 午後=true（12-23）
 const endPm = ref(true)
 const selectedStartHour = ref(9) // 0-23の範囲
 const selectedStartMinute = ref(0) // 0, 15, 30, 45
 const selectedEndHour = ref(18) // 0-23の範囲
 const selectedEndMinute = ref(0) // 0, 15, 30, 45
-
-// 円形ピッカーの参照
-const circularPickerRef = ref<InstanceType<typeof CircularTimePicker> | null>(null)
-const circularTempStart = ref<string | null>(null)
-const circularTempEnd = ref<string | null>(null)
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
@@ -488,51 +469,6 @@ const handleRemoveFromModal = () => {
   }
   showTimeModal.value = false
   currentEditIndex.value = null
-}
-
-// 円形ピッカーのイベントハンドラ
-const handleCircularStartTime = (time: string | null) => {
-  circularTempStart.value = time
-}
-
-const handleCircularEndTime = (time: string | null) => {
-  circularTempEnd.value = time
-}
-
-const applyCircularTime = () => {
-  if (currentEditIndex.value !== null) {
-    // 開始・終了のいずれかが設定されていれば適用
-    if (circularTempStart.value || circularTempEnd.value) {
-      const updates: Partial<WorkDay> = {}
-
-      if (circularTempStart.value) {
-        updates.startTime = circularTempStart.value
-      }
-
-      if (circularTempEnd.value) {
-        updates.endTime = circularTempEnd.value
-      }
-
-      // 両方設定されている場合のみ勤務時間を更新
-      if (circularTempStart.value && circularTempEnd.value) {
-        timeRegisterStore.updateWorkDay(currentEditIndex.value, updates)
-      } else {
-        // 片方だけの場合は、既存の値を使用
-        const workDay = workDays.value[currentEditIndex.value]
-        if (workDay) {
-          updates.startTime = circularTempStart.value || workDay.startTime
-          updates.endTime = circularTempEnd.value || workDay.endTime
-          timeRegisterStore.updateWorkDay(currentEditIndex.value, updates)
-        }
-      }
-    }
-  }
-
-  // モーダルを閉じる
-  showTimeModal.value = false
-  currentEditIndex.value = null
-  circularTempStart.value = null
-  circularTempEnd.value = null
 }
 
 // 戻る
@@ -913,51 +849,22 @@ const handleNext = () => {
   color: #667eea;
 }
 
-/* 時計タイプ切り替え */
-.picker-type-switch {
-  display: flex;
-  gap: 0.5rem;
-  background: #f0f0f0;
-  border-radius: 8px;
-  padding: 4px;
-}
-
-.type-btn {
+/* シフトを外すボタン */
+.remove-shift-btn {
   padding: 0.5rem 1rem;
   border: none;
-  background: transparent;
-  border-radius: 6px;
+  background: #fee;
+  color: #ef4444;
+  border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #666;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.type-btn:hover {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.type-btn.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.button-style-picker {
-  /* 既存のボタン式スタイル用のコンテナ */
-}
-
-.circular-style-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.circular-actions {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
+.remove-shift-btn:hover {
+  background: #fdd;
+  transform: translateY(-1px);
 }
 
 .modal-section {
@@ -1035,13 +942,14 @@ const handleNext = () => {
   left: 2px;
   width: 48px;
   height: 28px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #ff9800; /* 午前時はオレンジ */
   border-radius: 18px;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .toggle-input:checked ~ .toggle-label .toggle-slider {
   transform: translateX(48px);
+  background: #2196F3; /* 午後時は青 */
 }
 
 /* 時間選択ボタン */
@@ -1140,12 +1048,6 @@ const handleNext = () => {
 
 /* モーダルボタン */
 .modal-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.modal-buttons-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
@@ -1178,15 +1080,6 @@ const handleNext = () => {
 
 .btn-secondary-modal:hover {
   background: #e0e0e0;
-}
-
-.btn-danger-modal {
-  background: #fee;
-  color: #ef4444;
-}
-
-.btn-danger-modal:hover {
-  background: #fdd;
 }
 
 /* レスポンシブ */
@@ -1227,7 +1120,7 @@ const handleNext = () => {
     padding: 1rem;
   }
 
-  .modal-buttons-row {
+  .modal-buttons {
     grid-template-columns: 1fr;
   }
 }
