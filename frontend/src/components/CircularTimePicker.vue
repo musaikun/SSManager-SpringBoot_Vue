@@ -3,14 +3,72 @@
     <!-- 円形時計エリア -->
     <div class="clock-container">
       <svg :width="svgSize" :height="svgSize" class="clock-svg">
-        <!-- 背景円 -->
+        <!-- 背景円（時計の外枠） -->
         <circle
           :cx="centerX"
           :cy="centerY"
-          :r="outerRadius + 20"
+          :r="outerRadius + 25"
           fill="transparent"
-          stroke="#e0e0e0"
-          stroke-width="1"
+          stroke="#d0d0d0"
+          stroke-width="2"
+        />
+
+        <!-- 12時位置のマーカー -->
+        <circle
+          :cx="centerX"
+          :cy="centerY - outerRadius - 28"
+          r="5"
+          fill="#667eea"
+        />
+
+        <!-- 3時位置のマーカー -->
+        <circle
+          :cx="centerX + outerRadius + 28"
+          :cy="centerY"
+          r="3"
+          fill="#ccc"
+        />
+
+        <!-- 6時位置のマーカー -->
+        <circle
+          :cx="centerX"
+          :cy="centerY + outerRadius + 28"
+          r="3"
+          fill="#ccc"
+        />
+
+        <!-- 9時位置のマーカー -->
+        <circle
+          :cx="centerX - outerRadius - 28"
+          :cy="centerY"
+          r="3"
+          fill="#ccc"
+        />
+
+        <!-- 時間選択の針（選択中の時刻を指す） -->
+        <line
+          v-if="currentHour !== null"
+          :x1="centerX"
+          :y1="centerY"
+          :x2="getHourPosition(currentHour).x"
+          :y2="getHourPosition(currentHour).y"
+          stroke="#667eea"
+          stroke-width="3"
+          stroke-linecap="round"
+          opacity="0.3"
+        />
+
+        <!-- 分選択の針 -->
+        <line
+          v-if="currentMinute !== null"
+          :x1="centerX"
+          :y1="centerY"
+          :x2="getMinutePosition(getMinuteAngle(currentMinute)).x"
+          :y2="getMinutePosition(getMinuteAngle(currentMinute)).y"
+          stroke="#10b981"
+          stroke-width="3"
+          stroke-linecap="round"
+          opacity="0.3"
         />
 
         <!-- 時間選択（外側の円） -->
@@ -69,20 +127,18 @@
           </g>
         </g>
 
-        <!-- 中央のAM/PMトグル -->
+        <!-- 中央のAM/PMトグル（円形） -->
         <g class="period-toggle" @click="togglePeriod">
-          <rect
-            :x="centerX - 35"
-            :y="centerY - 20"
-            width="70"
-            height="40"
-            rx="20"
+          <circle
+            :cx="centerX"
+            :cy="centerY"
+            r="28"
             :class="{ pm: isPM }"
-            class="toggle-bg"
+            class="toggle-circle"
           />
           <text
             :x="centerX"
-            :y="centerY + 6"
+            :y="centerY + 5"
             class="toggle-text"
             text-anchor="middle"
             dominant-baseline="middle"
@@ -96,9 +152,27 @@
       <div class="current-selection">
         選択中: <span class="time-display">{{ formattedCurrentTime }}</span>
       </div>
+
+      <!-- 確定ボタン（時計のすぐ下） -->
+      <div class="quick-actions">
+        <button
+          @click="confirmTime('start')"
+          :disabled="!canConfirm"
+          class="quick-btn start-btn"
+        >
+          ← 開始時間
+        </button>
+        <button
+          @click="confirmTime('end')"
+          :disabled="!canConfirm"
+          class="quick-btn end-btn"
+        >
+          終了時間 →
+        </button>
+      </div>
     </div>
 
-    <!-- 確定エリア -->
+    <!-- 確定済み時刻表示エリア -->
     <div class="confirm-area">
       <div class="time-displays">
         <div class="time-slot" :class="{ filled: startTime !== null }">
@@ -109,23 +183,6 @@
           <div class="slot-label">終了時間</div>
           <div class="slot-time">{{ endTime || '--:--' }}</div>
         </div>
-      </div>
-
-      <div class="action-buttons">
-        <button
-          @click="confirmTime('start')"
-          :disabled="!canConfirm"
-          class="confirm-btn start-btn"
-        >
-          開始時間に設定
-        </button>
-        <button
-          @click="confirmTime('end')"
-          :disabled="!canConfirm"
-          class="confirm-btn end-btn"
-        >
-          終了時間に設定
-        </button>
       </div>
 
       <button
@@ -207,6 +264,12 @@ const getMinutePosition = (angleDeg: number) => {
     x: centerX + innerRadius * Math.cos(angleRad),
     y: centerY + innerRadius * Math.sin(angleRad)
   }
+}
+
+// 分から角度を取得
+const getMinuteAngle = (minute: number): number => {
+  const found = minutePositions.find(m => m.minute === minute)
+  return found ? found.angle : -90
 }
 
 // 現在選択中の時刻をフォーマット
@@ -315,6 +378,7 @@ defineExpose({
 .clock-svg {
   cursor: pointer;
   user-select: none;
+  touch-action: none; /* スワイプでモーダルがずれるのを防止 */
 }
 
 /* 時間の円 */
@@ -383,34 +447,35 @@ defineExpose({
   font-size: 16px;
 }
 
-/* AM/PMトグル */
+/* AM/PMトグル（円形） */
 .period-toggle {
   cursor: pointer;
 }
 
-.toggle-bg {
-  fill: #e0e0e0;
+.toggle-circle {
+  fill: #ff9800; /* AM時はオレンジ */
+  stroke: #f57c00;
+  stroke-width: 2;
   transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
-.toggle-bg:hover {
-  fill: #d0d0d0;
+.toggle-circle:hover {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  transform: scale(1.05);
 }
 
-.toggle-bg.pm {
-  fill: #667eea;
+.toggle-circle.pm {
+  fill: #2196F3; /* PM時は青 */
+  stroke: #1976D2;
 }
 
 .toggle-text {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
-  fill: #666;
+  fill: white;
   pointer-events: none;
   transition: all 0.3s ease;
-}
-
-.toggle-bg.pm + .toggle-text {
-  fill: white;
 }
 
 /* 現在選択中の時刻 */
@@ -471,46 +536,49 @@ defineExpose({
   color: #4caf50;
 }
 
-/* ボタン */
-.action-buttons {
+/* クイックアクションボタン（時計のすぐ下） */
+.quick-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+  margin-top: 1rem;
 }
 
-.confirm-btn {
-  padding: 0.875rem;
+.quick-btn {
+  padding: 0.75rem 1rem;
   border: none;
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.confirm-btn:disabled {
+.quick-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
-.start-btn {
+.quick-btn.start-btn {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
 }
 
-.start-btn:not(:disabled):hover {
+.quick-btn.start-btn:not(:disabled):hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.end-btn {
+.quick-btn.end-btn {
   background: linear-gradient(135deg, #f093fb, #f5576c);
   color: white;
 }
 
-.end-btn:not(:disabled):hover {
+.quick-btn.end-btn:not(:disabled):hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
 }
 
 .reset-btn {
@@ -535,7 +603,11 @@ defineExpose({
     padding: 1rem;
   }
 
-  .action-buttons {
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .time-displays {
     grid-template-columns: 1fr;
   }
 }
