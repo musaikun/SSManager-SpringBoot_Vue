@@ -5,38 +5,41 @@
 
     <!-- メインコンテンツ -->
     <div class="time-register-container">
-      <!-- 一括設定セクション -->
+      <!-- 一括設定セクション（アコーディオン） -->
       <div class="bulk-settings-section">
-        <div class="section-header">
+        <div class="section-header accordion-header" @click="toggleBulkAccordion">
           <h2>一括設定</h2>
+          <span class="accordion-icon">{{ isBulkAccordionOpen ? '▲' : '▼' }}</span>
         </div>
-        <div class="bulk-settings-content">
-          <div class="bulk-time-settings">
-            <div class="bulk-time-item">
-              <button @click="openBulkTimeModal('start')" class="bulk-time-btn">
-                開始時刻設定
-              </button>
-              <div class="bulk-time-display">{{ bulkSettings.startTime }}</div>
+        <transition name="accordion">
+          <div v-show="isBulkAccordionOpen" class="bulk-settings-content">
+            <div class="bulk-time-settings">
+              <div class="bulk-time-item">
+                <button @click="openBulkTimeModal('start')" class="bulk-time-btn">
+                  開始時刻設定
+                </button>
+                <div class="bulk-time-display">{{ bulkSettings.startTime }}</div>
+              </div>
+              <div class="bulk-time-item">
+                <button @click="openBulkTimeModal('end')" class="bulk-time-btn">
+                  終了時刻設定
+                </button>
+                <div class="bulk-time-display">{{ bulkSettings.endTime }}</div>
+              </div>
             </div>
-            <div class="bulk-time-item">
-              <button @click="openBulkTimeModal('end')" class="bulk-time-btn">
-                終了時刻設定
+            <div class="bulk-actions">
+              <button @click="handleBulkApply('both')" class="bulk-btn">
+                全日に適用
               </button>
-              <div class="bulk-time-display">{{ bulkSettings.endTime }}</div>
+              <button @click="handleBulkApply('start')" class="bulk-btn">
+                開始時刻のみ適用
+              </button>
+              <button @click="handleBulkApply('end')" class="bulk-btn">
+                終了時刻のみ適用
+              </button>
             </div>
           </div>
-          <div class="bulk-actions">
-            <button @click="handleBulkApply('both')" class="bulk-btn">
-              全日に適用
-            </button>
-            <button @click="handleBulkApply('start')" class="bulk-btn">
-              開始時刻のみ適用
-            </button>
-            <button @click="handleBulkApply('end')" class="bulk-btn">
-              終了時刻のみ適用
-            </button>
-          </div>
-        </div>
+        </transition>
       </div>
 
       <!-- 休憩時間設定 -->
@@ -273,6 +276,9 @@ const { totalSummary } = storeToRefs(timeRegisterStore)
 const { formatMinutesToHours } = useTimeFormat()
 const { calculateBreakTime } = useTimeCalculation()
 
+// アコーディオンの開閉状態
+const isBulkAccordionOpen = ref(true) // デフォルトで開いている
+
 // 時刻選択モーダルの状態（24時間制）
 const showTimeModal = ref(false)
 const currentEditIndex = ref<number | null>(null)
@@ -366,6 +372,11 @@ const formatWorkTime = (workDay: WorkDay) => {
     return `${formatMinutesToHours(actualMinutes)} (休憩: ${formatMinutesToHours(breakMinutes)})`
   }
   return formatMinutesToHours(workDay.workMinutes)
+}
+
+// アコーディオンのトグル
+const toggleBulkAccordion = () => {
+  isBulkAccordionOpen.value = !isBulkAccordionOpen.value
 }
 
 // 一括適用
@@ -542,34 +553,75 @@ const handleNext = () => {
 .bulk-settings-section {
   background: white;
   border-radius: 12px;
-  padding: 1.5rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.section-header {
+  margin: 0;
+  padding: 1.5rem;
 }
 
 .section-header h2 {
-  margin: 0 0 1rem 0;
+  margin: 0;
   font-size: 1.25rem;
   color: #333;
 }
 
+/* アコーディオンヘッダー */
+.accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  user-select: none;
+}
+
+.accordion-header:hover {
+  background: #f8f9fa;
+}
+
+.accordion-icon {
+  font-size: 1rem;
+  color: #667eea;
+  font-weight: 700;
+  transition: transform 0.3s ease;
+}
+
+/* アコーディオントランジション */
+.accordion-enter-active,
+.accordion-leave-active {
+  transition: all 0.3s ease;
+  max-height: 500px;
+  overflow: hidden;
+}
+
+.accordion-enter-from,
+.accordion-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
 .bulk-settings-content {
+  padding: 0 1.5rem 1.5rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
 .bulk-time-settings {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1rem;
 }
 
 .bulk-time-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
 }
 
 .bulk-time-btn {
@@ -582,6 +634,8 @@ const handleNext = () => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 140px;
 }
 
 .bulk-time-btn:hover {
@@ -592,6 +646,7 @@ const handleNext = () => {
 }
 
 .bulk-time-display {
+  flex: 1;
   text-align: center;
   font-size: 1.5rem;
   font-weight: 700;
@@ -1152,20 +1207,30 @@ const handleNext = () => {
     padding: 1rem;
   }
 
-  .bulk-time-settings {
-    grid-template-columns: 1fr;
+  .section-header {
+    padding: 1rem;
+  }
+
+  .bulk-settings-content {
+    padding: 0 1rem 1rem 1rem;
   }
 
   .bulk-actions {
     grid-template-columns: 1fr;
   }
-
-  .action-buttons {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 480px) {
+  .bulk-time-btn {
+    font-size: 0.75rem;
+    min-width: 100px;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .bulk-time-display {
+    font-size: 1.25rem;
+  }
+
   .time-picker-modal {
     padding: 1rem;
   }
