@@ -106,11 +106,13 @@ import { useRouter } from 'vue-router'
 import { useCalendar } from '../composables/useCalendar'
 import { useHolidays } from '../composables/useHolidays'
 import { useCalendarStore } from '../stores/calendar'
+import { useNavigationStore } from '../stores/navigation'
 import type { CalendarCell } from '../types/calendar'
 import ProgressIndicator from '../components/ProgressIndicator.vue'
 
 const router = useRouter()
 const store = useCalendarStore()
+const navigationStore = useNavigationStore()
 
 // 今月と来月の情報
 const today = new Date()
@@ -172,6 +174,7 @@ const setNextMonth = () => {
 
 const navigateToTimeRegister = () => {
   if (selectedCount.value === 0) return
+  navigationStore.setForward()
   router.push('/time-register')
 }
 </script>

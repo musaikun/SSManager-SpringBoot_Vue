@@ -284,6 +284,7 @@ import { storeToRefs } from 'pinia'
 import ProgressIndicator from '../components/ProgressIndicator.vue'
 import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
+import { useNavigationStore } from '../stores/navigation'
 import { useTimeFormat } from '../composables/useTimeFormat'
 import { useTimeCalculation } from '../composables/useTimeCalculation'
 import type { BulkApplyType, WorkDay } from '../types/timeRegister'
@@ -291,6 +292,7 @@ import type { BulkApplyType, WorkDay } from '../types/timeRegister'
 const router = useRouter()
 const calendarStore = useCalendarStore()
 const timeRegisterStore = useTimeRegisterStore()
+const navigationStore = useNavigationStore()
 
 const { bulkSettings, includeBreak, workDays } = storeToRefs(timeRegisterStore)
 const { totalSummary } = storeToRefs(timeRegisterStore)
@@ -602,6 +604,7 @@ const handleRemoveFromModal = () => {
 
 // 戻る
 const handleBack = () => {
+  navigationStore.setBackward()
   router.push({ name: 'calendar' })
 }
 
@@ -613,6 +616,7 @@ const handleNext = () => {
     alert('勤務日が選択されていません')
     return
   }
+  navigationStore.setForward()
   console.log('Next to confirmation')
 }
 </script>
