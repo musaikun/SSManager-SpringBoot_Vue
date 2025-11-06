@@ -43,6 +43,8 @@ export interface WorkDay {
   customStartTime: boolean
   /** 終了時間が個別設定されたか */
   customEndTime: boolean
+  /** 一括設定が適用されたか */
+  isBulkApplied: boolean
 }
 
 /**

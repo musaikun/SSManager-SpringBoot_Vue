@@ -118,7 +118,8 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           isRemoved: false,
           displayDate: formatDisplayDate(dateObj, dayOfWeek),
           customStartTime: false,
-          customEndTime: false
+          customEndTime: false,
+          isBulkApplied: false
         }
       })
     },
@@ -156,7 +157,8 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
             isRemoved: false,
             displayDate: formatDisplayDate(dateObj, dayOfWeek),
             customStartTime: false,
-            customEndTime: false
+            customEndTime: false,
+            isBulkApplied: false
           }
         }
       })
@@ -193,7 +195,8 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           workMinutes,
           isModified,
           customStartTime,
-          customEndTime
+          customEndTime,
+          isBulkApplied: false // 個別設定時は一括設定フラグをfalseに
         }
       }
     },
@@ -276,9 +279,11 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
 
         if (!finalCustomStartTime && !finalCustomEndTime) {
           updates.isModified = false
+          updates.isBulkApplied = true // 一括設定適用済み
         } else {
           // どちらかがカスタムの場合はisModifiedを維持
           updates.isModified = true
+          updates.isBulkApplied = false // カスタムの場合は一括設定フラグをfalse
         }
 
         this.workDays[actualIndex] = {

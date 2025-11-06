@@ -85,7 +85,7 @@
 
       <!-- 注意書き -->
       <div class="info-note">
-        ※個別で設定した日は黄色でマークされます
+        ※時間表示：<span class="color-label default-color">デフォルト</span> / <span class="color-label custom-color">個別設定</span> / <span class="color-label bulk-color">一括設定</span>
       </div>
 
       <!-- 勤務日カードリスト -->
@@ -97,6 +97,7 @@
           :class="{
             removed: workDay.isRemoved,
             modified: workDay.isModified,
+            'bulk-applied': workDay.isBulkApplied,
             highlighted: isHighlighted(workDay)
           }"
         >
@@ -111,9 +112,15 @@
                 <div class="card-week">第{{ workDay.weekNumber }}週</div>
               </div>
               <div class="card-time-section">
-                <span class="time-value" :class="{ 'custom-time': workDay.customStartTime }">{{ workDay.startTime }}</span>
+                <span class="time-value" :class="{
+                  'custom-time': workDay.customStartTime,
+                  'bulk-time': workDay.isBulkApplied && !workDay.customStartTime
+                }">{{ workDay.startTime }}</span>
                 <span class="time-separator">〜</span>
-                <span class="time-value" :class="{ 'custom-time': workDay.customEndTime }">{{ workDay.endTime }}</span>
+                <span class="time-value" :class="{
+                  'custom-time': workDay.customEndTime,
+                  'bulk-time': workDay.isBulkApplied && !workDay.customEndTime
+                }">{{ workDay.endTime }}</span>
               </div>
             </div>
             <div class="card-hours">
@@ -1125,6 +1132,27 @@ const confirmTimeEdit = () => {
   margin-bottom: 1rem;
 }
 
+.info-note .color-label {
+  font-weight: 700;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
+.info-note .default-color {
+  color: #333;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.info-note .custom-color {
+  color: #d97706;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.info-note .bulk-color {
+  color: #2563eb;
+  background: rgba(255, 255, 255, 0.9);
+}
+
 /* 休憩時間設定 */
 .break-time-section {
   background: white;
@@ -1271,6 +1299,12 @@ const confirmTimeEdit = () => {
   background: #fef3c7;
 }
 
+/* 一括設定が適用されたカードは青色 */
+.work-day-card.bulk-applied {
+  background: #dbeafe;
+  border-left-color: #3b82f6;
+}
+
 /* 選択条件に該当するカードは水色でハイライト */
 .work-day-card.highlighted {
   background: #dbeafe;
@@ -1286,6 +1320,12 @@ const confirmTimeEdit = () => {
 /* 個別設定された時間のみ黄色 */
 .time-value.custom-time {
   color: #d97706;
+  font-weight: 700;
+}
+
+/* 一括設定された時間のみ青色 */
+.time-value.bulk-time {
+  color: #2563eb;
   font-weight: 700;
 }
 
