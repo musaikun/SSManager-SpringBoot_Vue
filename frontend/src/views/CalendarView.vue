@@ -20,9 +20,9 @@
           </button>
         </div>
 
-        <!-- アクションボタン：全選択・クリア -->
+        <!-- アクションボタン：休日選択・クリア -->
         <div class="action-buttons">
-          <button @click="selectAll" class="action-btn" :class="{ selected: isAllSelected }">全選択</button>
+          <button @click="selectAll" class="action-btn" :class="{ selected: isAllSelected }">休日を選択</button>
           <button @click="clearAll" class="action-btn">クリア</button>
         </div>
 
