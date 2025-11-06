@@ -120,7 +120,7 @@
     </div>
 
     <!-- 確認モーダル -->
-    <div v-if="showConfirmModal" class="modal-overlay" @click="showConfirmModal = false">
+    <div v-if="showConfirmModal" class="modal-overlay" @click="showConfirmModal = false" @touchmove.prevent>
       <div class="modal-content confirm-modal" @click.stop>
         <h3 class="modal-title">{{ confirmModalData.title }}</h3>
         <p class="modal-message">{{ confirmModalData.message }}</p>
@@ -139,7 +139,7 @@
     </div>
 
     <!-- ヘルプモーダル -->
-    <div v-if="showHelpModal" class="modal-overlay" @click="showHelpModal = false">
+    <div v-if="showHelpModal" class="modal-overlay" @click="showHelpModal = false" @touchmove.prevent>
       <div class="modal-content help-modal" @click.stop>
         <h3 class="modal-title">休憩時間のルール</h3>
         <div class="help-content">
@@ -161,7 +161,7 @@
     </div>
 
     <!-- 時刻選択モーダル -->
-    <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit">
+    <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit" @touchmove.prevent>
       <div class="modal-content time-picker-modal" @click.stop>
         <div class="modal-header-row">
           <!-- 一括設定モードのヘッダー -->
@@ -469,10 +469,13 @@ const handleBulkApply = (type: BulkApplyType) => {
       message: `個別設定した箇所が${modifiedCount}日あります。`,
       options: [
         { label: '個別設定以外の日を一括設定', value: 'unmodified' },
-        { label: '個別設定も含め一括設定', value: 'all' }
+        { label: '個別設定も含め一括設定', value: 'all' },
+        { label: 'キャンセル', value: 'cancel' }
       ],
       onConfirm: (value: string) => {
-        timeRegisterStore.applyBulk(type, value as 'unmodified' | 'all')
+        if (value !== 'cancel') {
+          timeRegisterStore.applyBulk(type, value as 'unmodified' | 'all')
+        }
         showConfirmModal.value = false
       }
     }
@@ -1082,7 +1085,7 @@ const handleNext = () => {
 
 /* モーダル共通 */
 .modal-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;

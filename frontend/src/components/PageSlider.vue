@@ -117,7 +117,20 @@ const handleTouchMove = (e: TouchEvent) => {
   // 横方向のスワイプのみ認識（縦スクロールを妨げない）
   if (Math.abs(diffX) > 10 && diffY < 50) {
     isDragging.value = true
-    dragOffsetX.value = diffX
+
+    // 端での抵抗（ラバーバンド効果）
+    let actualOffset = diffX
+
+    // 左端で右にスワイプ
+    if (currentPageIndex.value === 0 && diffX > 0) {
+      actualOffset = diffX * 0.3 // 抵抗を加える
+    }
+    // 右端で左にスワイプ
+    else if (currentPageIndex.value === props.pages.length - 1 && diffX < 0) {
+      actualOffset = diffX * 0.3 // 抵抗を加える
+    }
+
+    dragOffsetX.value = actualOffset
     e.preventDefault() // スクロール防止
   }
 }
@@ -132,6 +145,22 @@ const handleTouchEnd = () => {
   const threshold = viewportWidth.value * 0.3 // 30%スワイプで遷移
 
   let targetIndex = currentPageIndex.value
+
+  // 端でのスワイプ判定（バウンスバック）
+  const isAtLeftEdge = currentPageIndex.value === 0 && diffX > 0
+  const isAtRightEdge = currentPageIndex.value === props.pages.length - 1 && diffX < 0
+
+  if (isAtLeftEdge || isAtRightEdge) {
+    // 端でのスワイプの場合はバウンスバック
+    isTransitioning.value = true
+    dragOffsetX.value = 0
+    isDragging.value = false
+
+    setTimeout(() => {
+      isTransitioning.value = false
+    }, 300)
+    return
+  }
 
   // 左スワイプ（次へ）
   if (diffX < -threshold && currentPageIndex.value < props.pages.length - 1) {

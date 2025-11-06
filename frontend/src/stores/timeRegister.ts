@@ -204,6 +204,11 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
         const endTime = updates.endTime ?? day.endTime
         updates.workMinutes = calculateWorkMinutes(startTime, endTime)
 
+        // 個別設定を上書きする場合はisModifiedをfalseにする
+        if (target === 'all' && day.isModified) {
+          updates.isModified = false
+        }
+
         this.workDays[actualIndex] = {
           ...day,
           ...updates
