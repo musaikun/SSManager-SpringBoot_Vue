@@ -113,6 +113,8 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           weekNumber,
           startTime: this.bulkSettings.startTime,
           endTime: this.bulkSettings.endTime,
+          initialStartTime: this.bulkSettings.startTime,
+          initialEndTime: this.bulkSettings.endTime,
           workMinutes: calculateWorkMinutes(this.bulkSettings.startTime, this.bulkSettings.endTime),
           isModified: false,
           isRemoved: false,
@@ -152,6 +154,8 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
             weekNumber,
             startTime: this.bulkSettings.startTime,
             endTime: this.bulkSettings.endTime,
+            initialStartTime: this.bulkSettings.startTime,
+            initialEndTime: this.bulkSettings.endTime,
             workMinutes: calculateWorkMinutes(this.bulkSettings.startTime, this.bulkSettings.endTime),
             isModified: false,
             isRemoved: false,
@@ -279,7 +283,10 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
 
         if (!finalCustomStartTime && !finalCustomEndTime) {
           updates.isModified = false
-          updates.isBulkApplied = true // 一括設定適用済み
+          // 初期値と比較して、変わっていない場合はisBulkApplied=false
+          const startChanged = startTime !== day.initialStartTime
+          const endChanged = endTime !== day.initialEndTime
+          updates.isBulkApplied = startChanged || endChanged
         } else {
           // どちらかがカスタムの場合はisModifiedを維持
           updates.isModified = true

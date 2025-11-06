@@ -26,12 +26,12 @@
               <td class="time-cell">
                 <span :class="{
                   'custom-time': workDay.customStartTime,
-                  'bulk-time': workDay.isBulkApplied && !workDay.customStartTime
+                  'bulk-time': workDay.isBulkApplied && !workDay.customStartTime && workDay.startTime !== workDay.initialStartTime
                 }">{{ workDay.startTime }}</span>
                 <span class="separator">〜</span>
                 <span :class="{
                   'custom-time': workDay.customEndTime,
-                  'bulk-time': workDay.isBulkApplied && !workDay.customEndTime
+                  'bulk-time': workDay.isBulkApplied && !workDay.customEndTime && workDay.endTime !== workDay.initialEndTime
                 }">{{ workDay.endTime }}</span>
               </td>
               <td class="hours-cell">

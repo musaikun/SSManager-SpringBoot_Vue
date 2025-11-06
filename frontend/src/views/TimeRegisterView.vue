@@ -102,30 +102,30 @@
           }"
         >
           <div class="card-main" @click="handleCardClick($event, index)">
-            <div class="card-content-horizontal">
+            <div class="card-content-single-line">
               <div class="card-date-section">
-                <div class="card-date" :class="{
+                <span class="card-date" :class="{
                   'saturday': workDay.dayOfWeek === 6,
                   'sunday': workDay.dayOfWeek === 0,
                   'holiday': isHoliday(workDay.date)
-                }">{{ workDay.displayDate }}</div>
-                <div class="card-week">第{{ workDay.weekNumber }}週</div>
+                }">{{ workDay.displayDate }}</span>
+                <span class="card-week">第{{ workDay.weekNumber }}週</span>
               </div>
               <div class="card-time-section">
                 <span class="time-value" :class="{
                   'custom-time': workDay.customStartTime,
-                  'bulk-time': workDay.isBulkApplied && !workDay.customStartTime
+                  'bulk-time': workDay.isBulkApplied && !workDay.customStartTime && workDay.startTime !== workDay.initialStartTime
                 }">{{ workDay.startTime }}</span>
                 <span class="time-separator">〜</span>
                 <span class="time-value" :class="{
                   'custom-time': workDay.customEndTime,
-                  'bulk-time': workDay.isBulkApplied && !workDay.customEndTime
+                  'bulk-time': workDay.isBulkApplied && !workDay.customEndTime && workDay.endTime !== workDay.initialEndTime
                 }">{{ workDay.endTime }}</span>
               </div>
-            </div>
-            <div class="card-hours">
-              <span class="hours-icon">💼</span>
-              <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
+              <div class="card-hours">
+                <span class="hours-icon">💼</span>
+                <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
+              </div>
             </div>
           </div>
           <button
@@ -1201,7 +1201,7 @@ const confirmTimeEdit = () => {
 .work-days-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
   margin-bottom: 1.5rem;
 }
 
@@ -1225,27 +1225,27 @@ const confirmTimeEdit = () => {
 
 .card-main {
   flex: 1;
-  padding: 0.875rem 1rem;
+  padding: 0.5rem 0.75rem;
   cursor: pointer;
   position: relative;
 }
 
 .card-action-btn {
-  padding: 0.5rem;
+  padding: 0.35rem;
   margin-right: 0.5rem;
   background: #fee;
   color: #ef4444;
   border: none;
   border-radius: 6px;
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2rem;
+  height: 2rem;
   flex-shrink: 0;
 }
 
@@ -1268,7 +1268,7 @@ const confirmTimeEdit = () => {
 }
 
 .restore-icon {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   line-height: 1;
 }
 
@@ -1348,21 +1348,22 @@ const confirmTimeEdit = () => {
   z-index: 10;
 }
 
-.card-content-horizontal {
+.card-content-single-line {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .card-date-section {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
 }
 
 .card-date {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: #333;
 }
@@ -1377,7 +1378,7 @@ const confirmTimeEdit = () => {
 }
 
 .card-week {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #999;
   font-weight: 600;
 }
@@ -1385,30 +1386,33 @@ const confirmTimeEdit = () => {
 .card-time-section {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
+  flex: 1;
+  justify-content: center;
 }
 
 .time-value {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #667eea;
 }
 
 .time-separator {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #999;
 }
 
 .card-hours {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  gap: 0.3rem;
+  font-size: 0.75rem;
   color: #666;
+  flex-shrink: 0;
 }
 
 .hours-icon {
-  font-size: 1rem;
+  font-size: 0.85rem;
 }
 
 .hours-text {

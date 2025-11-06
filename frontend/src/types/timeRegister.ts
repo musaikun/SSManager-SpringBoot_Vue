@@ -31,6 +31,10 @@ export interface WorkDay {
   startTime: TimeString
   /** 終了時刻 */
   endTime: TimeString
+  /** 初期開始時刻（比較用） */
+  initialStartTime: TimeString
+  /** 初期終了時刻（比較用） */
+  initialEndTime: TimeString
   /** 勤務時間（分） */
   workMinutes: number
   /** 個別に修正されたか */
