@@ -90,7 +90,7 @@
         <label class="break-time-toggle">
           <input
             type="checkbox"
-            v-model="includeBreak"
+            :checked="includeBreak"
             @change="handleBreakToggle"
           />
           <span>休憩時間を引く</span>
@@ -279,7 +279,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import ProgressIndicator from '../components/ProgressIndicator.vue'
 import { useCalendarStore } from '../stores/calendar'
@@ -290,6 +290,7 @@ import { useTimeCalculation } from '../composables/useTimeCalculation'
 import type { BulkApplyType, WorkDay } from '../types/timeRegister'
 
 const router = useRouter()
+const route = useRoute()
 const calendarStore = useCalendarStore()
 const timeRegisterStore = useTimeRegisterStore()
 const navigationStore = useNavigationStore()
@@ -380,18 +381,28 @@ watch(endPm, (isPm) => {
   }
 })
 
-// 初期化
-onMounted(() => {
+// 初期化関数
+const initializeWorkDays = () => {
   const selectedDates = calendarStore.selectedDatesArray
 
   if (selectedDates.length === 0) {
-    // 日付が選択されていない場合はカレンダーに戻る
-    router.push({ name: 'calendar' })
     return
   }
 
   // 選択された日付で初期化
   timeRegisterStore.initializeFromDates(selectedDates)
+}
+
+// 初期化
+onMounted(() => {
+  initializeWorkDays()
+})
+
+// ルートが時間設定画面に変わったときも初期化
+watch(() => route.path, (newPath) => {
+  if (newPath === '/time-register') {
+    initializeWorkDays()
+  }
 })
 
 // 勤務時間のフォーマット
