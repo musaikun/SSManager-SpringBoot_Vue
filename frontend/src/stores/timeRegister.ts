@@ -11,6 +11,9 @@ import type {
   TimeString
 } from '../types/timeRegister'
 import type { DateString } from '../types/calendar'
+import { useTimeCalculation } from '../composables/useTimeCalculation'
+
+const { getWeekNumber } = useTimeCalculation()
 
 /**
  * 時間登録ストア
@@ -105,10 +108,12 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
       this.workDays = dates.map((date, index) => {
         const dateObj = new Date(date)
         const dayOfWeek = dateObj.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
+        const weekNumber = getWeekNumber(date)
 
         return {
           date,
           dayOfWeek,
+          weekNumber,
           startTime: this.bulkSettings.startTime,
           endTime: this.bulkSettings.endTime,
           workMinutes: calculateWorkMinutes(this.bulkSettings.startTime, this.bulkSettings.endTime),
@@ -141,10 +146,12 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           // 新しく追加された日付
           const dateObj = new Date(date)
           const dayOfWeek = dateObj.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
+          const weekNumber = getWeekNumber(date)
 
           return {
             date,
             dayOfWeek,
+            weekNumber,
             startTime: this.bulkSettings.startTime,
             endTime: this.bulkSettings.endTime,
             workMinutes: calculateWorkMinutes(this.bulkSettings.startTime, this.bulkSettings.endTime),
@@ -221,7 +228,8 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
     applyBulk(
       type: BulkApplyType,
       target: BulkApplyTarget,
-      weekdays?: number[]
+      weekdays?: number[],
+      weekNumbers?: number[]
     ) {
       const targetDays = target === 'all'
         ? this.workDays.filter(day => !day.isRemoved)
@@ -232,6 +240,11 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
 
         // 曜日指定がある場合はフィルタリング
         if (weekdays !== undefined && weekdays.length > 0 && !weekdays.includes(day.dayOfWeek)) {
+          return
+        }
+
+        // 週番号指定がある場合はフィルタリング
+        if (weekNumbers !== undefined && weekNumbers.length > 0 && !weekNumbers.includes(day.weekNumber)) {
           return
         }
 

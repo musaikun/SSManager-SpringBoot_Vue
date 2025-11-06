@@ -97,12 +97,58 @@ export function useTimeCalculation() {
     return breakRules
   }
 
+  /**
+   * 日付から月内の週番号を計算（1-6）
+   * 日曜日を週の始まりとして計算
+   * @param dateString YYYY-MM-DD形式の日付文字列
+   * @returns 週番号（1-6）
+   */
+  const getWeekNumber = (dateString: string): number => {
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = date.getMonth()
+
+    // 月の1日を取得
+    const firstDay = new Date(year, month, 1)
+
+    // 月の1日が属する週の日曜日を取得
+    const firstDayOfWeek = firstDay.getDay() // 0 (日曜) - 6 (土曜)
+    const firstSunday = new Date(firstDay)
+    firstSunday.setDate(firstDay.getDate() - firstDayOfWeek)
+
+    // 対象日付と最初の日曜日の差分（日数）
+    const diffTime = date.getTime() - firstSunday.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+    // 週番号を計算（1始まり）
+    const weekNumber = Math.floor(diffDays / 7) + 1
+
+    return weekNumber
+  }
+
+  /**
+   * 指定月に存在する週の数を取得
+   * @param year 年
+   * @param month 月（0-11）
+   * @returns 週の数（4-6）
+   */
+  const getWeeksInMonth = (year: number, month: number): number => {
+    // 月の最終日を取得
+    const lastDay = new Date(year, month + 1, 0)
+    const lastDateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`
+
+    // 最終日の週番号が月の週数
+    return getWeekNumber(lastDateString)
+  }
+
   return {
     calculateWorkMinutes,
     calculateBreakTime,
     calculateBreakTimeResult,
     isValidTime,
     isValidTimeRange,
-    getBreakRules
+    getBreakRules,
+    getWeekNumber,
+    getWeeksInMonth
   }
 }

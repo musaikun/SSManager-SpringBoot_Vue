@@ -28,9 +28,29 @@
               </div>
             </div>
 
+            <!-- 週選択 -->
+            <div class="week-selector">
+              <div class="week-label">週を選択</div>
+              <div class="week-buttons">
+                <button
+                  v-for="week in 6"
+                  :key="week"
+                  @click="toggleWeek(week)"
+                  class="week-btn"
+                  :class="{
+                    active: selectedWeeks.includes(week),
+                    disabled: !isWeekAvailable(week)
+                  }"
+                  :disabled="!isWeekAvailable(week)"
+                >
+                  第{{ week }}週
+                </button>
+              </div>
+            </div>
+
             <!-- 曜日選択 -->
             <div class="weekday-selector">
-              <div class="weekday-label">※下記のボタンで曜日別に設定できます</div>
+              <div class="weekday-label">曜日を選択</div>
               <div class="weekday-buttons">
                 <button
                   v-for="day in weekdayOptions"
@@ -78,11 +98,14 @@
         >
           <div class="card-main" @click="handleCardClick($event, index)">
             <div class="card-content-horizontal">
-              <div class="card-date" :class="{
-                'saturday': workDay.dayOfWeek === 6,
-                'sunday': workDay.dayOfWeek === 0,
-                'holiday': isHoliday(workDay.date)
-              }">{{ workDay.displayDate }}</div>
+              <div class="card-date-section">
+                <div class="card-date" :class="{
+                  'saturday': workDay.dayOfWeek === 6,
+                  'sunday': workDay.dayOfWeek === 0,
+                  'holiday': isHoliday(workDay.date)
+                }">{{ workDay.displayDate }}</div>
+                <div class="card-week">第{{ workDay.weekNumber }}週</div>
+              </div>
               <div class="card-time-section">
                 <span class="time-value" :class="{ 'custom-time': workDay.customStartTime }">{{ workDay.startTime }}</span>
                 <span class="time-separator">〜</span>
@@ -347,13 +370,31 @@ const { bulkSettings, includeBreak, workDays } = storeToRefs(timeRegisterStore)
 const { totalSummary } = storeToRefs(timeRegisterStore)
 
 const { formatMinutesToHours } = useTimeFormat()
-const { calculateBreakTime } = useTimeCalculation()
+const { calculateBreakTime, getWeeksInMonth } = useTimeCalculation()
 
 // アコーディオンの開閉状態
 const isBulkAccordionOpen = ref(false) // デフォルトで閉じている
 
+// 週選択の状態（デフォルトは何も選択されていない）
+const selectedWeeks = ref<number[]>([])
+
 // 曜日選択の状態（デフォルトは何も選択されていない）
 const selectedWeekdays = ref<number[]>([])
+
+// 現在の月で利用可能な週を取得
+const availableWeeks = computed(() => {
+  if (workDays.value.length === 0) return []
+  const firstDate = new Date(workDays.value[0].date)
+  const year = firstDate.getFullYear()
+  const month = firstDate.getMonth()
+  const totalWeeks = getWeeksInMonth(year, month)
+  return Array.from({ length: totalWeeks }, (_, i) => i + 1)
+})
+
+// 指定週が利用可能かチェック
+const isWeekAvailable = (week: number) => {
+  return availableWeeks.value.includes(week)
+}
 
 // 曜日オプション
 const weekdayOptions = [
@@ -505,6 +546,21 @@ const toggleBulkAccordion = () => {
   isBulkAccordionOpen.value = !isBulkAccordionOpen.value
 }
 
+// 週選択のトグル
+const toggleWeek = (week: number) => {
+  if (!isWeekAvailable(week)) return
+
+  const index = selectedWeeks.value.indexOf(week)
+  if (index === -1) {
+    // 選択されていない場合は追加
+    selectedWeeks.value.push(week)
+    selectedWeeks.value.sort((a, b) => a - b) // ソートして順番を保つ
+  } else {
+    // 既に選択されている場合は削除
+    selectedWeeks.value.splice(index, 1)
+  }
+}
+
 // 曜日選択のトグル
 const toggleWeekday = (dayOfWeek: number) => {
   const index = selectedWeekdays.value.indexOf(dayOfWeek)
@@ -531,14 +587,16 @@ const bulkApplyEndLabel = computed(() => {
   return selectedWeekdays.value.length === 0 ? '全日に終了時刻のみ適用' : '終了時刻のみ適用'
 })
 
-// 一括適用（選択曜日に基づく）
+// 一括適用（選択曜日・週に基づく）
 const handleBulkApplyAll = (type: BulkApplyType) => {
   // 曜日が選択されていない場合は全曜日を対象、選択されている場合は選択曜日のみ
   const targetWeekdays = selectedWeekdays.value.length === 0 ? [0, 1, 2, 3, 4, 5, 6] : selectedWeekdays.value
+  // 週が選択されていない場合は全週を対象、選択されている場合は選択週のみ
+  const targetWeeks = selectedWeeks.value.length === 0 ? availableWeeks.value : selectedWeeks.value
 
-  // 選択曜日に該当する勤務日をカウント
+  // 選択曜日・週に該当する勤務日をカウント
   const targetDays = workDays.value.filter(d =>
-    !d.isRemoved && targetWeekdays.includes(d.dayOfWeek)
+    !d.isRemoved && targetWeekdays.includes(d.dayOfWeek) && targetWeeks.includes(d.weekNumber)
   )
   const targetCount = targetDays.length
   const modifiedCount = targetDays.filter(d => d.isModified).length
@@ -551,13 +609,26 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
   // 選択曜日の表示文字列を生成
   const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土']
   const isAllWeekdays = selectedWeekdays.value.length === 0
-  const selectedWeekdayLabels = isAllWeekdays ? '全日' : selectedWeekdays.value.map(day => weekdayLabels[day]).join('・')
+  const isAllWeeks = selectedWeeks.value.length === 0
+
+  let selectedLabel = ''
+  if (isAllWeekdays && isAllWeeks) {
+    selectedLabel = '全日'
+  } else if (isAllWeekdays && !isAllWeeks) {
+    selectedLabel = `第${selectedWeeks.value.join('・')}週`
+  } else if (!isAllWeekdays && isAllWeeks) {
+    selectedLabel = selectedWeekdays.value.map(day => weekdayLabels[day]).join('・')
+  } else {
+    const weekLabel = `第${selectedWeeks.value.join('・')}週`
+    const dayLabel = selectedWeekdays.value.map(day => weekdayLabels[day]).join('・')
+    selectedLabel = `${weekLabel}の${dayLabel}`
+  }
 
   // 個別設定がある場合は選択肢を表示
   if (modifiedCount > 0) {
     confirmModalData.value = {
       title: '一括設定の確認',
-      message: `${selectedWeekdayLabels}で個別設定した箇所が${modifiedCount}日あります。`,
+      message: `${selectedLabel}で個別設定した箇所が${modifiedCount}日あります。`,
       options: [
         { label: '個別設定以外の日を一括設定', value: 'unmodified' },
         { label: '個別設定も含め一括設定', value: 'all' },
@@ -565,7 +636,7 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
       ],
       onConfirm: (value: string) => {
         if (value !== 'cancel') {
-          timeRegisterStore.applyBulk(type, value as 'unmodified' | 'all', targetWeekdays)
+          timeRegisterStore.applyBulk(type, value as 'unmodified' | 'all', targetWeekdays, targetWeeks)
         }
         showConfirmModal.value = false
       }
@@ -576,11 +647,11 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
     let message = ''
 
     if (type === 'both') {
-      message = `${selectedWeekdayLabels}の${targetCount}日に開始: ${bulkSettings.value.startTime}、終了: ${bulkSettings.value.endTime}を適用しますか？`
+      message = `${selectedLabel}の${targetCount}日に開始: ${bulkSettings.value.startTime}、終了: ${bulkSettings.value.endTime}を適用しますか？`
     } else if (type === 'start') {
-      message = `${selectedWeekdayLabels}の${targetCount}日の開始時刻を${bulkSettings.value.startTime}に変更しますか？`
+      message = `${selectedLabel}の${targetCount}日の開始時刻を${bulkSettings.value.startTime}に変更しますか？`
     } else if (type === 'end') {
-      message = `${selectedWeekdayLabels}の${targetCount}日の終了時刻を${bulkSettings.value.endTime}に変更しますか？`
+      message = `${selectedLabel}の${targetCount}日の終了時刻を${bulkSettings.value.endTime}に変更しますか？`
     }
 
     confirmModalData.value = {
@@ -592,7 +663,7 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
       ],
       onConfirm: (value: string) => {
         if (value === 'apply') {
-          timeRegisterStore.applyBulk(type, 'all', targetWeekdays)
+          timeRegisterStore.applyBulk(type, 'all', targetWeekdays, targetWeeks)
         }
         showConfirmModal.value = false
       }
@@ -803,7 +874,7 @@ const confirmTimeEdit = () => {
 .accordion-enter-active,
 .accordion-leave-active {
   transition: all 0.3s ease;
-  max-height: 350px;
+  max-height: 450px;
   overflow: hidden;
 }
 
@@ -820,6 +891,61 @@ const confirmTimeEdit = () => {
   gap: 0.5rem;
 }
 
+/* 週選択 */
+.week-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.week-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #666;
+  text-align: center;
+}
+
+.week-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.3rem;
+}
+
+.week-btn {
+  padding: 0.4rem 0.2rem;
+  background: white;
+  color: #666;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.week-btn:hover:not(.disabled) {
+  border-color: #f59e0b;
+  background: #fff7ed;
+}
+
+.week-btn.active {
+  background: linear-gradient(135deg, #f59e0b, #fb923c);
+  color: white;
+  border-color: #f59e0b;
+  transform: scale(1.05);
+}
+
+.week-btn.disabled {
+  background: #f5f5f5;
+  color: #ccc;
+  border-color: #e0e0e0;
+  cursor: not-allowed;
+}
+
 /* 曜日選択 */
 .weekday-selector {
   display: flex;
@@ -829,9 +955,9 @@ const confirmTimeEdit = () => {
 }
 
 .weekday-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #888;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #666;
   text-align: center;
 }
 
@@ -1155,6 +1281,12 @@ const confirmTimeEdit = () => {
   margin-bottom: 0.5rem;
 }
 
+.card-date-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
 .card-date {
   font-size: 1rem;
   font-weight: 700;
@@ -1168,6 +1300,12 @@ const confirmTimeEdit = () => {
 .card-date.sunday,
 .card-date.holiday {
   color: #ef4444;
+}
+
+.card-week {
+  font-size: 0.7rem;
+  color: #999;
+  font-weight: 600;
 }
 
 .card-time-section {

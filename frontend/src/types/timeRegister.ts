@@ -25,6 +25,8 @@ export interface WorkDay {
   date: DateString
   /** 曜日（0: 日曜 ~ 6: 土曜） */
   dayOfWeek: DayOfWeek
+  /** 週番号（1-6） */
+  weekNumber: number
   /** 開始時刻 */
   startTime: TimeString
   /** 終了時刻 */
