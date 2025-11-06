@@ -962,9 +962,9 @@ const confirmTimeEdit = () => {
 }
 
 .week-btn.active {
-  background: linear-gradient(135deg, #f59e0b, #fb923c);
+  background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
-  border-color: #f59e0b;
+  border-color: #10b981;
   transform: scale(1.05);
 }
 
@@ -1016,9 +1016,9 @@ const confirmTimeEdit = () => {
 }
 
 .weekday-btn.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
-  border-color: #667eea;
+  border-color: #10b981;
   transform: scale(1.05);
 }
 
