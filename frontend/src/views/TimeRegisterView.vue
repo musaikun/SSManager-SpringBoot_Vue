@@ -50,13 +50,13 @@
 
             <div class="bulk-actions">
               <button @click="handleBulkApplyAll('both')" class="bulk-btn bulk-btn-all">
-                全日に適用
+                {{ bulkApplyBothLabel }}
               </button>
               <button @click="handleBulkApplyAll('start')" class="bulk-btn bulk-btn-all">
-                全日に開始のみ
+                {{ bulkApplyStartLabel }}
               </button>
               <button @click="handleBulkApplyAll('end')" class="bulk-btn bulk-btn-all">
-                全日に終了のみ
+                {{ bulkApplyEndLabel }}
               </button>
             </div>
           </div>
@@ -347,8 +347,8 @@ const { calculateBreakTime } = useTimeCalculation()
 // アコーディオンの開閉状態
 const isBulkAccordionOpen = ref(false) // デフォルトで閉じている
 
-// 曜日選択の状態（デフォルトは全曜日選択）
-const selectedWeekdays = ref<number[]>([0, 1, 2, 3, 4, 5, 6])
+// 曜日選択の状態（デフォルトは何も選択されていない）
+const selectedWeekdays = ref<number[]>([])
 
 // 曜日オプション
 const weekdayOptions = [
@@ -508,36 +508,51 @@ const toggleWeekday = (dayOfWeek: number) => {
     selectedWeekdays.value.push(dayOfWeek)
     selectedWeekdays.value.sort((a, b) => a - b) // ソートして順番を保つ
   } else {
-    // 既に選択されている場合は削除（最低1つは選択状態を保つ）
-    if (selectedWeekdays.value.length > 1) {
-      selectedWeekdays.value.splice(index, 1)
-    }
+    // 既に選択されている場合は削除
+    selectedWeekdays.value.splice(index, 1)
   }
 }
 
+// ボタンラベル（曜日選択に応じて変化）
+const bulkApplyBothLabel = computed(() => {
+  return selectedWeekdays.value.length === 0 ? '全日に適用' : '適用'
+})
+
+const bulkApplyStartLabel = computed(() => {
+  return selectedWeekdays.value.length === 0 ? '全日に開始時刻のみ適用' : '開始時刻のみ適用'
+})
+
+const bulkApplyEndLabel = computed(() => {
+  return selectedWeekdays.value.length === 0 ? '全日に終了時刻のみ適用' : '終了時刻のみ適用'
+})
+
 // 一括適用（選択曜日に基づく）
 const handleBulkApplyAll = (type: BulkApplyType) => {
+  // 曜日が選択されていない場合は全曜日を対象、選択されている場合は選択曜日のみ
+  const targetWeekdays = selectedWeekdays.value.length === 0 ? [0, 1, 2, 3, 4, 5, 6] : selectedWeekdays.value
+
   // 選択曜日に該当する勤務日をカウント
   const targetDays = workDays.value.filter(d =>
-    !d.isRemoved && selectedWeekdays.value.includes(d.dayOfWeek)
+    !d.isRemoved && targetWeekdays.includes(d.dayOfWeek)
   )
   const targetCount = targetDays.length
   const modifiedCount = targetDays.filter(d => d.isModified).length
 
   if (targetCount === 0) {
-    alert('選択された曜日に該当する勤務日がありません')
+    alert('該当する勤務日がありません')
     return
   }
 
   // 選択曜日の表示文字列を生成
   const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土']
-  const selectedWeekdayLabels = selectedWeekdays.value.map(day => weekdayLabels[day]).join('・')
+  const isAllWeekdays = selectedWeekdays.value.length === 0
+  const selectedWeekdayLabels = isAllWeekdays ? '全日' : selectedWeekdays.value.map(day => weekdayLabels[day]).join('・')
 
   // 個別設定がある場合は選択肢を表示
   if (modifiedCount > 0) {
     confirmModalData.value = {
       title: '一括設定の確認',
-      message: `選択曜日（${selectedWeekdayLabels}）で個別設定した箇所が${modifiedCount}日あります。`,
+      message: `${selectedWeekdayLabels}で個別設定した箇所が${modifiedCount}日あります。`,
       options: [
         { label: '個別設定以外の日を一括設定', value: 'unmodified' },
         { label: '個別設定も含め一括設定', value: 'all' },
@@ -545,7 +560,7 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
       ],
       onConfirm: (value: string) => {
         if (value !== 'cancel') {
-          timeRegisterStore.applyBulk(type, value as 'unmodified' | 'all', selectedWeekdays.value)
+          timeRegisterStore.applyBulk(type, value as 'unmodified' | 'all', targetWeekdays)
         }
         showConfirmModal.value = false
       }
@@ -572,7 +587,7 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
       ],
       onConfirm: (value: string) => {
         if (value === 'apply') {
-          timeRegisterStore.applyBulk(type, 'all', selectedWeekdays.value)
+          timeRegisterStore.applyBulk(type, 'all', targetWeekdays)
         }
         showConfirmModal.value = false
       }
