@@ -121,7 +121,8 @@ const formatWorkTime = (workDay: WorkDay) => {
 .confirm-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  table-layout: fixed;
 }
 
 .confirm-table thead {
@@ -129,12 +130,28 @@ const formatWorkTime = (workDay: WorkDay) => {
 }
 
 .confirm-table th {
-  padding: 0.875rem;
+  padding: 0.875rem 0.5rem;
   text-align: left;
   font-weight: 700;
   color: #333;
   border-bottom: 2px solid #e0e0e0;
   white-space: nowrap;
+}
+
+.confirm-table th:nth-child(1) {
+  width: 20%;
+}
+
+.confirm-table th:nth-child(2) {
+  width: 30%;
+}
+
+.confirm-table th:nth-child(3) {
+  width: 35%;
+}
+
+.confirm-table th:nth-child(4) {
+  width: 15%;
 }
 
 .confirm-table tbody tr {
@@ -155,7 +172,7 @@ const formatWorkTime = (workDay: WorkDay) => {
 }
 
 .confirm-table td {
-  padding: 0.75rem 0.875rem;
+  padding: 0.75rem 0.5rem;
   color: #333;
 }
 
@@ -193,31 +210,34 @@ const formatWorkTime = (workDay: WorkDay) => {
 .hours-cell {
   font-weight: 600;
   color: #666;
-  white-space: nowrap;
+  font-size: 0.8rem;
+  line-height: 1.3;
 }
 
 .status-cell {
   text-align: center;
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
 }
 
 .custom-badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.4rem;
   background: #f59e0b;
   color: white;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  border-radius: 10px;
+  font-size: 0.65rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .default-badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.4rem;
   background: #e0e0e0;
   color: #666;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  border-radius: 10px;
+  font-size: 0.65rem;
   font-weight: 600;
   white-space: nowrap;
 }
