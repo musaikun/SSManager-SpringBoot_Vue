@@ -37,6 +37,10 @@ export interface WorkDay {
   isRemoved: boolean
   /** 表示用日付文字列（例: "11/15(金)"） */
   displayDate: string
+  /** 開始時間が個別設定されたか */
+  customStartTime: boolean
+  /** 終了時間が個別設定されたか */
+  customEndTime: boolean
 }
 
 /**

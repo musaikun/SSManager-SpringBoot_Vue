@@ -96,7 +96,6 @@
       <button
         @click="navigateToTimeRegister"
         class="next-btn"
-        :disabled="selectedCount === 0"
       >
         次へ（時間登録）
       </button>
@@ -180,7 +179,6 @@ const setNextMonth = () => {
 }
 
 const navigateToTimeRegister = () => {
-  if (selectedCount.value === 0) return
   navigationStore.setForward()
   router.push('/time-register')
 }
@@ -194,11 +192,14 @@ const isRemovedDate = (dateString: string): boolean => {
 
 <style scoped>
 .calendar-view {
-  min-height: 100vh;
-  padding: 2rem;
+  height: 100vh;
+  padding: 1rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #333;
   font-family: 'Inter', 'Noto Sans JP', sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* カレンダーカード */
@@ -206,9 +207,12 @@ const isRemovedDate = (dateString: string): boolean => {
   background: white;
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
   animation: fadeIn 0.5s ease-in;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 @keyframes fadeIn {
@@ -225,12 +229,12 @@ const isRemovedDate = (dateString: string): boolean => {
 /* ヘッダー */
 .calendar-header {
   text-align: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
 }
 
 .current-month {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #333;
   margin: 0;
@@ -241,7 +245,7 @@ const isRemovedDate = (dateString: string): boolean => {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .month-btn {
@@ -272,7 +276,7 @@ const isRemovedDate = (dateString: string): boolean => {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .action-btn {
@@ -303,7 +307,7 @@ const isRemovedDate = (dateString: string): boolean => {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .weekday-btn {
@@ -333,8 +337,8 @@ const isRemovedDate = (dateString: string): boolean => {
 
 /* 統計情報 */
 .calendar-stats {
-  margin-top: 1.5rem;
-  padding: 1rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
   background: #f9f9f9;
   border-radius: 8px;
   border: 1px solid #e0e0e0;

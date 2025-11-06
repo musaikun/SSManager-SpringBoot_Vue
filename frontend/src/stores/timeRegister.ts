@@ -114,7 +114,9 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           workMinutes: calculateWorkMinutes(this.bulkSettings.startTime, this.bulkSettings.endTime),
           isModified: false,
           isRemoved: false,
-          displayDate: formatDisplayDate(dateObj, dayOfWeek)
+          displayDate: formatDisplayDate(dateObj, dayOfWeek),
+          customStartTime: false,
+          customEndTime: false
         }
       })
     },
@@ -131,13 +133,19 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
         const endTime = updates.endTime ?? workDay.endTime
         const workMinutes = calculateWorkMinutes(startTime, endTime)
 
+        // 開始時間・終了時間が変更された場合、カスタムフラグを立てる
+        const customStartTime = updates.startTime !== undefined ? true : workDay.customStartTime
+        const customEndTime = updates.endTime !== undefined ? true : workDay.customEndTime
+
         this.workDays[index] = {
           ...workDay,
           ...updates,
           startTime,
           endTime,
           workMinutes,
-          isModified: true // 更新したらmodifiedフラグを立てる
+          isModified: true, // 更新したらmodifiedフラグを立てる
+          customStartTime,
+          customEndTime
         }
       }
     },
@@ -194,9 +202,13 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
 
         if (type === 'both' || type === 'start') {
           updates.startTime = this.bulkSettings.startTime
+          // 開始時間を一括設定で上書きする場合、customStartTimeをfalseに
+          updates.customStartTime = false
         }
         if (type === 'both' || type === 'end') {
           updates.endTime = this.bulkSettings.endTime
+          // 終了時間を一括設定で上書きする場合、customEndTimeをfalseに
+          updates.customEndTime = false
         }
 
         // 勤務時間を再計算
@@ -204,9 +216,15 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
         const endTime = updates.endTime ?? day.endTime
         updates.workMinutes = calculateWorkMinutes(startTime, endTime)
 
-        // 個別設定を上書きする場合はisModifiedをfalseにする
-        if (target === 'all' && day.isModified) {
+        // 両方のカスタムフラグがfalseになる場合、isModifiedもfalseにする
+        const finalCustomStartTime = updates.customStartTime ?? day.customStartTime
+        const finalCustomEndTime = updates.customEndTime ?? day.customEndTime
+
+        if (!finalCustomStartTime && !finalCustomEndTime) {
           updates.isModified = false
+        } else {
+          // どちらかがカスタムの場合はisModifiedを維持
+          updates.isModified = true
         }
 
         this.workDays[actualIndex] = {

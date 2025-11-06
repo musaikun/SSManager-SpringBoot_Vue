@@ -58,9 +58,9 @@
           <div class="card-content-horizontal">
             <div class="card-date">{{ workDay.displayDate }}</div>
             <div class="card-time-section">
-              <span class="time-value">{{ workDay.startTime }}</span>
+              <span class="time-value" :class="{ 'custom-time': workDay.customStartTime }">{{ workDay.startTime }}</span>
               <span class="time-separator">〜</span>
-              <span class="time-value">{{ workDay.endTime }}</span>
+              <span class="time-value" :class="{ 'custom-time': workDay.customEndTime }">{{ workDay.endTime }}</span>
             </div>
           </div>
           <div class="card-hours">
@@ -304,7 +304,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, provide } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import ProgressIndicator from '../components/ProgressIndicator.vue'
@@ -353,6 +353,9 @@ const confirmModalData = ref({
 
 // ヘルプモーダルの状態
 const showHelpModal = ref(false)
+
+// モーダル状態をPageSliderに提供（スライド制御用）
+provide('isModalOpen', computed(() => showTimeModal.value || showConfirmModal.value || showHelpModal.value))
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
@@ -925,21 +928,29 @@ const handleNext = () => {
   }
 }
 
+.work-day-card.modified {
+  background: #fef3c7;
+}
+
+/* 個別設定された時間のみ黄色 */
+.time-value.custom-time {
+  color: #d97706;
+  font-weight: 700;
+}
+
+/* removed は modified より優先（グレーアウト） */
 .work-day-card.removed {
-  background: #f5f5f5;
+  background: #e5e5e5;
   color: #999;
+  opacity: 0.7;
 }
 
 .work-day-card.removed .time-value {
-  color: #aaa;
+  color: #999;
 }
 
-.work-day-card.modified {
-  border-left-color: #d97706;
-  border-left-width: 4px;
-  background: #fef3c7;
-  border: 3px solid #f59e0b;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+.work-day-card.removed .card-date {
+  color: #999;
 }
 
 .work-day-card.swiped {

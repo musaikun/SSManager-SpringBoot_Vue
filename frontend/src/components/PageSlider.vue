@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { Component } from 'vue'
 
@@ -40,6 +40,9 @@ const props = defineProps<{
 
 const router = useRouter()
 const route = useRoute()
+
+// モーダルが開いているかどうか（TimeRegisterViewからinject）
+const isModalOpen = inject<{ value: boolean }>('isModalOpen', { value: false })
 
 // ビューポート幅
 const viewportWidth = ref(window.innerWidth)
@@ -102,6 +105,11 @@ onUnmounted(() => {
 
 // タッチイベントハンドラ
 const handleTouchStart = (e: TouchEvent) => {
+  // モーダルが開いている場合はスワイプを無効化
+  if (isModalOpen.value) {
+    return
+  }
+
   touchStartX.value = e.touches[0].clientX
   touchStartY.value = e.touches[0].clientY
   touchMoveX.value = touchStartX.value
@@ -110,6 +118,11 @@ const handleTouchStart = (e: TouchEvent) => {
 }
 
 const handleTouchMove = (e: TouchEvent) => {
+  // モーダルが開いている場合はスワイプを無効化
+  if (isModalOpen.value) {
+    return
+  }
+
   touchMoveX.value = e.touches[0].clientX
   const diffX = touchMoveX.value - touchStartX.value
   const diffY = Math.abs(e.touches[0].clientY - touchStartY.value)
@@ -136,6 +149,11 @@ const handleTouchMove = (e: TouchEvent) => {
 }
 
 const handleTouchEnd = () => {
+  // モーダルが開いている場合はスワイプを無効化
+  if (isModalOpen.value) {
+    return
+  }
+
   if (!isDragging.value) {
     dragOffsetX.value = 0
     return

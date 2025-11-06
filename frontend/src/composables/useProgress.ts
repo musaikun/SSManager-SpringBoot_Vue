@@ -35,7 +35,6 @@ export function useProgress() {
     const current = currentStep.value
     const stepOrder: ProgressStep[] = ['calendar', 'time-register', 'confirm']
     const currentIndex = stepOrder.indexOf(current)
-    const hasSelectedDates = calendarStore.selectedDatesArray.length > 0
 
     return [
       {
@@ -52,7 +51,7 @@ export function useProgress() {
         label: '時間設定',
         completed: currentIndex > 1,
         active: current === 'time-register',
-        clickable: hasSelectedDates || currentIndex >= 1 // 日付選択済み、または時間設定以降はクリック可能
+        clickable: true // 時間設定は常にクリック可能
       },
       {
         id: 'confirm',
