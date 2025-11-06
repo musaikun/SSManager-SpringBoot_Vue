@@ -119,49 +119,54 @@
       </div>
     </div>
 
-    <!-- 確認モーダル -->
-    <div v-if="showConfirmModal" class="modal-overlay" @click="showConfirmModal = false" @touchmove.prevent>
-      <div class="modal-content confirm-modal" @click.stop>
-        <h3 class="modal-title">{{ confirmModalData.title }}</h3>
-        <p class="modal-message">{{ confirmModalData.message }}</p>
-        <div class="modal-options">
-          <button
-            v-for="option in confirmModalData.options"
-            :key="option.value"
-            @click="confirmModalData.onConfirm(option.value)"
-            class="option-btn"
-            :class="{ primary: option.value === 'apply' || option.value === 'all' }"
-          >
-            {{ option.label }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ヘルプモーダル -->
-    <div v-if="showHelpModal" class="modal-overlay" @click="showHelpModal = false" @touchmove.prevent>
-      <div class="modal-content help-modal" @click.stop>
-        <h3 class="modal-title">休憩時間のルール</h3>
-        <div class="help-content">
-          <div class="help-row">
-            <span class="help-label">6時間未満:</span>
-            <span class="help-value">休憩なし</span>
-          </div>
-          <div class="help-row">
-            <span class="help-label">6時間以上8時間未満:</span>
-            <span class="help-value">45分</span>
-          </div>
-          <div class="help-row">
-            <span class="help-label">8時間以上:</span>
-            <span class="help-value">60分</span>
+    <!-- 確認モーダル（Teleportでbody直下に配置） -->
+    <Teleport to="body">
+      <div v-if="showConfirmModal" class="modal-overlay" @click="showConfirmModal = false" @touchmove.prevent>
+        <div class="modal-content confirm-modal" @click.stop>
+          <h3 class="modal-title">{{ confirmModalData.title }}</h3>
+          <p class="modal-message">{{ confirmModalData.message }}</p>
+          <div class="modal-options">
+            <button
+              v-for="option in confirmModalData.options"
+              :key="option.value"
+              @click="confirmModalData.onConfirm(option.value)"
+              class="option-btn"
+              :class="{ primary: option.value === 'apply' || option.value === 'all' }"
+            >
+              {{ option.label }}
+            </button>
           </div>
         </div>
-        <button @click="showHelpModal = false" class="close-btn">閉じる</button>
       </div>
-    </div>
+    </Teleport>
 
-    <!-- 時刻選択モーダル -->
-    <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit" @touchmove.prevent>
+    <!-- ヘルプモーダル（Teleportでbody直下に配置） -->
+    <Teleport to="body">
+      <div v-if="showHelpModal" class="modal-overlay" @click="showHelpModal = false" @touchmove.prevent>
+        <div class="modal-content help-modal" @click.stop>
+          <h3 class="modal-title">休憩時間のルール</h3>
+          <div class="help-content">
+            <div class="help-row">
+              <span class="help-label">6時間未満:</span>
+              <span class="help-value">休憩なし</span>
+            </div>
+            <div class="help-row">
+              <span class="help-label">6時間以上8時間未満:</span>
+              <span class="help-value">45分</span>
+            </div>
+            <div class="help-row">
+              <span class="help-label">8時間以上:</span>
+              <span class="help-value">60分</span>
+            </div>
+          </div>
+          <button @click="showHelpModal = false" class="close-btn">閉じる</button>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 時刻選択モーダル（Teleportでbody直下に配置） -->
+    <Teleport to="body">
+      <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit" @touchmove.prevent>
       <div class="modal-content time-picker-modal" @click.stop>
         <div class="modal-header-row">
           <!-- 一括設定モードのヘッダー -->
@@ -299,7 +304,8 @@
           <button @click="confirmTimeEdit" class="btn-modal btn-primary-modal">設定</button>
         </div>
       </div>
-    </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
