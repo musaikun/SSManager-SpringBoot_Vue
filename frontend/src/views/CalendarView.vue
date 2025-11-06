@@ -82,9 +82,6 @@
             <span class="stat-label">選択日数:</span>
             <span class="stat-value">{{ selectedCount }}日</span>
           </div>
-          <div class="stat-comment">
-            （{{ currentMonthInfo.month + 1 }}月の平日は{{ weekdayCount }}日、休日は{{ holidayCount }}日です）
-          </div>
         </div>
       </div>
   </div>

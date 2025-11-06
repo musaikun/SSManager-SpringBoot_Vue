@@ -49,20 +49,29 @@
           :key="workDay.date"
           class="work-day-card"
           :class="{ removed: workDay.isRemoved, modified: workDay.isModified }"
-          @click="handleCardClick($event, index)"
         >
-          <div class="card-content-horizontal">
-            <div class="card-date">{{ workDay.displayDate }}</div>
-            <div class="card-time-section">
-              <span class="time-value" :class="{ 'custom-time': workDay.customStartTime }">{{ workDay.startTime }}</span>
-              <span class="time-separator">〜</span>
-              <span class="time-value" :class="{ 'custom-time': workDay.customEndTime }">{{ workDay.endTime }}</span>
+          <div class="card-main" @click="handleCardClick($event, index)">
+            <div class="card-content-horizontal">
+              <div class="card-date">{{ workDay.displayDate }}</div>
+              <div class="card-time-section">
+                <span class="time-value" :class="{ 'custom-time': workDay.customStartTime }">{{ workDay.startTime }}</span>
+                <span class="time-separator">〜</span>
+                <span class="time-value" :class="{ 'custom-time': workDay.customEndTime }">{{ workDay.endTime }}</span>
+              </div>
+            </div>
+            <div class="card-hours">
+              <span class="hours-icon">💼</span>
+              <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
             </div>
           </div>
-          <div class="card-hours">
-            <span class="hours-icon">💼</span>
-            <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
-          </div>
+          <button
+            @click.stop="toggleRemoveDay(index)"
+            class="card-action-btn"
+            :class="{ restore: workDay.isRemoved }"
+          >
+            <span v-if="!workDay.isRemoved" class="remove-icon">×</span>
+            <span v-else class="restore-icon">↶</span>
+          </button>
         </div>
       </div>
 
@@ -154,24 +163,14 @@
     <Teleport to="body">
       <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit" @touchmove.prevent>
       <div class="modal-content time-picker-modal" @click.stop>
-        <div class="modal-header-row">
-          <!-- 一括設定モードのヘッダー -->
-          <h3 class="modal-title" v-if="isBulkMode">
-            {{ bulkTimeType === 'start' ? '開始時刻設定' : '終了時刻設定' }}
-          </h3>
-          <!-- 個別設定モードのヘッダー -->
-          <h3 class="modal-title" v-else-if="currentEditIndex !== null && workDays[currentEditIndex]">
-            {{ workDays[currentEditIndex].displayDate }}
-          </h3>
-
-          <!-- シフトを外すボタン（個別設定のみ） -->
-          <button @click="handleRemoveFromModal"
-            class="remove-shift-btn"
-            :class="{ restore: currentEditIndex !== null && workDays[currentEditIndex] && workDays[currentEditIndex].isRemoved }"
-            v-if="!isBulkMode && currentEditIndex !== null && workDays[currentEditIndex]">
-            {{ workDays[currentEditIndex].isRemoved ? 'シフトを戻す' : 'シフトを外す' }}
-          </button>
-        </div>
+        <!-- 一括設定モードのヘッダー -->
+        <h3 class="modal-title" v-if="isBulkMode">
+          {{ bulkTimeType === 'start' ? '開始時刻設定' : '終了時刻設定' }}
+        </h3>
+        <!-- 個別設定モードのヘッダー -->
+        <h3 class="modal-title" v-else-if="currentEditIndex !== null && workDays[currentEditIndex]">
+          {{ workDays[currentEditIndex].displayDate }}
+        </h3>
 
         <!-- 開始時間 -->
         <div class="modal-section" v-if="!isBulkMode || bulkTimeType === 'start'">
@@ -618,6 +617,11 @@ const handleCardClick = (event: MouseEvent, index: number) => {
   handleTimeClick(index, 'both')
 }
 
+// シフトを外す/戻す
+const toggleRemoveDay = (index: number) => {
+  timeRegisterStore.toggleRemoveDay(index)
+}
+
 // 時刻選択モーダルをキャンセル
 const cancelTimeEdit = () => {
   showTimeModal.value = false
@@ -646,14 +650,6 @@ const confirmTimeEdit = () => {
   showTimeModal.value = false
   currentEditIndex.value = null
   isBulkMode.value = false
-}
-
-// モーダルからシフトを外す（モーダルは開いたまま）
-const handleRemoveFromModal = () => {
-  if (currentEditIndex.value !== null) {
-    timeRegisterStore.toggleRemoveDay(currentEditIndex.value)
-  }
-  // モーダルは閉じない
 }
 </script>
 
@@ -871,17 +867,67 @@ const handleRemoveFromModal = () => {
   position: relative;
   background: white;
   border-radius: 8px;
-  padding: 0.875rem 1rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.2s ease;
   border-left: 3px solid transparent;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .work-day-card:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   border-left-color: #667eea;
+}
+
+.card-main {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  position: relative;
+}
+
+.card-action-btn {
+  padding: 0.5rem;
+  margin-right: 0.5rem;
+  background: #fee;
+  color: #ef4444;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+}
+
+.card-action-btn:hover {
+  background: #fdd;
+  transform: scale(1.05);
+}
+
+.card-action-btn.restore {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.card-action-btn.restore:hover {
+  background: #bfdbfe;
+}
+
+.remove-icon {
+  line-height: 1;
+}
+
+.restore-icon {
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 /* リップルエフェクト */
@@ -1191,46 +1237,12 @@ const handleRemoveFromModal = () => {
   }
 }
 
-.modal-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  gap: 0.75rem;
-}
-
 .modal-title {
-  margin: 0;
+  margin: 0 0 1rem 0;
   font-size: 1.125rem;
   font-weight: 700;
   color: #667eea;
-}
-
-/* シフトを外すボタン */
-.remove-shift-btn {
-  padding: 0.4rem 0.75rem;
-  border: none;
-  background: #fee;
-  color: #ef4444;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.remove-shift-btn:hover {
-  background: #fdd;
-  transform: translateY(-1px);
-}
-
-.remove-shift-btn.restore {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.remove-shift-btn.restore:hover {
-  background: #bfdbfe;
+  text-align: center;
 }
 
 .modal-section {

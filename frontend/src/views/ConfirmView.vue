@@ -36,25 +36,20 @@
 
       <!-- 合計統計 -->
       <div class="total-summary-section">
-        <div class="summary-card">
-          <h3>合計</h3>
-          <div class="summary-row">
-            <span class="summary-label">勤務日数:</span>
+        <div class="summary-compact">
+          <div class="summary-item">
+            <span class="summary-label">勤務日数</span>
             <span class="summary-value">{{ totalSummary.workDays }}日</span>
           </div>
-          <div class="summary-row">
-            <span class="summary-label">総勤務時間:</span>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-label">総勤務時間</span>
             <span class="summary-value">{{ formatMinutesToHours(totalSummary.totalWorkMinutes) }}</span>
           </div>
-          <div v-if="includeBreak" class="summary-row">
-            <span class="summary-label">休憩時間:</span>
-            <span class="summary-value">{{ formatMinutesToHours(totalSummary.totalBreakMinutes) }}</span>
-          </div>
-          <div v-if="includeBreak" class="summary-row total">
-            <span class="summary-label">実働時間:</span>
-            <span class="summary-value highlight">
-              {{ formatMinutesToHours(totalSummary.totalActualWorkMinutes) }}
-            </span>
+          <div v-if="includeBreak" class="summary-divider"></div>
+          <div v-if="includeBreak" class="summary-item">
+            <span class="summary-label">実働時間</span>
+            <span class="summary-value highlight">{{ formatMinutesToHours(totalSummary.totalActualWorkMinutes) }}</span>
           </div>
         </div>
       </div>
@@ -216,37 +211,27 @@ const formatWorkTime = (workDay: WorkDay) => {
 .total-summary-section {
   background: white;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.summary-card h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.25rem;
-  color: #333;
-}
-
-.summary-row {
+.summary-compact {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f0f0f0;
+  justify-content: space-around;
+  gap: 1rem;
 }
 
-.summary-row:last-child {
-  border-bottom: none;
-}
-
-.summary-row.total {
-  padding-top: 1rem;
-  margin-top: 0.5rem;
-  border-top: 2px solid #e0e0e0;
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .summary-label {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #666;
 }
@@ -258,8 +243,14 @@ const formatWorkTime = (workDay: WorkDay) => {
 }
 
 .summary-value.highlight {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   color: #667eea;
+}
+
+.summary-divider {
+  width: 1px;
+  height: 2.5rem;
+  background: #e0e0e0;
 }
 
 /* レスポンシブ */
