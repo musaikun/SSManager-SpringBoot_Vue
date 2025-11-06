@@ -24,9 +24,15 @@
                 'holiday': isHoliday(workDay.date)
               }">{{ workDay.displayDate }}</td>
               <td class="time-cell">
-                <span :class="{ 'custom-time': workDay.customStartTime }">{{ workDay.startTime }}</span>
+                <span :class="{
+                  'custom-time': workDay.customStartTime,
+                  'bulk-time': workDay.isBulkApplied && !workDay.customStartTime
+                }">{{ workDay.startTime }}</span>
                 <span class="separator">〜</span>
-                <span :class="{ 'custom-time': workDay.customEndTime }">{{ workDay.endTime }}</span>
+                <span :class="{
+                  'custom-time': workDay.customEndTime,
+                  'bulk-time': workDay.isBulkApplied && !workDay.customEndTime
+                }">{{ workDay.endTime }}</span>
               </td>
               <td class="hours-cell">
                 <div v-html="formatWorkTime(workDay)"></div>
@@ -209,6 +215,12 @@ const formatWorkTime = (workDay: WorkDay) => {
   font-weight: 700;
 }
 
+/* 一括設定された時間のみ青色 */
+.bulk-time {
+  color: #2563eb;
+  font-weight: 700;
+}
+
 .hours-cell {
   font-weight: 600;
   color: #666;
@@ -236,11 +248,11 @@ const formatWorkTime = (workDay: WorkDay) => {
 .default-badge {
   display: inline-block;
   padding: 0.2rem 0.4rem;
-  background: #e0e0e0;
-  color: #666;
+  background: #3b82f6;
+  color: white;
   border-radius: 10px;
   font-size: 0.65rem;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
 }
 
