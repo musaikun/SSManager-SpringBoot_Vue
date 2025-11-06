@@ -35,7 +35,7 @@
                 <button
                   v-for="week in 6"
                   :key="week"
-                  @click="toggleWeek(week)"
+                  @click="toggleWeek(week, $event)"
                   class="week-btn"
                   :class="{
                     active: selectedWeeks.includes(week),
@@ -55,7 +55,7 @@
                 <button
                   v-for="day in weekdayOptions"
                   :key="day.value"
-                  @click="toggleWeekday(day.value)"
+                  @click="toggleWeekday(day.value, $event)"
                   class="weekday-btn"
                   :class="{
                     active: selectedWeekdays.includes(day.value),
@@ -573,7 +573,7 @@ const toggleBulkAccordion = () => {
 }
 
 // 週選択のトグル
-const toggleWeek = (week: number) => {
+const toggleWeek = (week: number, event?: Event) => {
   if (!isWeekAvailable(week)) return
 
   const index = selectedWeeks.value.indexOf(week)
@@ -585,10 +585,15 @@ const toggleWeek = (week: number) => {
     // 既に選択されている場合は削除
     selectedWeeks.value.splice(index, 1)
   }
+
+  // フォーカスを外す
+  if (event && event.target instanceof HTMLElement) {
+    event.target.blur()
+  }
 }
 
 // 曜日選択のトグル
-const toggleWeekday = (dayOfWeek: number) => {
+const toggleWeekday = (dayOfWeek: number, event?: Event) => {
   const index = selectedWeekdays.value.indexOf(dayOfWeek)
   if (index === -1) {
     // 選択されていない場合は追加
@@ -597,6 +602,11 @@ const toggleWeekday = (dayOfWeek: number) => {
   } else {
     // 既に選択されている場合は削除
     selectedWeekdays.value.splice(index, 1)
+  }
+
+  // フォーカスを外す
+  if (event && event.target instanceof HTMLElement) {
+    event.target.blur()
   }
 }
 
@@ -956,9 +966,17 @@ const confirmTimeEdit = () => {
   min-width: 0;
 }
 
-.week-btn:hover:not(.disabled) {
+.week-btn:hover:not(.disabled):not(.active) {
   border-color: #10b981;
   background: #d1fae5;
+}
+
+.week-btn:focus {
+  outline: none;
+}
+
+.week-btn:active:not(.disabled) {
+  transform: scale(0.98);
 }
 
 .week-btn.active {
@@ -966,6 +984,11 @@ const confirmTimeEdit = () => {
   color: white;
   border-color: #10b981;
   transform: scale(1.05);
+}
+
+.week-btn.active:hover {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  border-color: #10b981;
 }
 
 .week-btn.disabled {
@@ -1010,9 +1033,17 @@ const confirmTimeEdit = () => {
   min-width: 0;
 }
 
-.weekday-btn:hover {
+.weekday-btn:hover:not(.active) {
   border-color: #10b981;
   background: #d1fae5;
+}
+
+.weekday-btn:focus {
+  outline: none;
+}
+
+.weekday-btn:active {
+  transform: scale(0.98);
 }
 
 .weekday-btn.active {
@@ -1020,6 +1051,11 @@ const confirmTimeEdit = () => {
   color: white;
   border-color: #10b981;
   transform: scale(1.05);
+}
+
+.weekday-btn.active:hover {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  border-color: #10b981;
 }
 
 .weekday-btn.sunday:not(.active) {
