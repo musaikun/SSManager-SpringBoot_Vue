@@ -64,10 +64,26 @@ const currentTranslateX = computed(() => {
 })
 
 // ルートが変更されたら現在のページインデックスを更新
-watch(() => route.path, (newPath) => {
-  const index = props.pages.findIndex(p => p.path === newPath)
-  if (index !== -1) {
-    currentPageIndex.value = index
+watch(() => route.path, (newPath, oldPath) => {
+  const newIndex = props.pages.findIndex(p => p.path === newPath)
+  const oldIndex = props.pages.findIndex(p => p.path === oldPath)
+
+  if (newIndex !== -1 && newIndex !== currentPageIndex.value) {
+    // ページ遷移時はスライドアニメーションを有効化
+    if (oldIndex !== -1) {
+      isTransitioning.value = true
+      dragOffsetX.value = 0
+
+      setTimeout(() => {
+        currentPageIndex.value = newIndex
+        setTimeout(() => {
+          isTransitioning.value = false
+        }, 300)
+      }, 0)
+    } else {
+      // 初期表示時はアニメーションなし
+      currentPageIndex.value = newIndex
+    }
   }
 }, { immediate: true })
 

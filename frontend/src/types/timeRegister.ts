@@ -184,4 +184,6 @@ export interface ProgressStepInfo {
   completed: boolean
   /** アクティブか */
   active: boolean
+  /** クリック可能か */
+  clickable: boolean
 }

@@ -40,21 +40,24 @@ export function useProgress() {
         number: 1,
         label: '日付選択',
         completed: currentIndex > 0,
-        active: current === 'calendar'
+        active: current === 'calendar',
+        clickable: currentIndex >= 0 // カレンダーは常にクリック可能
       },
       {
         id: 'time-register',
         number: 2,
         label: '時間設定',
         completed: currentIndex > 1,
-        active: current === 'time-register'
+        active: current === 'time-register',
+        clickable: currentIndex >= 1 // 時間設定以降はクリック可能
       },
       {
         id: 'confirm',
         number: 3,
         label: '確認・提出',
         completed: false,
-        active: current === 'confirm'
+        active: current === 'confirm',
+        clickable: currentIndex >= 2 // 確認画面以降はクリック可能
       }
     ]
   })

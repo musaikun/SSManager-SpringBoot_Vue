@@ -10,8 +10,10 @@
         class="progress-step"
         :class="{
           completed: step.completed,
-          active: step.active
+          active: step.active,
+          clickable: step.clickable
         }"
+        @click="handleStepClick(step)"
       >
         <div class="step-circle">
           <span v-if="step.completed" class="check-mark">✓</span>
@@ -31,9 +33,26 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import { useProgress } from '../composables/useProgress'
+import type { ProgressStepInfo } from '../types/timeRegister'
 
+const router = useRouter()
 const { steps } = useProgress()
+
+const handleStepClick = (step: ProgressStepInfo) => {
+  if (!step.clickable) return
+
+  // ステップに応じてルート遷移
+  if (step.id === 'calendar') {
+    router.push('/calendar')
+  } else if (step.id === 'time-register') {
+    router.push('/time-register')
+  } else if (step.id === 'confirm') {
+    // TODO: 確認画面実装後に追加
+    console.log('確認画面へ')
+  }
+}
 </script>
 
 <style scoped>
@@ -58,6 +77,15 @@ const { steps } = useProgress()
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+}
+
+.progress-step.clickable {
+  cursor: pointer;
+}
+
+.progress-step.clickable:hover .step-circle {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .step-circle {
