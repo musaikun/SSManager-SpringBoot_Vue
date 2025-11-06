@@ -1,10 +1,13 @@
 <template>
   <div class="time-register-view">
-    <!-- 進捗インジケーター -->
-    <ProgressIndicator />
+    <!-- ヘッダー（固定） -->
+    <div class="header-fixed">
+      <ProgressIndicator />
+    </div>
 
-    <!-- メインコンテンツ -->
-    <div class="time-register-container">
+    <!-- メインコンテンツ（スクロール可能） -->
+    <div class="time-register-content">
+      <div class="time-register-container">
       <!-- 一括設定セクション（アコーディオン） -->
       <div class="bulk-settings-section">
         <div class="section-header accordion-header" @click="toggleBulkAccordion">
@@ -107,9 +110,12 @@
           </div>
         </div>
       </div>
+      </div>
+    </div>
 
-      <!-- アクションボタン -->
-      <div class="action-buttons">
+    <!-- フッター（固定） -->
+    <div class="footer-fixed">
+      <div class="footer-buttons">
         <button @click="handleBack" class="action-btn back-btn">
           戻る
         </button>
@@ -465,7 +471,7 @@ const formatWorkTime = (workDay: WorkDay) => {
   if (includeBreak.value) {
     const breakMinutes = calculateBreakTime(workDay.workMinutes)
     const actualMinutes = workDay.workMinutes - breakMinutes
-    return `${formatMinutesToHours(actualMinutes)} (休憩: ${formatMinutesToHours(breakMinutes)})`
+    return `${formatMinutesToHours(actualMinutes)} / 休憩${formatMinutesToHours(breakMinutes)}`
   }
   return formatMinutesToHours(workDay.workMinutes)
 }
@@ -694,15 +700,49 @@ const handleNext = () => {
 
 <style scoped>
 .time-register-view {
-  min-height: 100%;
+  height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ヘッダー固定 */
+.header-fixed {
+  flex-shrink: 0;
+  padding: 1rem 1rem 0 1rem;
+  z-index: 10;
+}
+
+/* メインコンテンツ（スクロール可能） */
+.time-register-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 1rem;
+  min-height: 0;
+}
+
+/* フッター固定 */
+.footer-fixed {
+  flex-shrink: 0;
   padding: 1rem;
-  position: relative;
+  background: transparent;
+  z-index: 10;
+}
+
+.footer-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .time-register-container {
   max-width: 800px;
   margin: 0 auto;
+  padding-bottom: 1rem;
 }
 
 /* 一括設定セクション */
@@ -1068,21 +1108,16 @@ const handleNext = () => {
 }
 
 /* アクションボタン */
-.action-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
 .action-btn {
-  padding: 1rem;
+  padding: 1rem 2rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 50px;
   font-size: 1.125rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  flex: 1;
+  max-width: 200px;
 }
 
 .back-btn {
@@ -1099,13 +1134,14 @@ const handleNext = () => {
 }
 
 .next-btn {
-  background: linear-gradient(135deg, #10b981, #34d399);
+  background: linear-gradient(135deg, #f97316, #fb923c);
   color: white;
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
 }
 
 .next-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
 }
 
 /* モーダル共通 */
@@ -1535,8 +1571,21 @@ const handleNext = () => {
 
 /* レスポンシブ */
 @media (max-width: 768px) {
-  .time-register-view {
-    padding: 0.5rem;
+  .header-fixed {
+    padding: 0.75rem 0.75rem 0 0.75rem;
+  }
+
+  .time-register-content {
+    padding: 0 0.75rem;
+  }
+
+  .footer-fixed {
+    padding: 0.75rem;
+  }
+
+  .action-btn {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
   }
 
   .bulk-settings-section,

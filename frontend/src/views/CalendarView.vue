@@ -1,104 +1,109 @@
 <template>
   <div class="calendar-view">
-    <!-- 進捗インジケーター -->
-    <ProgressIndicator />
+    <!-- ヘッダー（固定） -->
+    <div class="header-fixed">
+      <ProgressIndicator />
+      <SwipeTutorial />
+    </div>
 
-    <!-- スワイプチュートリアル -->
-    <SwipeTutorial />
-
-    <!-- カレンダーカード -->
-    <div class="calendar-card">
-      <!-- ヘッダー：年月 -->
-      <div class="calendar-header">
-        <h1 class="current-month">{{ currentMonthInfo.displayText }}</h1>
-      </div>
-
-      <!-- 月選択ボタン：今月・来月 -->
-      <div class="month-buttons">
-        <button @click="setThisMonth" class="month-btn" :class="{ active: isThisMonth }">
-          今月
-        </button>
-        <button @click="setNextMonth" class="month-btn" :class="{ active: isNextMonth }">
-          来月
-        </button>
-      </div>
-
-      <!-- アクションボタン：全選択・クリア -->
-      <div class="action-buttons">
-        <button @click="selectAll" class="action-btn" :class="{ selected: isAllSelected }">全選択</button>
-        <button @click="clearAll" class="action-btn">クリア</button>
-      </div>
-
-      <!-- 曜日一括選択ボタン -->
-      <div class="weekday-buttons">
-        <button
-          v-for="(day, index) in weekdays"
-          :key="index"
-          @click="selectByWeekday(index)"
-          class="weekday-btn"
-          :class="{ selected: isWeekdayFullySelected(index) }"
-        >
-          {{ day }}
-        </button>
-      </div>
-
-      <!-- 曜日ヘッダー -->
-      <div class="calendar-weekdays">
-        <div
-          v-for="(day, index) in weekdays"
-          :key="index"
-          class="weekday-header"
-          :class="{
-            sunday: index === 0,
-            saturday: index === 6
-          }"
-        >
-          {{ day }}
+    <!-- メインコンテンツ（スクロール可能） -->
+    <div class="calendar-content">
+      <!-- カレンダーカード -->
+      <div class="calendar-card">
+        <!-- ヘッダー：年月 -->
+        <div class="calendar-header">
+          <h1 class="current-month">{{ currentMonthInfo.displayText }}</h1>
         </div>
-      </div>
 
-      <!-- 日付セル -->
-      <div class="calendar-dates">
-        <div
-          v-for="cell in calendarCells"
-          :key="cell.dateString"
-          class="date-cell"
-          :class="{
-            'other-month': !cell.isCurrentMonth,
-            'today': cell.isToday,
-            'past': cell.isPast,
-            'holiday': cell.isHoliday,
-            'saturday': cell.dayOfWeek === 6,
-            'sunday': cell.dayOfWeek === 0,
-            'selected': cell.isSelected,
-            'removed': isRemovedDate(cell.dateString)
-          }"
-          @click="handleDateClick(cell)"
-        >
-          <div class="date-number">{{ cell.date.getDate() }}</div>
+        <!-- 月選択ボタン：今月・来月 -->
+        <div class="month-buttons">
+          <button @click="setThisMonth" class="month-btn" :class="{ active: isThisMonth }">
+            今月
+          </button>
+          <button @click="setNextMonth" class="month-btn" :class="{ active: isNextMonth }">
+            来月
+          </button>
         </div>
-      </div>
 
-      <!-- 統計情報 -->
-      <div class="calendar-stats">
-        <div class="stat-summary">
-          <span class="stat-label">選択日数:</span>
-          <span class="stat-value">{{ selectedCount }}日</span>
+        <!-- アクションボタン：全選択・クリア -->
+        <div class="action-buttons">
+          <button @click="selectAll" class="action-btn" :class="{ selected: isAllSelected }">全選択</button>
+          <button @click="clearAll" class="action-btn">クリア</button>
         </div>
-        <div class="stat-comment">
-          （{{ currentMonthInfo.month + 1 }}月の平日は{{ weekdayCount }}日、休日は{{ holidayCount }}日です）
+
+        <!-- 曜日一括選択ボタン -->
+        <div class="weekday-buttons">
+          <button
+            v-for="(day, index) in weekdays"
+            :key="index"
+            @click="selectByWeekday(index)"
+            class="weekday-btn"
+            :class="{ selected: isWeekdayFullySelected(index) }"
+          >
+            {{ day }}
+          </button>
+        </div>
+
+        <!-- 曜日ヘッダー -->
+        <div class="calendar-weekdays">
+          <div
+            v-for="(day, index) in weekdays"
+            :key="index"
+            class="weekday-header"
+            :class="{
+              sunday: index === 0,
+              saturday: index === 6
+            }"
+          >
+            {{ day }}
+          </div>
+        </div>
+
+        <!-- 日付セル -->
+        <div class="calendar-dates">
+          <div
+            v-for="cell in calendarCells"
+            :key="cell.dateString"
+            class="date-cell"
+            :class="{
+              'other-month': !cell.isCurrentMonth,
+              'today': cell.isToday,
+              'past': cell.isPast,
+              'holiday': cell.isHoliday,
+              'saturday': cell.dayOfWeek === 6,
+              'sunday': cell.dayOfWeek === 0,
+              'selected': cell.isSelected,
+              'removed': isRemovedDate(cell.dateString)
+            }"
+            @click="handleDateClick(cell)"
+          >
+            <div class="date-number">{{ cell.date.getDate() }}</div>
+          </div>
+        </div>
+
+        <!-- 統計情報 -->
+        <div class="calendar-stats">
+          <div class="stat-summary">
+            <span class="stat-label">選択日数:</span>
+            <span class="stat-value">{{ selectedCount }}日</span>
+          </div>
+          <div class="stat-comment">
+            （{{ currentMonthInfo.month + 1 }}月の平日は{{ weekdayCount }}日、休日は{{ holidayCount }}日です）
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 次へボタン -->
-    <div class="footer">
-      <button
-        @click="navigateToTimeRegister"
-        class="next-btn"
-      >
-        次へ（時間登録）
-      </button>
+    <!-- フッター（固定） -->
+    <div class="footer-fixed">
+      <div class="footer-buttons">
+        <button
+          @click="navigateToTimeRegister"
+          class="action-btn next-btn"
+        >
+          次へ
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -193,13 +198,42 @@ const isRemovedDate = (dateString: string): boolean => {
 <style scoped>
 .calendar-view {
   height: 100vh;
-  padding: 1rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #333;
   font-family: 'Inter', 'Noto Sans JP', sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* ヘッダー固定 */
+.header-fixed {
+  flex-shrink: 0;
+  padding: 1rem 1rem 0 1rem;
+  z-index: 10;
+}
+
+/* カレンダーコンテンツ（スクロール可能） */
+.calendar-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 1rem;
+  min-height: 0;
+}
+
+/* フッター固定 */
+.footer-fixed {
+  flex-shrink: 0;
+  padding: 1rem;
+  background: transparent;
+  z-index: 10;
+}
+
+.footer-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
 }
 
 /* カレンダーカード */
@@ -210,9 +244,6 @@ const isRemovedDate = (dateString: string): boolean => {
   padding: 1rem;
   margin-bottom: 1rem;
   animation: fadeIn 0.5s ease-in;
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
 }
 
 @keyframes fadeIn {
@@ -486,22 +517,22 @@ const isRemovedDate = (dateString: string): boolean => {
   font-weight: 600;
 }
 
-/* フッター */
-.footer {
-  display: flex;
-  justify-content: center;
-}
-
-.next-btn {
-  padding: 1rem 3rem;
-  font-size: 1.25rem;
+/* ボタンスタイル */
+.action-btn {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #f97316, #fb923c);
   border: none;
   border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s ease;
+  flex: 1;
+  max-width: 200px;
+}
+
+.next-btn {
+  color: white;
+  background: linear-gradient(135deg, #f97316, #fb923c);
   box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
 }
 
@@ -519,12 +550,25 @@ const isRemovedDate = (dateString: string): boolean => {
 
 /* レスポンシブ */
 @media (max-width: 768px) {
-  .calendar-view {
-    padding: 1rem;
+  .header-fixed {
+    padding: 0.75rem 0.75rem 0 0.75rem;
+  }
+
+  .calendar-content {
+    padding: 0 0.75rem;
+  }
+
+  .footer-fixed {
+    padding: 0.75rem;
   }
 
   .calendar-card {
     padding: 1rem;
+  }
+
+  .action-btn {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
   }
 
   .calendar-header {
@@ -593,11 +637,6 @@ const isRemovedDate = (dateString: string): boolean => {
 
   .date-number {
     font-size: 0.9rem;
-  }
-
-  .next-btn {
-    padding: 0.875rem 2rem;
-    font-size: 1rem;
   }
 }
 </style>

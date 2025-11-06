@@ -59,7 +59,7 @@ export function useProgress() {
         label: '確認・提出',
         completed: false,
         active: current === 'confirm',
-        clickable: currentIndex >= 2 // 確認画面以降はクリック可能
+        clickable: true // 確認画面も常にクリック可能
       }
     ]
   })

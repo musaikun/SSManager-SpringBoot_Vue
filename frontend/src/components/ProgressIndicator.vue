@@ -49,8 +49,7 @@ const handleStepClick = (step: ProgressStepInfo) => {
   } else if (step.id === 'time-register') {
     router.push('/time-register')
   } else if (step.id === 'confirm') {
-    // TODO: 確認画面実装後に追加
-    console.log('確認画面へ')
+    router.push('/confirm')
   }
 }
 </script>
