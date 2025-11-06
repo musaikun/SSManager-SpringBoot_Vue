@@ -18,13 +18,17 @@
                 <button @click="openBulkTimeModal('start')" class="bulk-time-btn">
                   開始時刻設定
                 </button>
-                <div class="bulk-time-display">{{ bulkSettings.startTime }}</div>
+                <div class="bulk-time-display" @click="openBulkTimeModal('start')">
+                  {{ bulkSettings.startTime }}
+                </div>
               </div>
               <div class="bulk-time-item">
                 <button @click="openBulkTimeModal('end')" class="bulk-time-btn">
                   終了時刻設定
                 </button>
-                <div class="bulk-time-display">{{ bulkSettings.endTime }}</div>
+                <div class="bulk-time-display" @click="openBulkTimeModal('end')">
+                  {{ bulkSettings.endTime }}
+                </div>
               </div>
             </div>
             <div class="bulk-actions">
@@ -54,8 +58,9 @@
             <button
               @click.stop="handleRemoveDay(index)"
               class="swipe-delete-btn"
+              :class="{ restore: workDay.isRemoved }"
             >
-              {{ workDay.isRemoved ? 'シフトを戻す' : 'シフトを外す' }}
+              {{ workDay.isRemoved ? '戻す' : '外す' }}
             </button>
           </div>
 
@@ -63,7 +68,7 @@
           <div
             class="work-day-card"
             :class="{ removed: workDay.isRemoved, modified: workDay.isModified, swiped: swipedCardIndex === index }"
-            :style="{ transform: swipedCardIndex === index ? 'translateX(-120px)' : 'translateX(0)' }"
+            :style="{ transform: swipedCardIndex === index ? 'translateX(-60px)' : 'translateX(0)' }"
             @click="handleCardClick(index)"
             @touchstart="handleTouchStart($event, index)"
             @touchmove="handleTouchMove($event, index)"
@@ -389,6 +394,11 @@ const initializeWorkDays = () => {
     return
   }
 
+  // すでにworkDaysがある場合は初期化しない（状態を保持）
+  if (workDays.value.length > 0) {
+    return
+  }
+
   // 選択された日付で初期化
   timeRegisterStore.initializeFromDates(selectedDates)
 }
@@ -398,7 +408,7 @@ onMounted(() => {
   initializeWorkDays()
 })
 
-// ルートが時間設定画面に変わったときも初期化
+// ルートが時間設定画面に変わったときも初期化チェック
 watch(() => route.path, (newPath) => {
   if (newPath === '/time-register') {
     initializeWorkDays()
@@ -423,18 +433,38 @@ const toggleBulkAccordion = () => {
 // 一括適用
 const handleBulkApply = (type: BulkApplyType) => {
   const activeCount = workDays.value.filter(d => !d.isRemoved).length
-  let message = ''
+  const modifiedCount = workDays.value.filter(d => d.isModified && !d.isRemoved).length
 
-  if (type === 'both') {
-    message = `全${activeCount}日に\n開始: ${bulkSettings.value.startTime}\n終了: ${bulkSettings.value.endTime}\nを適用しますか？`
-  } else if (type === 'start') {
-    message = `全${activeCount}日の開始時刻を\n${bulkSettings.value.startTime}に変更しますか？`
-  } else if (type === 'end') {
-    message = `全${activeCount}日の終了時刻を\n${bulkSettings.value.endTime}に変更しますか？`
-  }
+  // 個別設定がある場合は確認
+  if (modifiedCount > 0) {
+    const choice = confirm(
+      `個別設定した箇所が${modifiedCount}日あります。\n\n` +
+      `OK: 個別設定以外の日を一括設定\n` +
+      `キャンセル: 個別設定も含め一括設定`
+    )
 
-  if (confirm(message)) {
-    timeRegisterStore.applyBulk(type, 'all')
+    if (choice) {
+      // 個別設定以外を一括適用
+      timeRegisterStore.applyBulk(type, 'unmodified')
+    } else {
+      // 全て一括適用
+      timeRegisterStore.applyBulk(type, 'all')
+    }
+  } else {
+    // 個別設定がない場合は通常通り
+    let message = ''
+
+    if (type === 'both') {
+      message = `全${activeCount}日に\n開始: ${bulkSettings.value.startTime}\n終了: ${bulkSettings.value.endTime}\nを適用しますか？`
+    } else if (type === 'start') {
+      message = `全${activeCount}日の開始時刻を\n${bulkSettings.value.startTime}に変更しますか？`
+    } else if (type === 'end') {
+      message = `全${activeCount}日の終了時刻を\n${bulkSettings.value.endTime}に変更しますか？`
+    }
+
+    if (confirm(message)) {
+      timeRegisterStore.applyBulk(type, 'all')
+    }
   }
 }
 
@@ -752,6 +782,16 @@ const handleNext = () => {
   background: #f8f9fa;
   border-radius: 8px;
   border: 2px solid #e0e0e0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.bulk-time-display:hover {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .bulk-actions {
@@ -845,7 +885,7 @@ const handleNext = () => {
   right: 0;
   top: 0;
   bottom: 0;
-  width: 120px;
+  width: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -853,20 +893,34 @@ const handleNext = () => {
 }
 
 .swipe-delete-btn {
-  padding: 0.75rem 1rem;
+  width: 100%;
+  height: 100%;
   background: #ef4444;
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  border-radius: 0;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.25em;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .swipe-delete-btn:hover {
   background: #dc2626;
+}
+
+.swipe-delete-btn.restore {
+  background: #2563eb;
+}
+
+.swipe-delete-btn.restore:hover {
+  background: #1d4ed8;
 }
 
 .work-day-card {
@@ -886,8 +940,12 @@ const handleNext = () => {
 }
 
 .work-day-card.removed {
-  opacity: 0.5;
   background: #f5f5f5;
+  color: #999;
+}
+
+.work-day-card.removed .time-value {
+  color: #aaa;
 }
 
 .work-day-card.modified {
@@ -1050,7 +1108,7 @@ const handleNext = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
   padding: 1rem;
   overflow-y: auto;
 }
