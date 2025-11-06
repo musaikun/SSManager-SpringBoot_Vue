@@ -102,7 +102,7 @@ const handleNext = () => {
           <button v-if="showBackButton" @click="handleBack" class="action-btn back-btn">
             戻る
           </button>
-          <button @click="handleNext" class="action-btn next-btn">
+          <button @click="handleNext" class="action-btn next-btn" :class="{ 'submit-btn': route.path === '/confirm' }">
             {{ nextButtonLabel }}
           </button>
         </div>
@@ -200,6 +200,15 @@ body {
 .next-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.submit-btn:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
 }
 
 /* レスポンシブ */

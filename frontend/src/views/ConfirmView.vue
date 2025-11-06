@@ -28,7 +28,9 @@
                 <span class="separator">〜</span>
                 <span :class="{ 'custom-time': workDay.customEndTime }">{{ workDay.endTime }}</span>
               </td>
-              <td class="hours-cell">{{ formatWorkTime(workDay) }}</td>
+              <td class="hours-cell">
+                <div v-html="formatWorkTime(workDay)"></div>
+              </td>
               <td class="status-cell">
                 <span v-if="workDay.isModified" class="custom-badge">個別設定</span>
                 <span v-else class="default-badge">一括設定</span>
@@ -89,7 +91,7 @@ const formatWorkTime = (workDay: WorkDay) => {
   if (includeBreak.value) {
     const breakMinutes = calculateBreakTime(workDay.workMinutes)
     const actualMinutes = workDay.workMinutes - breakMinutes
-    return `${formatMinutesToHours(actualMinutes)} / 休憩${breakMinutes}分`
+    return `${formatMinutesToHours(actualMinutes)}<br>休憩${breakMinutes}分`
   }
   return formatMinutesToHours(workDay.workMinutes)
 }
@@ -266,19 +268,19 @@ const formatWorkTime = (workDay: WorkDay) => {
 }
 
 .summary-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: #666;
 }
 
 .summary-value {
-  font-size: 1.125rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #333;
 }
 
 .summary-value.highlight {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   color: #667eea;
 }
 

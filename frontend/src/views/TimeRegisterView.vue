@@ -63,6 +63,11 @@
         </transition>
       </div>
 
+      <!-- 注意書き -->
+      <div class="info-note">
+        ※個別で設定した日は黄色でマークされます
+      </div>
+
       <!-- 勤務日カードリスト -->
       <div class="work-days-list">
         <div
@@ -961,6 +966,15 @@ const confirmTimeEdit = () => {
 
 .bulk-btn:active {
   transform: translateY(0);
+}
+
+/* 注意書き */
+.info-note {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #888;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
 }
 
 /* 休憩時間設定 */
