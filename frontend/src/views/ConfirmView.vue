@@ -5,28 +5,37 @@
 
     <!-- メインコンテンツ -->
     <div class="confirm-container">
-      <!-- 確認カードリスト -->
-      <div class="confirm-cards-list">
-        <div
-          v-for="(workDay, index) in activeWorkDays"
-          :key="workDay.date"
-          class="confirm-card"
-          :class="{ modified: workDay.isModified }"
-        >
-          <div class="card-header">
-            <div class="card-date">{{ workDay.displayDate }}</div>
-            <span v-if="workDay.isModified" class="custom-badge">個別設定</span>
-          </div>
-          <div class="card-time-section">
-            <span class="time-value" :class="{ 'custom-time': workDay.customStartTime }">{{ workDay.startTime }}</span>
-            <span class="time-separator">〜</span>
-            <span class="time-value" :class="{ 'custom-time': workDay.customEndTime }">{{ workDay.endTime }}</span>
-          </div>
-          <div class="card-hours">
-            <span class="hours-icon">💼</span>
-            <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
-          </div>
-        </div>
+      <!-- 確認テーブル -->
+      <div class="confirm-table-wrapper">
+        <table class="confirm-table">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>時間</th>
+              <th>勤務時間</th>
+              <th>設定</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(workDay, index) in activeWorkDays"
+              :key="workDay.date"
+              :class="{ modified: workDay.isModified }"
+            >
+              <td class="date-cell">{{ workDay.displayDate }}</td>
+              <td class="time-cell">
+                <span :class="{ 'custom-time': workDay.customStartTime }">{{ workDay.startTime }}</span>
+                <span class="separator">〜</span>
+                <span :class="{ 'custom-time': workDay.customEndTime }">{{ workDay.endTime }}</span>
+              </td>
+              <td class="hours-cell">{{ formatWorkTime(workDay) }}</td>
+              <td class="status-cell">
+                <span v-if="workDay.isModified" class="custom-badge">個別設定</span>
+                <span v-else class="default-badge">一括設定</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- 合計統計 -->
@@ -129,94 +138,113 @@ const handleSubmit = () => {
 }
 
 .confirm-container {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
-/* 確認カードリスト */
-.confirm-cards-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.confirm-card {
+/* 確認テーブル */
+.confirm-table-wrapper {
   background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.2s ease;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
 }
 
-.confirm-card:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+.confirm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
 }
 
-.confirm-card.modified {
+.confirm-table thead {
+  background: #f8f9fa;
+}
+
+.confirm-table th {
+  padding: 0.875rem;
+  text-align: left;
+  font-weight: 700;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+  white-space: nowrap;
+}
+
+.confirm-table tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+}
+
+.confirm-table tbody tr:hover {
+  background: #f9f9f9;
+}
+
+.confirm-table tbody tr.modified {
   background: #fef3c7;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
+.confirm-table tbody tr.modified:hover {
+  background: #fde68a;
 }
 
-.card-date {
-  font-size: 1rem;
-  font-weight: 700;
+.confirm-table td {
+  padding: 0.75rem 0.875rem;
   color: #333;
 }
 
+.date-cell {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.time-cell {
+  font-weight: 600;
+  color: #667eea;
+  white-space: nowrap;
+}
+
+.time-cell .separator {
+  color: #999;
+  margin: 0 0.25rem;
+}
+
+/* 個別設定された時間のみ黄色 */
+.custom-time {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.hours-cell {
+  font-weight: 600;
+  color: #666;
+  white-space: nowrap;
+}
+
+.status-cell {
+  text-align: center;
+}
+
 .custom-badge {
+  display: inline-block;
   padding: 0.25rem 0.75rem;
   background: #f59e0b;
   color: white;
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
-.card-time-section {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.time-value {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #667eea;
-}
-
-/* 個別設定された時間のみ黄色 */
-.time-value.custom-time {
-  color: #d97706;
-  font-weight: 700;
-}
-
-.time-separator {
-  font-size: 0.875rem;
-  color: #999;
-}
-
-.card-hours {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+.default-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #e0e0e0;
   color: #666;
-}
-
-.hours-icon {
-  font-size: 1rem;
-}
-
-.hours-text {
+  border-radius: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* 合計統計 */
@@ -316,8 +344,48 @@ const handleSubmit = () => {
     padding: 0.5rem;
   }
 
+  .confirm-table-wrapper {
+    padding: 1rem;
+  }
+
+  .confirm-table {
+    font-size: 0.85rem;
+  }
+
+  .confirm-table th,
+  .confirm-table td {
+    padding: 0.5rem;
+  }
+
+  .custom-badge,
+  .default-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+  }
+
   .total-summary-section {
     padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .confirm-table-wrapper {
+    padding: 0.75rem;
+  }
+
+  .confirm-table {
+    font-size: 0.75rem;
+  }
+
+  .confirm-table th,
+  .confirm-table td {
+    padding: 0.4rem;
+  }
+
+  .custom-badge,
+  .default-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
   }
 }
 </style>
