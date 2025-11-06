@@ -1085,7 +1085,7 @@ const handleNext = () => {
 
 /* モーダル共通 */
 .modal-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -1102,9 +1102,11 @@ const handleNext = () => {
 .modal-content {
   background: white;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.25rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   animation: modalSlideIn 0.3s ease;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 /* 確認モーダル */
@@ -1210,10 +1212,9 @@ const handleNext = () => {
 
 /* 時刻選択モーダル */
 .time-picker-modal {
-  max-width: 500px;
+  max-width: 450px;
   width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
+  padding: 1rem;
 }
 
 @keyframes modalSlideIn {
@@ -1231,25 +1232,25 @@ const handleNext = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
+  margin-bottom: 1rem;
+  gap: 0.75rem;
 }
 
 .modal-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: #667eea;
 }
 
 /* シフトを外すボタン */
 .remove-shift-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   border: none;
   background: #fee;
   color: #ef4444;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1270,8 +1271,8 @@ const handleNext = () => {
 }
 
 .modal-section {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
   background: #f8f9fa;
   border-radius: 8px;
 }
@@ -1280,11 +1281,11 @@ const handleNext = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .modal-label {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #333;
 }
@@ -1303,19 +1304,19 @@ const handleNext = () => {
   display: flex;
   align-items: center;
   background: #e0e0e0;
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 2px;
   cursor: pointer;
   position: relative;
-  width: 100px;
-  height: 32px;
+  width: 85px;
+  height: 28px;
 }
 
 .toggle-text-am,
 .toggle-text-pm {
   flex: 1;
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   z-index: 2;
   transition: color 0.3s ease;
@@ -1342,33 +1343,33 @@ const handleNext = () => {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 48px;
-  height: 28px;
-  background: #ff9800; /* 午前時はオレンジ */
-  border-radius: 18px;
+  width: 40px;
+  height: 24px;
+  background: #ff9800;
+  border-radius: 14px;
   transition: all 0.3s ease;
 }
 
 .toggle-input:checked ~ .toggle-label .toggle-slider {
-  transform: translateX(48px);
-  background: #2196F3; /* 午後時は青 */
+  transform: translateX(41px);
+  background: #2196F3;
 }
 
 /* 時間選択ボタン */
 .hour-selector-row {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-  min-width: 0; /* グリッドアイテムが縮小できるように */
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  min-width: 0;
 }
 
 .hour-btn {
-  padding: 0.75rem 0.25rem;
-  border: 2px solid #e0e0e0;
+  padding: 0.5rem 0.2rem;
+  border: 1.5px solid #e0e0e0;
   background: white;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #333;
   cursor: pointer;
@@ -1393,17 +1394,17 @@ const handleNext = () => {
 .minute-selector-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
   min-width: 0;
 }
 
 .minute-btn {
-  padding: 0.75rem 0.25rem;
-  border: 2px solid #e0e0e0;
+  padding: 0.5rem 0.2rem;
+  border: 1.5px solid #e0e0e0;
   background: white;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #333;
   cursor: pointer;
@@ -1425,7 +1426,7 @@ const handleNext = () => {
 }
 
 .time-preview {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #666;
   text-align: center;
 }
@@ -1433,23 +1434,23 @@ const handleNext = () => {
 .time-preview span {
   font-weight: 700;
   color: #667eea;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 /* 勤務時間表示 */
 .modal-work-hours {
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #333;
-  margin-bottom: 1.5rem;
-  padding: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.6rem;
   background: #f8f9fa;
   border-radius: 8px;
 }
 
 .modal-work-hours span {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #667eea;
 }
@@ -1458,15 +1459,15 @@ const handleNext = () => {
 .modal-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: 0.6rem;
   width: 100%;
 }
 
 .btn-modal {
-  padding: 0.875rem 0.5rem;
+  padding: 0.7rem 0.5rem;
   border: none;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
