@@ -3,6 +3,9 @@
     <!-- 進捗インジケーター -->
     <ProgressIndicator />
 
+    <!-- スワイプチュートリアル -->
+    <SwipeTutorial />
+
     <!-- カレンダーカード -->
     <div class="calendar-card">
       <!-- ヘッダー：年月 -->
@@ -109,6 +112,7 @@ import { useCalendarStore } from '../stores/calendar'
 import { useNavigationStore } from '../stores/navigation'
 import type { CalendarCell } from '../types/calendar'
 import ProgressIndicator from '../components/ProgressIndicator.vue'
+import SwipeTutorial from '../components/SwipeTutorial.vue'
 
 const router = useRouter()
 const store = useCalendarStore()
