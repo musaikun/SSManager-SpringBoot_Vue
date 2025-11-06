@@ -574,17 +574,20 @@ const toggleWeekday = (dayOfWeek: number) => {
   }
 }
 
-// ボタンラベル（曜日選択に応じて変化）
+// ボタンラベル（曜日・週選択に応じて変化）
 const bulkApplyBothLabel = computed(() => {
-  return selectedWeekdays.value.length === 0 ? '全日に適用' : '適用'
+  const hasSelection = selectedWeekdays.value.length > 0 || selectedWeeks.value.length > 0
+  return hasSelection ? '適用' : '全日に適用'
 })
 
 const bulkApplyStartLabel = computed(() => {
-  return selectedWeekdays.value.length === 0 ? '全日に開始時刻のみ適用' : '開始時刻のみ適用'
+  const hasSelection = selectedWeekdays.value.length > 0 || selectedWeeks.value.length > 0
+  return hasSelection ? '開始時刻のみ適用' : '全日に開始時刻のみ適用'
 })
 
 const bulkApplyEndLabel = computed(() => {
-  return selectedWeekdays.value.length === 0 ? '全日に終了時刻のみ適用' : '終了時刻のみ適用'
+  const hasSelection = selectedWeekdays.value.length > 0 || selectedWeeks.value.length > 0
+  return hasSelection ? '終了時刻のみ適用' : '全日に終了時刻のみ適用'
 })
 
 // 一括適用（選択曜日・週に基づく）
