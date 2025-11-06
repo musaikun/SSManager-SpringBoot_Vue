@@ -18,7 +18,11 @@
               :key="workDay.date"
               :class="{ modified: workDay.isModified }"
             >
-              <td class="date-cell">{{ workDay.displayDate }}</td>
+              <td class="date-cell" :class="{
+                'saturday': workDay.dayOfWeek === 6,
+                'sunday': workDay.dayOfWeek === 0,
+                'holiday': isHoliday(workDay.date)
+              }">{{ workDay.displayDate }}</td>
               <td class="time-cell">
                 <span :class="{ 'custom-time': workDay.customStartTime }">{{ workDay.startTime }}</span>
                 <span class="separator">〜</span>
@@ -63,9 +67,11 @@ import { storeToRefs } from 'pinia'
 import { useTimeRegisterStore } from '../stores/timeRegister'
 import { useTimeFormat } from '../composables/useTimeFormat'
 import { useTimeCalculation } from '../composables/useTimeCalculation'
+import { useHolidays } from '../composables/useHolidays'
 import type { WorkDay } from '../types/timeRegister'
 
 const timeRegisterStore = useTimeRegisterStore()
+const { isHoliday } = useHolidays()
 
 const { includeBreak, workDays } = storeToRefs(timeRegisterStore)
 const { totalSummary } = storeToRefs(timeRegisterStore)
@@ -83,7 +89,7 @@ const formatWorkTime = (workDay: WorkDay) => {
   if (includeBreak.value) {
     const breakMinutes = calculateBreakTime(workDay.workMinutes)
     const actualMinutes = workDay.workMinutes - breakMinutes
-    return `${formatMinutesToHours(actualMinutes)} / 休憩${formatMinutesToHours(breakMinutes)}`
+    return `${formatMinutesToHours(actualMinutes)} / 休憩${breakMinutes}分`
   }
   return formatMinutesToHours(workDay.workMinutes)
 }
@@ -156,6 +162,15 @@ const formatWorkTime = (workDay: WorkDay) => {
 .date-cell {
   font-weight: 600;
   white-space: nowrap;
+}
+
+.date-cell.saturday {
+  color: #2563eb;
+}
+
+.date-cell.sunday,
+.date-cell.holiday {
+  color: #ef4444;
 }
 
 .time-cell {

@@ -221,7 +221,7 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
     applyBulk(
       type: BulkApplyType,
       target: BulkApplyTarget,
-      dayOfWeek?: number
+      weekdays?: number[]
     ) {
       const targetDays = target === 'all'
         ? this.workDays.filter(day => !day.isRemoved)
@@ -231,7 +231,7 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
         const actualIndex = this.workDays.indexOf(day)
 
         // 曜日指定がある場合はフィルタリング
-        if (dayOfWeek !== undefined && day.dayOfWeek !== dayOfWeek) {
+        if (weekdays !== undefined && weekdays.length > 0 && !weekdays.includes(day.dayOfWeek)) {
           return
         }
 

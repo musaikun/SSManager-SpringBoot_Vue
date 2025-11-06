@@ -9,6 +9,26 @@
         </div>
         <transition name="accordion">
           <div v-show="isBulkAccordionOpen" class="bulk-settings-content">
+            <!-- 曜日選択 -->
+            <div class="weekday-selector">
+              <div class="weekday-label">適用する曜日</div>
+              <div class="weekday-buttons">
+                <button
+                  v-for="day in weekdayOptions"
+                  :key="day.value"
+                  @click="toggleWeekday(day.value)"
+                  class="weekday-btn"
+                  :class="{
+                    active: selectedWeekdays.includes(day.value),
+                    sunday: day.value === 0,
+                    saturday: day.value === 6
+                  }"
+                >
+                  {{ day.label }}
+                </button>
+              </div>
+            </div>
+
             <div class="bulk-time-settings">
               <div class="bulk-time-item">
                 <button @click="openBulkTimeModal('start')" class="bulk-time-btn">
@@ -29,7 +49,7 @@
             </div>
             <div class="bulk-actions">
               <button @click="handleBulkApply('both')" class="bulk-btn">
-                全日に適用
+                選択曜日に適用
               </button>
               <button @click="handleBulkApply('start')" class="bulk-btn">
                 開始時刻のみ適用
@@ -52,7 +72,11 @@
         >
           <div class="card-main" @click="handleCardClick($event, index)">
             <div class="card-content-horizontal">
-              <div class="card-date">{{ workDay.displayDate }}</div>
+              <div class="card-date" :class="{
+                'saturday': workDay.dayOfWeek === 6,
+                'sunday': workDay.dayOfWeek === 0,
+                'holiday': isHoliday(workDay.date)
+              }">{{ workDay.displayDate }}</div>
               <div class="card-time-section">
                 <span class="time-value" :class="{ 'custom-time': workDay.customStartTime }">{{ workDay.startTime }}</span>
                 <span class="time-separator">〜</span>
@@ -152,6 +176,9 @@
             <div class="help-row">
               <span class="help-label">8時間以上:</span>
               <span class="help-value">60分</span>
+            </div>
+            <div class="help-note">
+              ※ 労働基準法 第34条の要点（休憩の原則）を参考にしています。
             </div>
           </div>
           <button @click="showHelpModal = false" class="close-btn">閉じる</button>
@@ -302,11 +329,13 @@ import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
 import { useTimeFormat } from '../composables/useTimeFormat'
 import { useTimeCalculation } from '../composables/useTimeCalculation'
+import { useHolidays } from '../composables/useHolidays'
 import type { BulkApplyType, WorkDay } from '../types/timeRegister'
 
 const route = useRoute()
 const calendarStore = useCalendarStore()
 const timeRegisterStore = useTimeRegisterStore()
+const { isHoliday } = useHolidays()
 
 const { bulkSettings, includeBreak, workDays } = storeToRefs(timeRegisterStore)
 const { totalSummary } = storeToRefs(timeRegisterStore)
@@ -316,6 +345,20 @@ const { calculateBreakTime } = useTimeCalculation()
 
 // アコーディオンの開閉状態
 const isBulkAccordionOpen = ref(false) // デフォルトで閉じている
+
+// 曜日選択の状態（デフォルトは全曜日選択）
+const selectedWeekdays = ref<number[]>([0, 1, 2, 3, 4, 5, 6])
+
+// 曜日オプション
+const weekdayOptions = [
+  { value: 0, label: '日' },
+  { value: 1, label: '月' },
+  { value: 2, label: '火' },
+  { value: 3, label: '水' },
+  { value: 4, label: '木' },
+  { value: 5, label: '金' },
+  { value: 6, label: '土' }
+]
 
 // 時刻選択モーダルの状態（24時間制）
 const showTimeModal = ref(false)
@@ -456,16 +499,44 @@ const toggleBulkAccordion = () => {
   isBulkAccordionOpen.value = !isBulkAccordionOpen.value
 }
 
+// 曜日選択のトグル
+const toggleWeekday = (dayOfWeek: number) => {
+  const index = selectedWeekdays.value.indexOf(dayOfWeek)
+  if (index === -1) {
+    // 選択されていない場合は追加
+    selectedWeekdays.value.push(dayOfWeek)
+    selectedWeekdays.value.sort((a, b) => a - b) // ソートして順番を保つ
+  } else {
+    // 既に選択されている場合は削除（最低1つは選択状態を保つ）
+    if (selectedWeekdays.value.length > 1) {
+      selectedWeekdays.value.splice(index, 1)
+    }
+  }
+}
+
 // 一括適用
 const handleBulkApply = (type: BulkApplyType) => {
-  const activeCount = workDays.value.filter(d => !d.isRemoved).length
-  const modifiedCount = workDays.value.filter(d => d.isModified && !d.isRemoved).length
+  // 選択曜日に該当する勤務日をカウント
+  const targetDays = workDays.value.filter(d =>
+    !d.isRemoved && selectedWeekdays.value.includes(d.dayOfWeek)
+  )
+  const targetCount = targetDays.length
+  const modifiedCount = targetDays.filter(d => d.isModified).length
+
+  if (targetCount === 0) {
+    alert('選択された曜日に該当する勤務日がありません')
+    return
+  }
+
+  // 選択曜日の表示文字列を生成
+  const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土']
+  const selectedWeekdayLabels = selectedWeekdays.value.map(day => weekdayLabels[day]).join('・')
 
   // 個別設定がある場合は選択肢を表示
   if (modifiedCount > 0) {
     confirmModalData.value = {
       title: '一括設定の確認',
-      message: `個別設定した箇所が${modifiedCount}日あります。`,
+      message: `選択曜日（${selectedWeekdayLabels}）で個別設定した箇所が${modifiedCount}日あります。`,
       options: [
         { label: '個別設定以外の日を一括設定', value: 'unmodified' },
         { label: '個別設定も含め一括設定', value: 'all' },
@@ -473,7 +544,7 @@ const handleBulkApply = (type: BulkApplyType) => {
       ],
       onConfirm: (value: string) => {
         if (value !== 'cancel') {
-          timeRegisterStore.applyBulk(type, value as 'unmodified' | 'all')
+          timeRegisterStore.applyBulk(type, value as 'unmodified' | 'all', selectedWeekdays.value)
         }
         showConfirmModal.value = false
       }
@@ -484,11 +555,11 @@ const handleBulkApply = (type: BulkApplyType) => {
     let message = ''
 
     if (type === 'both') {
-      message = `全${activeCount}日に開始: ${bulkSettings.value.startTime}、終了: ${bulkSettings.value.endTime}を適用しますか？`
+      message = `${selectedWeekdayLabels}の${targetCount}日に開始: ${bulkSettings.value.startTime}、終了: ${bulkSettings.value.endTime}を適用しますか？`
     } else if (type === 'start') {
-      message = `全${activeCount}日の開始時刻を${bulkSettings.value.startTime}に変更しますか？`
+      message = `${selectedWeekdayLabels}の${targetCount}日の開始時刻を${bulkSettings.value.startTime}に変更しますか？`
     } else if (type === 'end') {
-      message = `全${activeCount}日の終了時刻を${bulkSettings.value.endTime}に変更しますか？`
+      message = `${selectedWeekdayLabels}の${targetCount}日の終了時刻を${bulkSettings.value.endTime}に変更しますか？`
     }
 
     confirmModalData.value = {
@@ -500,7 +571,7 @@ const handleBulkApply = (type: BulkApplyType) => {
       ],
       onConfirm: (value: string) => {
         if (value === 'apply') {
-          timeRegisterStore.applyBulk(type, 'all')
+          timeRegisterStore.applyBulk(type, 'all', selectedWeekdays.value)
         }
         showConfirmModal.value = false
       }
@@ -711,7 +782,7 @@ const confirmTimeEdit = () => {
 .accordion-enter-active,
 .accordion-leave-active {
   transition: all 0.3s ease;
-  max-height: 350px;
+  max-height: 380px;
   overflow: hidden;
 }
 
@@ -722,37 +793,94 @@ const confirmTimeEdit = () => {
 }
 
 .bulk-settings-content {
-  padding: 0 1rem 1rem 1rem;
+  padding: 0 0.75rem 0.75rem 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
+}
+
+/* 曜日選択 */
+.weekday-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.weekday-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #666;
+}
+
+.weekday-buttons {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.3rem;
+}
+
+.weekday-btn {
+  padding: 0.4rem 0.2rem;
+  background: white;
+  color: #666;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.weekday-btn:hover {
+  border-color: #667eea;
+  background: #f8f9fa;
+}
+
+.weekday-btn.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: #667eea;
+  transform: scale(1.05);
+}
+
+.weekday-btn.sunday:not(.active) {
+  color: #ef4444;
+  border-color: #fca5a5;
+}
+
+.weekday-btn.saturday:not(.active) {
+  color: #2563eb;
+  border-color: #93c5fd;
 }
 
 .bulk-time-settings {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .bulk-time-item {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .bulk-time-btn {
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.6rem;
   background: #f8f9fa;
   color: #667eea;
   border: 2px solid #667eea;
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
-  min-width: 120px;
+  min-width: 110px;
 }
 
 .bulk-time-btn:hover {
@@ -787,16 +915,16 @@ const confirmTimeEdit = () => {
 .bulk-actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .bulk-btn {
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.6rem;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -993,6 +1121,15 @@ const confirmTimeEdit = () => {
   font-size: 1rem;
   font-weight: 700;
   color: #333;
+}
+
+.card-date.saturday {
+  color: #2563eb;
+}
+
+.card-date.sunday,
+.card-date.holiday {
+  color: #ef4444;
 }
 
 .card-time-section {
@@ -1199,6 +1336,17 @@ const confirmTimeEdit = () => {
   font-size: 1rem;
   font-weight: 700;
   color: #667eea;
+}
+
+.help-note {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f0f4ff;
+  border-left: 3px solid #667eea;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #555;
+  line-height: 1.5;
 }
 
 .close-btn {
