@@ -149,11 +149,11 @@ const formatWorkTime = (workDay: WorkDay) => {
 }
 
 .confirm-table th:nth-child(3) {
-  width: 35%;
+  width: 32%;
 }
 
 .confirm-table th:nth-child(4) {
-  width: 15%;
+  width: 18%;
 }
 
 .confirm-table tbody tr {
