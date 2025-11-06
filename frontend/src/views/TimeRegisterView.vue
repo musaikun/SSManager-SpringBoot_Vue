@@ -610,9 +610,10 @@ const handleNext = () => {
 
 <style scoped>
 .time-register-view {
-  min-height: 100vh;
+  min-height: 100%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 1rem;
+  position: relative;
 }
 
 .time-register-container {
@@ -1017,7 +1018,7 @@ const handleNext = () => {
 
 /* 時刻選択モーダル */
 .modal-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;

@@ -182,5 +182,6 @@ const handleTouchEnd = () => {
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  position: relative;
 }
 </style>
