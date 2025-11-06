@@ -94,7 +94,11 @@
           v-for="(workDay, index) in activeWorkDays"
           :key="workDay.date"
           class="work-day-card"
-          :class="{ removed: workDay.isRemoved, modified: workDay.isModified }"
+          :class="{
+            removed: workDay.isRemoved,
+            modified: workDay.isModified,
+            highlighted: isHighlighted(workDay)
+          }"
         >
           <div class="card-main" @click="handleCardClick($event, index)">
             <div class="card-content-horizontal">
@@ -438,6 +442,21 @@ provide('isModalOpen', computed(() => showTimeModal.value || showConfirmModal.va
 const activeWorkDays = computed(() => {
   return workDays.value
 })
+
+// 選択条件に該当する勤務日かどうかを判定
+const isHighlighted = (workDay: WorkDay) => {
+  // 週または曜日が選択されていない場合はハイライトしない
+  if (selectedWeeks.value.length === 0 && selectedWeekdays.value.length === 0) {
+    return false
+  }
+
+  // 週の条件チェック
+  const weekMatch = selectedWeeks.value.length === 0 || selectedWeeks.value.includes(workDay.weekNumber)
+  // 曜日の条件チェック
+  const weekdayMatch = selectedWeekdays.value.length === 0 || selectedWeekdays.value.includes(workDay.dayOfWeek)
+
+  return weekMatch && weekdayMatch
+}
 
 // 開始時間ボタン配列（午前: 0-11、午後: 12-23）
 const startHourButtons = computed(() => {
@@ -1250,6 +1269,18 @@ const confirmTimeEdit = () => {
 
 .work-day-card.modified {
   background: #fef3c7;
+}
+
+/* 選択条件に該当するカードは水色でハイライト */
+.work-day-card.highlighted {
+  background: #dbeafe;
+  border-left-color: #3b82f6;
+}
+
+/* ハイライトとmodifiedが両方の場合は、modifiedを優先 */
+.work-day-card.modified.highlighted {
+  background: #fef3c7;
+  border-left-color: #f59e0b;
 }
 
 /* 個別設定された時間のみ黄色 */

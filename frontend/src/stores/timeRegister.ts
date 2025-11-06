@@ -174,9 +174,16 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
         const endTime = updates.endTime ?? workDay.endTime
         const workMinutes = calculateWorkMinutes(startTime, endTime)
 
-        // 開始時間・終了時間が変更された場合、カスタムフラグを立てる
-        const customStartTime = updates.startTime !== undefined ? true : workDay.customStartTime
-        const customEndTime = updates.endTime !== undefined ? true : workDay.customEndTime
+        // 実際に時間が変更されたかチェック
+        const startTimeChanged = updates.startTime !== undefined && updates.startTime !== workDay.startTime
+        const endTimeChanged = updates.endTime !== undefined && updates.endTime !== workDay.endTime
+
+        // 開始時間・終了時間が変更された場合のみ、カスタムフラグを立てる
+        const customStartTime = startTimeChanged ? true : workDay.customStartTime
+        const customEndTime = endTimeChanged ? true : workDay.customEndTime
+
+        // いずれかの時間が変更された場合のみisModifiedをtrueにする
+        const isModified = startTimeChanged || endTimeChanged ? true : workDay.isModified
 
         this.workDays[index] = {
           ...workDay,
@@ -184,7 +191,7 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           startTime,
           endTime,
           workMinutes,
-          isModified: true, // 更新したらmodifiedフラグを立てる
+          isModified,
           customStartTime,
           customEndTime
         }
