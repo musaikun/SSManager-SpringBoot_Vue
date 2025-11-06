@@ -427,22 +427,31 @@ const initializeWorkDays = () => {
   const selectedDates = calendarStore.selectedDatesArray
 
   if (selectedDates.length === 0) {
+    // 選択がなくなった場合はクリア
+    timeRegisterStore.workDays = []
     return
   }
 
-  // すでにworkDaysがある場合は初期化しない（状態を保持）
-  if (workDays.value.length > 0) {
-    return
+  // workDaysが空の場合は初期化、そうでなければ同期
+  if (timeRegisterStore.workDays.length === 0) {
+    timeRegisterStore.initializeFromDates(selectedDates)
+  } else {
+    timeRegisterStore.syncWithSelectedDates(selectedDates)
   }
-
-  // 選択された日付で初期化
-  timeRegisterStore.initializeFromDates(selectedDates)
 }
 
 // 初期化
 onMounted(() => {
   initializeWorkDays()
 })
+
+// カレンダーの選択状態が変わったら workDays を更新
+watch(() => calendarStore.selectedDatesArray, (newDates) => {
+  // 時間設定画面にいる場合のみ更新
+  if (route.path === '/time-register') {
+    initializeWorkDays()
+  }
+}, { deep: true })
 
 // ルートが時間設定画面に変わったときも初期化チェック
 watch(() => route.path, (newPath) => {
@@ -673,14 +682,13 @@ const handleBack = () => {
 
 // 次へ
 const handleNext = () => {
-  // TODO: 確認画面に遷移
   const activeCount = workDays.value.filter(d => !d.isRemoved).length
   if (activeCount === 0) {
     alert('勤務日が選択されていません')
     return
   }
   navigationStore.setForward()
-  console.log('Next to confirmation')
+  router.push('/confirm')
 }
 </script>
 
@@ -708,12 +716,12 @@ const handleNext = () => {
 
 .section-header {
   margin: 0;
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .section-header h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   color: #333;
 }
 
@@ -742,7 +750,7 @@ const handleNext = () => {
 .accordion-enter-active,
 .accordion-leave-active {
   transition: all 0.3s ease;
-  max-height: 500px;
+  max-height: 350px;
   overflow: hidden;
 }
 
@@ -753,37 +761,37 @@ const handleNext = () => {
 }
 
 .bulk-settings-content {
-  padding: 0 1.5rem 1.5rem 1.5rem;
+  padding: 0 1rem 1rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .bulk-time-settings {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .bulk-time-item {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .bulk-time-btn {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   background: #f8f9fa;
   color: #667eea;
   border: 2px solid #667eea;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
-  min-width: 140px;
+  min-width: 120px;
 }
 
 .bulk-time-btn:hover {
@@ -796,10 +804,10 @@ const handleNext = () => {
 .bulk-time-display {
   flex: 1;
   text-align: center;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #667eea;
-  padding: 0.5rem;
+  padding: 0.4rem;
   background: #f8f9fa;
   border-radius: 8px;
   border: 2px solid #e0e0e0;
@@ -822,12 +830,12 @@ const handleNext = () => {
 }
 
 .bulk-btn {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1162,6 +1170,20 @@ const handleNext = () => {
   background: #f5f5f5;
   border-color: #667eea;
   transform: translateY(-2px);
+}
+
+/* キャンセルボタン（薄い赤） */
+.option-btn[data-cancel="true"],
+.modal-options .option-btn:first-child {
+  background: #fee;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.option-btn[data-cancel="true"]:hover,
+.modal-options .option-btn:first-child:hover {
+  background: #fdd;
+  border-color: #f87171;
 }
 
 .option-btn.primary {

@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import PageSlider from './components/PageSlider.vue'
 import CalendarView from './views/CalendarView.vue'
 import TimeRegisterView from './views/TimeRegisterView.vue'
+import ConfirmView from './views/ConfirmView.vue'
 import HomeView from './views/HomeView.vue'
 
 const route = useRoute()
@@ -11,7 +12,8 @@ const route = useRoute()
 // スライド対象のページ
 const sliderPages = [
   { name: 'calendar', path: '/calendar', component: CalendarView },
-  { name: 'time-register', path: '/time-register', component: TimeRegisterView }
+  { name: 'time-register', path: '/time-register', component: TimeRegisterView },
+  { name: 'confirm', path: '/confirm', component: ConfirmView }
 ]
 
 // ホーム画面かどうか

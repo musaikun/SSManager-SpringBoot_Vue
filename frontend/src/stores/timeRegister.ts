@@ -122,6 +122,43 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
     },
 
     /**
+     * カレンダーの選択状態と同期（個別設定を保持）
+     */
+    syncWithSelectedDates(dates: DateString[]) {
+      // 既存のworkDaysを日付でマップ化
+      const existingWorkDaysMap = new Map(
+        this.workDays.map(wd => [wd.date, wd])
+      )
+
+      // 新しいworkDaysを作成
+      this.workDays = dates.map(date => {
+        const existing = existingWorkDaysMap.get(date)
+
+        if (existing) {
+          // 既存の設定を保持
+          return existing
+        } else {
+          // 新しく追加された日付
+          const dateObj = new Date(date)
+          const dayOfWeek = dateObj.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
+
+          return {
+            date,
+            dayOfWeek,
+            startTime: this.bulkSettings.startTime,
+            endTime: this.bulkSettings.endTime,
+            workMinutes: calculateWorkMinutes(this.bulkSettings.startTime, this.bulkSettings.endTime),
+            isModified: false,
+            isRemoved: false,
+            displayDate: formatDisplayDate(dateObj, dayOfWeek),
+            customStartTime: false,
+            customEndTime: false
+          }
+        }
+      })
+    },
+
+    /**
      * 勤務日を更新
      */
     updateWorkDay(index: number, updates: Partial<WorkDay>) {

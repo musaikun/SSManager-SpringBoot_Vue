@@ -18,6 +18,11 @@ const router = createRouter({
       path: '/time-register',
       name: 'time-register',
       component: () => import('../views/TimeRegisterView.vue')
+    },
+    {
+      path: '/confirm',
+      name: 'confirm',
+      component: () => import('../views/ConfirmView.vue')
     }
   ]
 })
