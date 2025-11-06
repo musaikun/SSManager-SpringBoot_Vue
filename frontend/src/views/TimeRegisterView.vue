@@ -1394,7 +1394,7 @@ const confirmTimeEdit = () => {
 .time-value {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #667eea;
+  color: #333;
 }
 
 .time-separator {
