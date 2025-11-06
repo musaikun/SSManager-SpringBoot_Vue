@@ -1,13 +1,6 @@
 <template>
   <div class="time-register-view">
-    <!-- ヘッダー（固定） -->
-    <div class="header-fixed">
-      <ProgressIndicator />
-    </div>
-
-    <!-- メインコンテンツ（スクロール可能） -->
-    <div class="time-register-content">
-      <div class="time-register-container">
+    <div class="time-register-container">
       <!-- 一括設定セクション（アコーディオン） -->
       <div class="bulk-settings-section">
         <div class="section-header accordion-header" @click="toggleBulkAccordion">
@@ -109,19 +102,6 @@
             </span>
           </div>
         </div>
-      </div>
-      </div>
-    </div>
-
-    <!-- フッター（固定） -->
-    <div class="footer-fixed">
-      <div class="footer-buttons">
-        <button @click="handleBack" class="action-btn back-btn">
-          戻る
-        </button>
-        <button @click="handleNext" class="action-btn next-btn">
-          次へ
-        </button>
       </div>
     </div>
 
@@ -317,21 +297,17 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch, provide } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import ProgressIndicator from '../components/ProgressIndicator.vue'
 import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
-import { useNavigationStore } from '../stores/navigation'
 import { useTimeFormat } from '../composables/useTimeFormat'
 import { useTimeCalculation } from '../composables/useTimeCalculation'
 import type { BulkApplyType, WorkDay } from '../types/timeRegister'
 
-const router = useRouter()
 const route = useRoute()
 const calendarStore = useCalendarStore()
 const timeRegisterStore = useTimeRegisterStore()
-const navigationStore = useNavigationStore()
 
 const { bulkSettings, includeBreak, workDays } = storeToRefs(timeRegisterStore)
 const { totalSummary } = storeToRefs(timeRegisterStore)
@@ -679,70 +655,19 @@ const handleRemoveFromModal = () => {
   }
   // モーダルは閉じない
 }
-
-// 戻る
-const handleBack = () => {
-  navigationStore.setBackward()
-  router.push({ name: 'calendar' })
-}
-
-// 次へ
-const handleNext = () => {
-  const activeCount = workDays.value.filter(d => !d.isRemoved).length
-  if (activeCount === 0) {
-    alert('勤務日が選択されていません')
-    return
-  }
-  navigationStore.setForward()
-  router.push('/confirm')
-}
 </script>
 
 <style scoped>
 .time-register-view {
-  height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* ヘッダー固定 */
-.header-fixed {
-  flex-shrink: 0;
-  padding: 1rem 1rem 0 1rem;
-  z-index: 10;
-}
-
-/* メインコンテンツ（スクロール可能） */
-.time-register-content {
-  flex: 1;
+  height: 100%;
+  padding: 1rem;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 1rem;
-  min-height: 0;
-}
-
-/* フッター固定 */
-.footer-fixed {
-  flex-shrink: 0;
-  padding: 1rem;
-  background: transparent;
-  z-index: 10;
-}
-
-.footer-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  max-width: 800px;
-  margin: 0 auto;
 }
 
 .time-register-container {
   max-width: 800px;
   margin: 0 auto;
-  padding-bottom: 1rem;
 }
 
 /* 一括設定セクション */
@@ -1105,43 +1030,6 @@ const handleNext = () => {
 .summary-value.highlight {
   font-size: 1.5rem;
   color: #667eea;
-}
-
-/* アクションボタン */
-.action-btn {
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 50px;
-  font-size: 1.125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
-  max-width: 200px;
-}
-
-.back-btn {
-  background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
-}
-
-.back-btn:hover {
-  background: #667eea;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.next-btn {
-  background: linear-gradient(135deg, #f97316, #fb923c);
-  color: white;
-  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
-}
-
-.next-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
 }
 
 /* モーダル共通 */
@@ -1571,21 +1459,8 @@ const handleNext = () => {
 
 /* レスポンシブ */
 @media (max-width: 768px) {
-  .header-fixed {
-    padding: 0.75rem 0.75rem 0 0.75rem;
-  }
-
-  .time-register-content {
-    padding: 0 0.75rem;
-  }
-
-  .footer-fixed {
+  .time-register-view {
     padding: 0.75rem;
-  }
-
-  .action-btn {
-    padding: 0.875rem 1.5rem;
-    font-size: 1rem;
   }
 
   .bulk-settings-section,

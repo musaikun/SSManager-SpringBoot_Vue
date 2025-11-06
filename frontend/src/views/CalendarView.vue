@@ -1,14 +1,9 @@
 <template>
   <div class="calendar-view">
-    <!-- ヘッダー（固定） -->
-    <div class="header-fixed">
-      <ProgressIndicator />
-      <SwipeTutorial />
-    </div>
+    <!-- スワイプチュートリアル -->
+    <SwipeTutorial />
 
-    <!-- メインコンテンツ（スクロール可能） -->
-    <div class="calendar-content">
-      <!-- カレンダーカード -->
+    <!-- カレンダーカード -->
       <div class="calendar-card">
         <!-- ヘッダー：年月 -->
         <div class="calendar-header">
@@ -92,38 +87,20 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- フッター（固定） -->
-    <div class="footer-fixed">
-      <div class="footer-buttons">
-        <button
-          @click="navigateToTimeRegister"
-          class="action-btn next-btn"
-        >
-          次へ
-        </button>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useCalendar } from '../composables/useCalendar'
 import { useHolidays } from '../composables/useHolidays'
 import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
-import { useNavigationStore } from '../stores/navigation'
 import type { CalendarCell } from '../types/calendar'
-import ProgressIndicator from '../components/ProgressIndicator.vue'
 import SwipeTutorial from '../components/SwipeTutorial.vue'
 
-const router = useRouter()
 const store = useCalendarStore()
 const timeRegisterStore = useTimeRegisterStore()
-const navigationStore = useNavigationStore()
 
 // 今月と来月の情報
 const today = new Date()
@@ -183,11 +160,6 @@ const setNextMonth = () => {
   setMonth(nextMonth.year, nextMonth.month)
 }
 
-const navigateToTimeRegister = () => {
-  navigationStore.setForward()
-  router.push('/time-register')
-}
-
 // シフトを外した日付かどうかを判定
 const isRemovedDate = (dateString: string): boolean => {
   const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
@@ -197,43 +169,12 @@ const isRemovedDate = (dateString: string): boolean => {
 
 <style scoped>
 .calendar-view {
-  height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  height: 100%;
   color: #333;
   font-family: 'Inter', 'Noto Sans JP', sans-serif;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* ヘッダー固定 */
-.header-fixed {
-  flex-shrink: 0;
-  padding: 1rem 1rem 0 1rem;
-  z-index: 10;
-}
-
-/* カレンダーコンテンツ（スクロール可能） */
-.calendar-content {
-  flex: 1;
+  padding: 1rem;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 1rem;
-  min-height: 0;
-}
-
-/* フッター固定 */
-.footer-fixed {
-  flex-shrink: 0;
-  padding: 1rem;
-  background: transparent;
-  z-index: 10;
-}
-
-.footer-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
 }
 
 /* カレンダーカード */
@@ -517,58 +458,14 @@ const isRemovedDate = (dateString: string): boolean => {
   font-weight: 600;
 }
 
-/* ボタンスタイル */
-.action-btn {
-  padding: 1rem 2rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
-  max-width: 200px;
-}
-
-.next-btn {
-  color: white;
-  background: linear-gradient(135deg, #f97316, #fb923c);
-  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
-}
-
-.next-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
-}
-
-.next-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  opacity: 0.6;
-  box-shadow: none;
-}
-
 /* レスポンシブ */
 @media (max-width: 768px) {
-  .header-fixed {
-    padding: 0.75rem 0.75rem 0 0.75rem;
-  }
-
-  .calendar-content {
-    padding: 0 0.75rem;
-  }
-
-  .footer-fixed {
+  .calendar-view {
     padding: 0.75rem;
   }
 
   .calendar-card {
     padding: 1rem;
-  }
-
-  .action-btn {
-    padding: 0.875rem 1.5rem;
-    font-size: 1rem;
   }
 
   .calendar-header {

@@ -1,13 +1,6 @@
 <template>
   <div class="confirm-view">
-    <!-- ヘッダー（固定） -->
-    <div class="header-fixed">
-      <ProgressIndicator />
-    </div>
-
-    <!-- メインコンテンツ（スクロール可能） -->
-    <div class="confirm-content">
-      <div class="confirm-container">
+    <div class="confirm-container">
       <!-- 確認テーブル -->
       <div class="confirm-table-wrapper">
         <table class="confirm-table">
@@ -65,37 +58,19 @@
           </div>
         </div>
       </div>
-      </div>
-    </div>
-
-    <!-- フッター（固定） -->
-    <div class="footer-fixed">
-      <div class="footer-buttons">
-        <button @click="handleBack" class="action-btn back-btn">
-          戻る
-        </button>
-        <button @click="handleSubmit" class="action-btn submit-btn">
-          提出
-        </button>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import ProgressIndicator from '../components/ProgressIndicator.vue'
 import { useTimeRegisterStore } from '../stores/timeRegister'
-import { useNavigationStore } from '../stores/navigation'
 import { useTimeFormat } from '../composables/useTimeFormat'
 import { useTimeCalculation } from '../composables/useTimeCalculation'
 import type { WorkDay } from '../types/timeRegister'
 
-const router = useRouter()
 const timeRegisterStore = useTimeRegisterStore()
-const navigationStore = useNavigationStore()
 
 const { includeBreak, workDays } = storeToRefs(timeRegisterStore)
 const { totalSummary } = storeToRefs(timeRegisterStore)
@@ -117,69 +92,19 @@ const formatWorkTime = (workDay: WorkDay) => {
   }
   return formatMinutesToHours(workDay.workMinutes)
 }
-
-// 戻る
-const handleBack = () => {
-  navigationStore.setBackward()
-  router.push('/time-register')
-}
-
-// 提出
-const handleSubmit = () => {
-  // TODO: 提出処理を実装
-  alert('提出されました（実装予定）')
-  console.log('Submit data:', {
-    workDays: activeWorkDays.value,
-    summary: totalSummary.value
-  })
-}
 </script>
 
 <style scoped>
 .confirm-view {
-  height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* ヘッダー固定 */
-.header-fixed {
-  flex-shrink: 0;
-  padding: 1rem 1rem 0 1rem;
-  z-index: 10;
-}
-
-/* メインコンテンツ（スクロール可能） */
-.confirm-content {
-  flex: 1;
+  height: 100%;
+  padding: 1rem;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 1rem;
-  min-height: 0;
-}
-
-/* フッター固定 */
-.footer-fixed {
-  flex-shrink: 0;
-  padding: 1rem;
-  background: transparent;
-  z-index: 10;
-}
-
-.footer-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  max-width: 900px;
-  margin: 0 auto;
 }
 
 .confirm-container {
   max-width: 900px;
   margin: 0 auto;
-  padding-bottom: 1rem;
 }
 
 /* 確認テーブル */
@@ -337,60 +262,10 @@ const handleSubmit = () => {
   color: #667eea;
 }
 
-/* アクションボタン */
-.action-btn {
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 50px;
-  font-size: 1.125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex: 1;
-  max-width: 200px;
-}
-
-.back-btn {
-  background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
-}
-
-.back-btn:hover {
-  background: #667eea;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.submit-btn {
-  background: linear-gradient(135deg, #f97316, #fb923c);
-  color: white;
-  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
-}
-
-.submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
-}
-
 /* レスポンシブ */
 @media (max-width: 768px) {
-  .header-fixed {
-    padding: 0.75rem 0.75rem 0 0.75rem;
-  }
-
-  .confirm-content {
-    padding: 0 0.75rem;
-  }
-
-  .footer-fixed {
+  .confirm-view {
     padding: 0.75rem;
-  }
-
-  .action-btn {
-    padding: 0.875rem 1.5rem;
-    font-size: 1rem;
   }
 
   .confirm-table-wrapper {
