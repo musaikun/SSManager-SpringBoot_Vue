@@ -957,8 +957,8 @@ const confirmTimeEdit = () => {
 }
 
 .week-btn:hover:not(.disabled) {
-  border-color: #f59e0b;
-  background: #fff7ed;
+  border-color: #10b981;
+  background: #d1fae5;
 }
 
 .week-btn.active {
@@ -1011,8 +1011,8 @@ const confirmTimeEdit = () => {
 }
 
 .weekday-btn:hover {
-  border-color: #667eea;
-  background: #f8f9fa;
+  border-color: #10b981;
+  background: #d1fae5;
 }
 
 .weekday-btn.active {
