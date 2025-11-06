@@ -972,7 +972,7 @@ const confirmTimeEdit = () => {
 .info-note {
   text-align: center;
   font-size: 0.75rem;
-  color: #888;
+  color: white;
   padding: 0.5rem 1rem;
   margin-bottom: 1rem;
 }
