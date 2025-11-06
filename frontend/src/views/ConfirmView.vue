@@ -39,7 +39,8 @@
               </td>
               <td class="status-cell">
                 <span v-if="workDay.isModified" class="custom-badge">個別設定</span>
-                <span v-else class="default-badge">一括設定</span>
+                <span v-else-if="workDay.isBulkApplied" class="bulk-badge">一括設定</span>
+                <span v-else class="initial-badge">初期設定</span>
               </td>
             </tr>
           </tbody>
@@ -234,10 +235,10 @@ const formatWorkTime = (workDay: WorkDay) => {
   padding-right: 0.25rem !important;
 }
 
-.custom-badge {
+.initial-badge {
   display: inline-block;
   padding: 0.2rem 0.4rem;
-  background: #f59e0b;
+  background: #9ca3af;
   color: white;
   border-radius: 10px;
   font-size: 0.65rem;
@@ -245,10 +246,21 @@ const formatWorkTime = (workDay: WorkDay) => {
   white-space: nowrap;
 }
 
-.default-badge {
+.bulk-badge {
   display: inline-block;
   padding: 0.2rem 0.4rem;
   background: #3b82f6;
+  color: white;
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.custom-badge {
+  display: inline-block;
+  padding: 0.2rem 0.4rem;
+  background: #f59e0b;
   color: white;
   border-radius: 10px;
   font-size: 0.65rem;
@@ -321,8 +333,9 @@ const formatWorkTime = (workDay: WorkDay) => {
     padding: 0.5rem;
   }
 
-  .custom-badge,
-  .default-badge {
+  .initial-badge,
+  .bulk-badge,
+  .custom-badge {
     font-size: 0.7rem;
     padding: 0.2rem 0.5rem;
   }
@@ -346,8 +359,9 @@ const formatWorkTime = (workDay: WorkDay) => {
     padding: 0.4rem;
   }
 
-  .custom-badge,
-  .default-badge {
+  .initial-badge,
+  .bulk-badge,
+  .custom-badge {
     font-size: 0.65rem;
     padding: 0.15rem 0.4rem;
   }
