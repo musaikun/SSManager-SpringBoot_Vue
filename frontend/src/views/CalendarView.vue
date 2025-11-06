@@ -70,7 +70,8 @@
             'holiday': cell.isHoliday,
             'saturday': cell.dayOfWeek === 6,
             'sunday': cell.dayOfWeek === 0,
-            'selected': cell.isSelected
+            'selected': cell.isSelected,
+            'removed': isRemovedDate(cell.dateString)
           }"
           @click="handleDateClick(cell)"
         >
@@ -109,6 +110,7 @@ import { useRouter } from 'vue-router'
 import { useCalendar } from '../composables/useCalendar'
 import { useHolidays } from '../composables/useHolidays'
 import { useCalendarStore } from '../stores/calendar'
+import { useTimeRegisterStore } from '../stores/timeRegister'
 import { useNavigationStore } from '../stores/navigation'
 import type { CalendarCell } from '../types/calendar'
 import ProgressIndicator from '../components/ProgressIndicator.vue'
@@ -116,6 +118,7 @@ import SwipeTutorial from '../components/SwipeTutorial.vue'
 
 const router = useRouter()
 const store = useCalendarStore()
+const timeRegisterStore = useTimeRegisterStore()
 const navigationStore = useNavigationStore()
 
 // 今月と来月の情報
@@ -180,6 +183,12 @@ const navigateToTimeRegister = () => {
   if (selectedCount.value === 0) return
   navigationStore.setForward()
   router.push('/time-register')
+}
+
+// シフトを外した日付かどうかを判定
+const isRemovedDate = (dateString: string): boolean => {
+  const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
+  return workDay?.isRemoved ?? false
 }
 </script>
 
@@ -442,6 +451,17 @@ const navigateToTimeRegister = () => {
   background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
   font-weight: 700;
+}
+
+.date-cell.removed {
+  background: #e0e0e0;
+  color: #999;
+  opacity: 0.6;
+}
+
+.date-cell.removed.selected {
+  background: linear-gradient(135deg, #9ca3af, #d1d5db);
+  color: #666;
 }
 
 .date-cell.saturday:not(.selected):not(.holiday):not(.past) .date-number {

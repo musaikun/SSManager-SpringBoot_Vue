@@ -119,6 +119,47 @@
       </div>
     </div>
 
+    <!-- 確認モーダル -->
+    <div v-if="showConfirmModal" class="modal-overlay" @click="showConfirmModal = false">
+      <div class="modal-content confirm-modal" @click.stop>
+        <h3 class="modal-title">{{ confirmModalData.title }}</h3>
+        <p class="modal-message">{{ confirmModalData.message }}</p>
+        <div class="modal-options">
+          <button
+            v-for="option in confirmModalData.options"
+            :key="option.value"
+            @click="confirmModalData.onConfirm(option.value)"
+            class="option-btn"
+            :class="{ primary: option.value === 'apply' || option.value === 'all' }"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ヘルプモーダル -->
+    <div v-if="showHelpModal" class="modal-overlay" @click="showHelpModal = false">
+      <div class="modal-content help-modal" @click.stop>
+        <h3 class="modal-title">休憩時間のルール</h3>
+        <div class="help-content">
+          <div class="help-row">
+            <span class="help-label">6時間未満:</span>
+            <span class="help-value">休憩なし</span>
+          </div>
+          <div class="help-row">
+            <span class="help-label">6時間以上8時間未満:</span>
+            <span class="help-value">45分</span>
+          </div>
+          <div class="help-row">
+            <span class="help-label">8時間以上:</span>
+            <span class="help-value">60分</span>
+          </div>
+        </div>
+        <button @click="showHelpModal = false" class="close-btn">閉じる</button>
+      </div>
+    </div>
+
     <!-- 時刻選択モーダル -->
     <div v-if="showTimeModal" class="modal-overlay" @click="cancelTimeEdit">
       <div class="modal-content time-picker-modal" @click.stop>
@@ -301,6 +342,18 @@ const selectedStartMinute = ref(0) // 0, 15, 30, 45
 const selectedEndHour = ref(18) // 0-23の範囲
 const selectedEndMinute = ref(0) // 0, 15, 30, 45
 
+// 確認モーダルの状態
+const showConfirmModal = ref(false)
+const confirmModalData = ref({
+  title: '',
+  message: '',
+  options: [] as { label: string; value: string }[],
+  onConfirm: (value: string) => {}
+})
+
+// ヘルプモーダルの状態
+const showHelpModal = ref(false)
+
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
   return workDays.value
@@ -409,36 +462,48 @@ const handleBulkApply = (type: BulkApplyType) => {
   const activeCount = workDays.value.filter(d => !d.isRemoved).length
   const modifiedCount = workDays.value.filter(d => d.isModified && !d.isRemoved).length
 
-  // 個別設定がある場合は確認
+  // 個別設定がある場合は選択肢を表示
   if (modifiedCount > 0) {
-    const choice = confirm(
-      `個別設定した箇所が${modifiedCount}日あります。\n\n` +
-      `OK: 個別設定以外の日を一括設定\n` +
-      `キャンセル: 個別設定も含め一括設定`
-    )
-
-    if (choice) {
-      // 個別設定以外を一括適用
-      timeRegisterStore.applyBulk(type, 'unmodified')
-    } else {
-      // 全て一括適用
-      timeRegisterStore.applyBulk(type, 'all')
+    confirmModalData.value = {
+      title: '一括設定の確認',
+      message: `個別設定した箇所が${modifiedCount}日あります。`,
+      options: [
+        { label: '個別設定以外の日を一括設定', value: 'unmodified' },
+        { label: '個別設定も含め一括設定', value: 'all' }
+      ],
+      onConfirm: (value: string) => {
+        timeRegisterStore.applyBulk(type, value as 'unmodified' | 'all')
+        showConfirmModal.value = false
+      }
     }
+    showConfirmModal.value = true
   } else {
-    // 個別設定がない場合は通常通り
+    // 個別設定がない場合は確認のみ
     let message = ''
 
     if (type === 'both') {
-      message = `全${activeCount}日に\n開始: ${bulkSettings.value.startTime}\n終了: ${bulkSettings.value.endTime}\nを適用しますか？`
+      message = `全${activeCount}日に開始: ${bulkSettings.value.startTime}、終了: ${bulkSettings.value.endTime}を適用しますか？`
     } else if (type === 'start') {
-      message = `全${activeCount}日の開始時刻を\n${bulkSettings.value.startTime}に変更しますか？`
+      message = `全${activeCount}日の開始時刻を${bulkSettings.value.startTime}に変更しますか？`
     } else if (type === 'end') {
-      message = `全${activeCount}日の終了時刻を\n${bulkSettings.value.endTime}に変更しますか？`
+      message = `全${activeCount}日の終了時刻を${bulkSettings.value.endTime}に変更しますか？`
     }
 
-    if (confirm(message)) {
-      timeRegisterStore.applyBulk(type, 'all')
+    confirmModalData.value = {
+      title: '一括設定の確認',
+      message: message,
+      options: [
+        { label: 'キャンセル', value: 'cancel' },
+        { label: '適用する', value: 'apply' }
+      ],
+      onConfirm: (value: string) => {
+        if (value === 'apply') {
+          timeRegisterStore.applyBulk(type, 'all')
+        }
+        showConfirmModal.value = false
+      }
     }
+    showConfirmModal.value = true
   }
 }
 
@@ -449,7 +514,7 @@ const handleBreakToggle = () => {
 
 // 休憩時間ヘルプ
 const showBreakHelp = () => {
-  alert('休憩時間のルール:\n\n6時間未満: 休憩なし\n6時間以上8時間未満: 45分\n8時間以上: 60分')
+  showHelpModal.value = true
 }
 
 // 開始時間の選択
@@ -580,13 +645,12 @@ const confirmTimeEdit = () => {
   isBulkMode.value = false
 }
 
-// モーダルからシフトを外す
+// モーダルからシフトを外す（モーダルは開いたまま）
 const handleRemoveFromModal = () => {
   if (currentEditIndex.value !== null) {
     timeRegisterStore.toggleRemoveDay(currentEditIndex.value)
   }
-  showTimeModal.value = false
-  currentEditIndex.value = null
+  // モーダルは閉じない
 }
 
 // 戻る
@@ -1016,9 +1080,9 @@ const handleNext = () => {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-/* 時刻選択モーダル */
+/* モーダル共通 */
 .modal-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -1032,16 +1096,121 @@ const handleNext = () => {
   overflow-y: auto;
 }
 
-.time-picker-modal {
+.modal-content {
   background: white;
   border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease;
+}
+
+/* 確認モーダル */
+.confirm-modal {
+  max-width: 400px;
+  width: 100%;
+}
+
+.modal-message {
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.modal-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.option-btn {
+  padding: 0.875rem 1.5rem;
+  border: 2px solid #e0e0e0;
+  background: white;
+  color: #333;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.option-btn:hover {
+  background: #f5f5f5;
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+.option-btn.primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: #667eea;
+}
+
+.option-btn.primary:hover {
+  background: linear-gradient(135deg, #5568d3, #653a8b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* ヘルプモーダル */
+.help-modal {
+  max-width: 400px;
+  width: 100%;
+}
+
+.help-content {
+  margin-bottom: 1.5rem;
+}
+
+.help-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.help-row:last-child {
+  border-bottom: none;
+}
+
+.help-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.help-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.close-btn {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* 時刻選択モーダル */
+.time-picker-modal {
   max-width: 500px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  padding: 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  animation: modalSlideIn 0.3s ease;
 }
 
 @keyframes modalSlideIn {

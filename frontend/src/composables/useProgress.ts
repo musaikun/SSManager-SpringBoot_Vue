@@ -1,5 +1,6 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useCalendarStore } from '../stores/calendar'
 import type { ProgressStep, ProgressStepInfo } from '../types/timeRegister'
 
 /**
@@ -7,6 +8,7 @@ import type { ProgressStep, ProgressStepInfo } from '../types/timeRegister'
  */
 export function useProgress() {
   const route = useRoute()
+  const calendarStore = useCalendarStore()
 
   /**
    * 現在のステップを取得
@@ -33,6 +35,7 @@ export function useProgress() {
     const current = currentStep.value
     const stepOrder: ProgressStep[] = ['calendar', 'time-register', 'confirm']
     const currentIndex = stepOrder.indexOf(current)
+    const hasSelectedDates = calendarStore.selectedDatesArray.length > 0
 
     return [
       {
@@ -41,7 +44,7 @@ export function useProgress() {
         label: '日付選択',
         completed: currentIndex > 0,
         active: current === 'calendar',
-        clickable: currentIndex >= 0 // カレンダーは常にクリック可能
+        clickable: true // カレンダーは常にクリック可能
       },
       {
         id: 'time-register',
@@ -49,7 +52,7 @@ export function useProgress() {
         label: '時間設定',
         completed: currentIndex > 1,
         active: current === 'time-register',
-        clickable: currentIndex >= 1 // 時間設定以降はクリック可能
+        clickable: hasSelectedDates || currentIndex >= 1 // 日付選択済み、または時間設定以降はクリック可能
       },
       {
         id: 'confirm',
