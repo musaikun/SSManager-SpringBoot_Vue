@@ -59,12 +59,6 @@ const handleNext = () => {
     navigationStore.setForward()
     router.push('/time-register')
   } else if (route.path === '/time-register') {
-    // 勤務日が選択されているかチェック
-    const activeCount = workDays.value.filter(d => !d.isRemoved).length
-    if (activeCount === 0) {
-      alert('勤務日が選択されていません')
-      return
-    }
     navigationStore.setForward()
     router.push('/confirm')
   } else if (route.path === '/confirm') {

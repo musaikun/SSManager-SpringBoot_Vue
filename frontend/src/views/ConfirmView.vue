@@ -59,11 +59,6 @@
             <span class="summary-label">総勤務時間</span>
             <span class="summary-value">{{ formatMinutesToHours(totalSummary.totalWorkMinutes) }}</span>
           </div>
-          <div v-if="includeBreak" class="summary-divider"></div>
-          <div v-if="includeBreak" class="summary-item">
-            <span class="summary-label">実働時間</span>
-            <span class="summary-value highlight">{{ formatMinutesToHours(totalSummary.totalActualWorkMinutes) }}</span>
-          </div>
         </div>
       </div>
 
@@ -166,18 +161,11 @@ const generateShiftText = (): string => {
   let text = '【シフト提出】\n\n'
 
   activeWorkDays.value.forEach(day => {
-    const breakMinutes = calculateBreakTime(day.workMinutes)
-    const actualMinutes = day.workMinutes - breakMinutes
-    const actualHours = formatMinutesToHours(actualMinutes)
-    text += `${day.displayDate}: ${day.startTime}〜${day.endTime} (${actualHours})\n`
+    text += `${day.displayDate}: ${day.startTime}〜${day.endTime}\n`
   })
 
   text += `\n【合計】\n`
   text += `勤務日数: ${totalSummary.value.workDays}日\n`
-  text += `総勤務時間: ${formatMinutesToHours(totalSummary.value.totalWorkMinutes)}\n`
-  if (includeBreak.value) {
-    text += `実働時間: ${formatMinutesToHours(totalSummary.value.totalActualWorkMinutes)}\n`
-  }
 
   if (remarks.value.trim()) {
     text += `\n【備考】\n${remarks.value}\n`
