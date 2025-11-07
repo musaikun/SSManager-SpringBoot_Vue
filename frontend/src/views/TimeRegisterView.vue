@@ -938,11 +938,6 @@ const confirmTimeEdit = () => {
   min-width: 0;
 }
 
-.week-btn:hover:not(.disabled):not(.active) {
-  border-color: #10b981;
-  background: #d1fae5;
-}
-
 .week-btn:focus {
   outline: none;
 }
@@ -956,11 +951,6 @@ const confirmTimeEdit = () => {
   color: white;
   border-color: #10b981;
   transform: scale(1.05);
-}
-
-.week-btn.active:hover {
-  background: linear-gradient(135deg, #10b981, #34d399);
-  border-color: #10b981;
 }
 
 .week-btn.disabled {
@@ -1005,11 +995,6 @@ const confirmTimeEdit = () => {
   min-width: 0;
 }
 
-.weekday-btn:hover:not(.active) {
-  border-color: #10b981;
-  background: #d1fae5;
-}
-
 .weekday-btn:focus {
   outline: none;
 }
@@ -1023,11 +1008,6 @@ const confirmTimeEdit = () => {
   color: white;
   border-color: #10b981;
   transform: scale(1.05);
-}
-
-.weekday-btn.active:hover {
-  background: linear-gradient(135deg, #10b981, #34d399);
-  border-color: #10b981;
 }
 
 .weekday-btn.sunday:not(.active) {
@@ -1303,25 +1283,39 @@ const confirmTimeEdit = () => {
   }
 }
 
+/* 個別設定カード：全体が黄色 + 左端が濃い黄色 */
 .work-day-card.modified {
+  background: #fef3c7;
   border-left-color: #f59e0b;
+  border-left-width: 4px;
 }
 
-/* 一括設定が適用されたカードは左端が青色 */
+/* 一括設定カード：全体が青色 + 左端が濃い青色 */
 .work-day-card.bulk-applied {
+  background: #dbeafe;
   border-left-color: #3b82f6;
+  border-left-width: 4px;
 }
 
-/* 選択条件に該当するカードは濃い青の枠でハイライト */
+/* 選択条件に該当するカードは濃い緑色の枠 */
 .work-day-card.highlighted {
-  border: 3px solid #2563eb;
-  border-left-width: 3px;
+  border: 3px solid #10b981;
 }
 
 /* ハイライトとmodifiedが両方の場合 */
 .work-day-card.modified.highlighted {
-  border: 3px solid #2563eb;
+  background: #fef3c7;
+  border: 3px solid #10b981;
   border-left-color: #f59e0b;
+  border-left-width: 4px;
+}
+
+/* ハイライトとbulk-appliedが両方の場合 */
+.work-day-card.bulk-applied.highlighted {
+  background: #dbeafe;
+  border: 3px solid #10b981;
+  border-left-color: #3b82f6;
+  border-left-width: 4px;
 }
 
 /* 個別設定された時間のみ黄色 */
