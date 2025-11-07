@@ -108,13 +108,14 @@
           v-for="(workDay, index) in activeWorkDays"
           :key="workDay.date"
           class="work-day-card"
-          :class="{
-            removed: workDay.isRemoved,
-            modified: workDay.isModified,
-            'bulk-applied': workDay.isBulkApplied,
-            'from-base': workDay.isFromBase,
-            highlighted: isHighlighted(workDay)
-          }"
+          :class="[
+            getCardBackgroundClass(workDay),
+            getBorderClass(workDay),
+            {
+              removed: workDay.isRemoved,
+              highlighted: isHighlighted(workDay)
+            }
+          ]"
         >
           <div class="card-main" @click="handleCardClick($event, index)">
             <div class="card-content-single-line">
@@ -127,17 +128,9 @@
                 <span class="card-week">第{{ workDay.weekNumber }}週</span>
               </div>
               <div class="card-time-section">
-                <span class="time-value" :class="{
-                  'custom-time': workDay.customStartTime,
-                  'bulk-time': workDay.isBulkApplied && !workDay.customStartTime && workDay.startTime !== workDay.initialStartTime,
-                  'from-base-time': workDay.isFromBase
-                }">{{ workDay.startTime }}</span>
-                <span class="time-separator" :class="{ 'from-base-time': workDay.isFromBase }">〜</span>
-                <span class="time-value" :class="{
-                  'custom-time': workDay.customEndTime,
-                  'bulk-time': workDay.isBulkApplied && !workDay.customEndTime && workDay.endTime !== workDay.initialEndTime,
-                  'from-base-time': workDay.isFromBase
-                }">{{ workDay.endTime }}</span>
+                <span class="time-value" :class="getStartTimeClass(workDay)">{{ workDay.startTime }}</span>
+                <span class="time-separator">〜</span>
+                <span class="time-value" :class="getEndTimeClass(workDay)">{{ workDay.endTime }}</span>
               </div>
               <div class="card-hours">
                 <span class="hours-icon">💼</span>
@@ -548,6 +541,116 @@ const calculatedWorkHours = computed(() => {
   const minutes = calculateWorkMinutes(formattedStartTime.value, formattedEndTime.value)
   return formatMinutesToHours(minutes)
 })
+
+// デフォルト時刻を読み込む
+const loadDefaultTimes = () => {
+  const saved = localStorage.getItem('defaultTimes')
+  if (saved) {
+    const parsed = JSON.parse(saved)
+    return {
+      startTime: parsed.startTime || '09:00',
+      endTime: parsed.endTime || '18:00'
+    }
+  }
+  return {
+    startTime: '09:00',
+    endTime: '18:00'
+  }
+}
+
+// カードの背景色クラスを取得
+const getCardBackgroundClass = (workDay: WorkDay) => {
+  // 個別設定が存在する場合は常に黄色（最優先）
+  if (workDay.startTimeSetBy === 'custom' || workDay.endTimeSetBy === 'custom') {
+    return 'custom-style'
+  }
+  // 過去ベースの設定がある場合
+  if (workDay.startTimeSetBy === 'base' || workDay.endTimeSetBy === 'base') {
+    return 'base-style'
+  }
+  // 一括設定がある場合
+  if (workDay.startTimeSetBy === 'bulk' || workDay.endTimeSetBy === 'bulk') {
+    return 'bulk-style'
+  }
+  // デフォルトの場合
+  return 'default-style'
+}
+
+// 開始時刻のテキスト色クラスを取得
+const getStartTimeClass = (workDay: WorkDay) => {
+  const defaultTimes = loadDefaultTimes()
+  // デフォルト時刻と同じ場合は黒
+  if (workDay.startTime === defaultTimes.startTime) {
+    return 'default-time'
+  }
+  // 設定方法によって色を変える
+  switch (workDay.startTimeSetBy) {
+    case 'custom':
+      return 'custom-time'
+    case 'bulk':
+      return 'bulk-time'
+    case 'base':
+      return 'from-base-time'
+    default:
+      return 'default-time'
+  }
+}
+
+// 終了時刻のテキスト色クラスを取得
+const getEndTimeClass = (workDay: WorkDay) => {
+  const defaultTimes = loadDefaultTimes()
+  // デフォルト時刻と同じ場合は黒
+  if (workDay.endTime === defaultTimes.endTime) {
+    return 'default-time'
+  }
+  // 設定方法によって色を変える
+  switch (workDay.endTimeSetBy) {
+    case 'custom':
+      return 'custom-time'
+    case 'bulk':
+      return 'bulk-time'
+    case 'base':
+      return 'from-base-time'
+    default:
+      return 'default-time'
+  }
+}
+
+// 左ボーダーの色配列を取得（最大2色）
+const getBorderColors = (workDay: WorkDay) => {
+  const colors = new Set<string>()
+
+  // 設定方法を収集
+  if (workDay.startTimeSetBy === 'custom' || workDay.endTimeSetBy === 'custom') {
+    colors.add('custom')
+  }
+  if (workDay.startTimeSetBy === 'bulk' || workDay.endTimeSetBy === 'bulk') {
+    colors.add('bulk')
+  }
+  if (workDay.startTimeSetBy === 'base' || workDay.endTimeSetBy === 'base') {
+    colors.add('base')
+  }
+
+  // 優先順位: custom → bulk → base
+  const priority = ['custom', 'bulk', 'base']
+  const result = priority.filter(color => colors.has(color))
+
+  // 最大2色まで
+  return result.slice(0, 2)
+}
+
+// ボーダー用のクラスを生成
+const getBorderClass = (workDay: WorkDay) => {
+  const colors = getBorderColors(workDay)
+  if (colors.length === 0) {
+    return 'border-default'
+  }
+  if (colors.length === 1) {
+    return `border-${colors[0]}`
+  }
+  // 2色の場合
+  return `border-${colors[0]}-${colors[1]}`
+}
 
 // 午前/午後トグル切替時の時間調整
 watch(startPm, (isPm) => {
@@ -1486,83 +1589,92 @@ const confirmTimeEdit = () => {
   }
 }
 
-/* 個別設定カード：全体が黄色 + 左端が濃い黄色 */
-.work-day-card.modified {
+/* カード背景スタイル */
+/* デフォルトスタイル - 白色 */
+.work-day-card.default-style {
+  background: white;
+}
+
+/* 個別設定スタイル - 黄色 */
+.work-day-card.custom-style {
   background: #fef3c7;
+}
+
+/* 一括設定スタイル - 青色 */
+.work-day-card.bulk-style {
+  background: #dbeafe;
+}
+
+/* 過去のシフトベーススタイル - 赤色 */
+.work-day-card.base-style {
+  background: #fee2e2;
+}
+
+/* 左ボーダースタイル（単色） */
+.work-day-card.border-default {
+  border-left-color: #e5e7eb;
+  border-left-width: 3px;
+}
+
+.work-day-card.border-custom {
   border-left-color: #f59e0b;
   border-left-width: 4px;
 }
 
-/* 一括設定カード：全体が青色 + 左端が濃い青色 */
-.work-day-card.bulk-applied {
-  background: #dbeafe;
+.work-day-card.border-bulk {
   border-left-color: #3b82f6;
   border-left-width: 4px;
 }
 
-/* 一括設定+個別設定カード：個別設定の黄色を優先 */
-.work-day-card.bulk-applied.modified {
-  background: #fef3c7;
-  border-left-color: #f59e0b;
+.work-day-card.border-base {
+  border-left-color: #ef4444;
   border-left-width: 4px;
 }
 
-/* 過去のシフトベースから作成されたカード - 薄い赤 */
-.work-day-card.from-base {
-  background: #fee2e2;
-  border-left-color: #ef4444;
-  border-left-width: 4px;
+/* 左ボーダースタイル（2色グラデーション） */
+.work-day-card.border-custom-bulk {
+  border-left: 4px solid;
+  border-image: linear-gradient(to bottom, #f59e0b 50%, #3b82f6 50%) 1;
+}
+
+.work-day-card.border-custom-base {
+  border-left: 4px solid;
+  border-image: linear-gradient(to bottom, #f59e0b 50%, #ef4444 50%) 1;
+}
+
+.work-day-card.border-bulk-base {
+  border-left: 4px solid;
+  border-image: linear-gradient(to bottom, #3b82f6 50%, #ef4444 50%) 1;
 }
 
 /* 選択条件に該当するカードは蛍光緑色の枠 */
 .work-day-card.highlighted {
   border: 3px solid #00ff00;
+  border-left-width: 4px !important;
 }
 
-/* ハイライトとmodifiedが両方の場合 */
-.work-day-card.modified.highlighted {
-  background: #fef3c7;
-  border: 3px solid #00ff00;
-  border-left-color: #f59e0b;
-  border-left-width: 4px;
+/* 時刻テキストの色 */
+.time-value.default-time {
+  color: #333;
+  font-weight: 600;
 }
 
-/* ハイライトとbulk-appliedが両方の場合 */
-.work-day-card.bulk-applied.highlighted {
-  background: #dbeafe;
-  border: 3px solid #00ff00;
-  border-left-color: #3b82f6;
-  border-left-width: 4px;
-}
-
-/* ハイライトと一括設定+個別設定が両方の場合：個別設定の黄色を優先 */
-.work-day-card.bulk-applied.modified.highlighted {
-  background: #fef3c7;
-  border: 3px solid #00ff00;
-  border-left-color: #f59e0b;
-  border-left-width: 4px;
-}
-
-/* 個別設定された時間のみ黄色 */
 .time-value.custom-time {
-  color: #d97706;
+  color: #f59e0b;
   font-weight: 700;
 }
 
-/* 一括設定された時間のみ青色 */
 .time-value.bulk-time {
-  color: #2563eb;
+  color: #3b82f6;
   font-weight: 700;
 }
 
-/* 過去のシフトベースから作成された時間のみ赤 */
-.time-value.from-base-time,
-.time-separator.from-base-time {
-  color: #dc2626;
+.time-value.from-base-time {
+  color: #ef4444;
   font-weight: 700;
 }
 
-/* removed は modified より優先（グレーアウト） */
+/* removed は最優先（グレーアウト） */
 .work-day-card.removed {
   background: #e5e5e5;
   color: #999;

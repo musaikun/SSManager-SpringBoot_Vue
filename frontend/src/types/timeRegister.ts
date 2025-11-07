@@ -51,6 +51,10 @@ export interface WorkDay {
   isBulkApplied: boolean
   /** 過去のシフトベースから作成されたか */
   isFromBase?: boolean
+  /** 開始時刻の設定方法 */
+  startTimeSetBy: 'default' | 'bulk' | 'custom' | 'base'
+  /** 終了時刻の設定方法 */
+  endTimeSetBy: 'default' | 'bulk' | 'custom' | 'base'
 }
 
 /**

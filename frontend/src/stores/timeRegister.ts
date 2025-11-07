@@ -142,7 +142,9 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           customStartTime: false,
           customEndTime: false,
           isBulkApplied: false,
-          isFromBase: false
+          isFromBase: false,
+          startTimeSetBy: 'default',
+          endTimeSetBy: 'default'
         }
       })
     },
@@ -184,7 +186,9 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
             customStartTime: false,
             customEndTime: false,
             isBulkApplied: false,
-            isFromBase: false
+            isFromBase: false,
+            startTimeSetBy: 'default',
+            endTimeSetBy: 'default'
           }
         }
       })
@@ -213,6 +217,20 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
         // いずれかの時間が変更された場合のみisModifiedをtrueにする
         const isModified = startTimeChanged || endTimeChanged ? true : workDay.isModified
 
+        // 設定方法の追跡
+        let startTimeSetBy = workDay.startTimeSetBy
+        let endTimeSetBy = workDay.endTimeSetBy
+
+        // isFromBaseが明示的に渡された場合（過去ベースから作成）
+        if (updates.isFromBase === true) {
+          if (startTimeChanged) startTimeSetBy = 'base'
+          if (endTimeChanged) endTimeSetBy = 'base'
+        } else {
+          // 個別設定による変更（TimeRegisterViewからの直接変更）
+          if (startTimeChanged) startTimeSetBy = 'custom'
+          if (endTimeChanged) endTimeSetBy = 'custom'
+        }
+
         this.workDays[index] = {
           ...workDay,
           ...updates,
@@ -222,6 +240,8 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           isModified,
           customStartTime,
           customEndTime,
+          startTimeSetBy,
+          endTimeSetBy,
           isBulkApplied: workDay.isBulkApplied // 一括設定フラグは保持
         }
       }
@@ -287,11 +307,15 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           updates.startTime = this.bulkSettings.startTime
           // 開始時間を一括設定で上書きする場合、customStartTimeをfalseに
           updates.customStartTime = false
+          // 一括設定で変更されたことを記録
+          updates.startTimeSetBy = 'bulk'
         }
         if (type === 'both' || type === 'end') {
           updates.endTime = this.bulkSettings.endTime
           // 終了時間を一括設定で上書きする場合、customEndTimeをfalseに
           updates.customEndTime = false
+          // 一括設定で変更されたことを記録
+          updates.endTimeSetBy = 'bulk'
         }
 
         // 勤務時間を再計算
