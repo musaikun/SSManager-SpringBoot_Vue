@@ -200,7 +200,7 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           isModified,
           customStartTime,
           customEndTime,
-          isBulkApplied: false // 個別設定時は一括設定フラグをfalseに
+          isBulkApplied: workDay.isBulkApplied // 一括設定フラグは保持
         }
       }
     },

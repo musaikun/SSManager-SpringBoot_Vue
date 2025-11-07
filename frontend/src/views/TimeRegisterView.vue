@@ -143,6 +143,20 @@
       <div class="total-summary-section">
         <div class="summary-card">
           <h3>合計</h3>
+
+          <!-- 休憩時間設定 -->
+          <div class="summary-break-setting">
+            <label class="break-time-toggle-inline">
+              <input
+                type="checkbox"
+                :checked="includeBreak"
+                @change="handleBreakToggle"
+              />
+              <span>休憩時間を引く</span>
+              <button @click="showBreakHelp" class="help-btn-small">?</button>
+            </label>
+          </div>
+
           <div class="summary-row">
             <span class="summary-label">勤務日数:</span>
             <span class="summary-value">{{ totalSummary.workDays }}日</span>
@@ -150,6 +164,23 @@
           <div class="summary-row">
             <span class="summary-label">総勤務時間:</span>
             <span class="summary-value">{{ formatMinutesToHours(totalSummary.totalWorkMinutes) }}</span>
+          </div>
+          <div v-if="includeBreak" class="summary-row">
+            <span class="summary-label">休憩時間:</span>
+            <span class="summary-value">{{ formatMinutesToHours(totalSummary.totalBreakMinutes) }}</span>
+          </div>
+          <div v-if="includeBreak" class="summary-row total">
+            <span class="summary-label">実働時間:</span>
+            <span class="summary-value highlight">
+              {{ formatMinutesToHours(totalSummary.totalActualWorkMinutes) }}
+            </span>
+          </div>
+
+          <!-- 給与簡易概算ボタン -->
+          <div class="summary-action">
+            <button @click="showSalaryModal = true" class="salary-calc-btn">
+              給与の簡易概算
+            </button>
           </div>
         </div>
       </div>
@@ -199,6 +230,39 @@
             </div>
           </div>
           <button @click="showHelpModal = false" class="close-btn">閉じる</button>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 給与計算モーダル（Teleportでbody直下に配置） -->
+    <Teleport to="body">
+      <div v-if="showSalaryModal" class="modal-overlay" @click="showSalaryModal = false" @touchmove.prevent>
+        <div class="modal-content salary-modal" @click.stop>
+          <h3 class="modal-title">給与の簡易概算</h3>
+          <div class="salary-content">
+            <div class="input-row">
+              <label class="input-label">時給（円）:</label>
+              <input
+                type="number"
+                v-model.number="hourlyWage"
+                class="wage-input"
+                min="0"
+                step="10"
+              />
+            </div>
+            <button @click="calculateSalary" class="calc-btn">計算する</button>
+
+            <div v-if="calculatedSalary > 0" class="result-section">
+              <div class="result-row">
+                <span class="result-label">概算給与:</span>
+                <span class="result-value">{{ calculatedSalary.toLocaleString() }}円</span>
+              </div>
+              <div class="result-note">
+                ※ 休憩時間{{ includeBreak ? 'あり' : 'なし' }}で計算しています
+              </div>
+            </div>
+          </div>
+          <button @click="showSalaryModal = false" class="close-btn">閉じる</button>
         </div>
       </div>
     </Teleport>
@@ -419,8 +483,13 @@ const confirmModalData = ref({
 // ヘルプモーダルの状態
 const showHelpModal = ref(false)
 
+// 給与計算モーダルの状態
+const showSalaryModal = ref(false)
+const hourlyWage = ref<number>(1000) // 時給（デフォルト1000円）
+const calculatedSalary = ref<number>(0)
+
 // モーダル状態をPageSliderに提供（スライド制御用）
-provide('isModalOpen', computed(() => showTimeModal.value || showConfirmModal.value || showHelpModal.value))
+provide('isModalOpen', computed(() => showTimeModal.value || showConfirmModal.value || showHelpModal.value || showSalaryModal.value))
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
@@ -648,6 +717,9 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
       onConfirm: (value: string) => {
         if (value !== 'cancel') {
           timeRegisterStore.applyBulk(type, value as 'unmodified' | 'all', targetWeekdays, targetWeeks)
+          // 適用後に選択を解除
+          selectedWeeks.value = []
+          selectedWeekdays.value = []
         }
         showConfirmModal.value = false
       }
@@ -675,6 +747,9 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
       onConfirm: (value: string) => {
         if (value === 'apply') {
           timeRegisterStore.applyBulk(type, 'all', targetWeekdays, targetWeeks)
+          // 適用後に選択を解除
+          selectedWeeks.value = []
+          selectedWeekdays.value = []
         }
         showConfirmModal.value = false
       }
@@ -691,6 +766,31 @@ const handleBreakToggle = () => {
 // 休憩時間ヘルプ
 const showBreakHelp = () => {
   showHelpModal.value = true
+}
+
+// 給与計算
+const calculateSalary = () => {
+  const wage = hourlyWage.value
+  let totalSalary = 0
+
+  // 各勤務日ごとに計算
+  workDays.value.forEach(workDay => {
+    if (workDay.isRemoved) return
+
+    let workMinutes = workDay.workMinutes
+
+    // 休憩時間を引く場合
+    if (includeBreak.value) {
+      const breakMinutes = calculateBreakTime(workMinutes)
+      workMinutes -= breakMinutes
+    }
+
+    // 通常時間の給与（深夜給を除く）
+    const normalHours = workMinutes / 60
+    totalSalary += normalHours * wage
+  })
+
+  calculatedSalary.value = Math.floor(totalSalary)
 }
 
 // 開始時間の選択
@@ -1297,15 +1397,15 @@ const confirmTimeEdit = () => {
   border-left-width: 4px;
 }
 
-/* 選択条件に該当するカードは濃い緑色の枠 */
+/* 選択条件に該当するカードは蛍光緑色の枠 */
 .work-day-card.highlighted {
-  border: 3px solid #10b981;
+  border: 3px solid #00ff00;
 }
 
 /* ハイライトとmodifiedが両方の場合 */
 .work-day-card.modified.highlighted {
   background: #fef3c7;
-  border: 3px solid #10b981;
+  border: 3px solid #00ff00;
   border-left-color: #f59e0b;
   border-left-width: 4px;
 }
@@ -1313,7 +1413,7 @@ const confirmTimeEdit = () => {
 /* ハイライトとbulk-appliedが両方の場合 */
 .work-day-card.bulk-applied.highlighted {
   background: #dbeafe;
-  border: 3px solid #10b981;
+  border: 3px solid #00ff00;
   border-left-color: #3b82f6;
   border-left-width: 4px;
 }
@@ -1470,6 +1570,73 @@ const confirmTimeEdit = () => {
   color: #667eea;
 }
 
+/* 休憩時間設定（インライン） */
+.summary-break-setting {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.break-time-toggle-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+}
+
+.break-time-toggle-inline input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.help-btn-small {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.help-btn-small:hover {
+  background: #764ba2;
+  transform: scale(1.1);
+}
+
+/* 給与計算ボタン */
+.summary-action {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #e0e0e0;
+}
+
+.salary-calc-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.salary-calc-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
 /* モーダル共通 */
 .modal-overlay {
   position: fixed;
@@ -1620,6 +1787,98 @@ const confirmTimeEdit = () => {
 .close-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* 給与計算モーダル */
+.salary-modal {
+  max-width: 400px;
+  width: 100%;
+}
+
+.salary-content {
+  margin-bottom: 1.5rem;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.input-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.wage-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+.wage-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.calc-btn {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.calc-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.result-section {
+  padding: 1rem;
+  background: #f0f4ff;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.result-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.result-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.result-note {
+  font-size: 0.75rem;
+  color: #999;
+  text-align: right;
 }
 
 /* 時刻選択モーダル */
