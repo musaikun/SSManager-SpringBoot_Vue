@@ -144,10 +144,11 @@ const activeWorkDays = computed(() => {
 
 // 勤務時間のフォーマット
 const formatWorkTime = (workDay: WorkDay) => {
+  // 休憩時間を含めた場合も表示は勤務時間のみ
   if (includeBreak.value) {
     const breakMinutes = calculateBreakTime(workDay.workMinutes)
     const actualMinutes = workDay.workMinutes - breakMinutes
-    return `${formatMinutesToHours(actualMinutes)}<br>休憩${breakMinutes}分`
+    return formatMinutesToHours(actualMinutes)
   }
   return formatMinutesToHours(workDay.workMinutes)
 }

@@ -753,7 +753,48 @@ const showBreakHelp = () => {
   showHelpModal.value = true
 }
 
-// 給与計算（常に休憩時間を除く）
+// 深夜時間（22:00～05:00）の分数を計算
+const calculateLateNightMinutes = (startTime: string, endTime: string): number => {
+  const parseTime = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number)
+    return hours * 60 + minutes
+  }
+
+  let start = parseTime(startTime)
+  let end = parseTime(endTime)
+
+  // 翌日にまたがる場合
+  if (end <= start) {
+    end += 24 * 60
+  }
+
+  // 深夜時間帯の開始と終了（分単位）
+  const lateNightStart = 22 * 60 // 22:00
+  const lateNightEnd = 29 * 60 // 05:00（翌日なので24+5=29）
+
+  let lateNightMinutes = 0
+
+  // 勤務時間が深夜時間帯と重複する部分を計算
+  // 22:00-24:00の範囲
+  const overlapStart1 = Math.max(start, lateNightStart)
+  const overlapEnd1 = Math.min(end, 24 * 60)
+  if (overlapStart1 < overlapEnd1) {
+    lateNightMinutes += overlapEnd1 - overlapStart1
+  }
+
+  // 00:00-05:00の範囲（翌日）
+  if (end > 24 * 60) {
+    const overlapStart2 = Math.max(start, 24 * 60)
+    const overlapEnd2 = Math.min(end, lateNightEnd)
+    if (overlapStart2 < overlapEnd2) {
+      lateNightMinutes += overlapEnd2 - overlapStart2
+    }
+  }
+
+  return lateNightMinutes
+}
+
+// 給与計算（常に休憩時間を除く、深夜割増25%を反映）
 const calculateSalary = () => {
   const wage = hourlyWage.value
   if (wage <= 0) return
@@ -770,9 +811,23 @@ const calculateSalary = () => {
     const breakMinutes = calculateBreakTime(workMinutes)
     workMinutes -= breakMinutes
 
+    // 深夜時間帯の勤務時間を計算
+    const lateNightMinutes = calculateLateNightMinutes(workDay.startTime, workDay.endTime)
+
+    // 深夜時間から休憩時間の比率分を引く（簡易計算）
+    const breakRatio = workDay.workMinutes > 0 ? breakMinutes / workDay.workMinutes : 0
+    const actualLateNightMinutes = lateNightMinutes * (1 - breakRatio)
+
+    // 通常時間帯の勤務時間
+    const normalMinutes = workMinutes - actualLateNightMinutes
+
     // 通常時間の給与
-    const normalHours = workMinutes / 60
+    const normalHours = normalMinutes / 60
     totalSalary += normalHours * wage
+
+    // 深夜時間の給与（25%増）
+    const lateNightHours = actualLateNightMinutes / 60
+    totalSalary += lateNightHours * wage * 1.25
   })
 
   calculatedSalary.value = Math.floor(totalSalary)
