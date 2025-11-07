@@ -97,6 +97,23 @@ export function useCalendar() {
   }
 
   /**
+   * 平日のみ選択（土日祝日以外）
+   */
+  const selectWeekdaysOnly = () => {
+    const weekdayDates = currentMonthCells.value
+      .filter(cell => {
+        // 過去の日付は除外
+        if (cell.isPast) return false
+        // 月〜金 (1-5) で祝日でない日
+        const isWeekday = cell.dayOfWeek >= 1 && cell.dayOfWeek <= 5
+        return isWeekday && !cell.isHoliday
+      })
+      .map(cell => cell.dateString)
+
+    store.selectAll(weekdayDates)
+  }
+
+  /**
    * 全解除
    */
   const clearAll = () => {
@@ -233,6 +250,7 @@ export function useCalendar() {
     // Actions
     toggleDate,
     selectAll,
+    selectWeekdaysOnly,
     clearAll,
     selectByWeekday,
     setMonth,

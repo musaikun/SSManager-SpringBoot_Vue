@@ -20,23 +20,27 @@
           </button>
         </div>
 
-        <!-- アクションボタン：休日基準で選択・クリア -->
+        <!-- アクションボタン：休日基準で選択・平日のみ選択・クリア -->
         <div class="action-buttons">
           <button @click="selectAll" class="action-btn" :class="{ selected: isAllSelected }">休日基準で選択</button>
+          <button @click="selectWeekdaysOnly" class="action-btn">平日のみ選択</button>
           <button @click="clearAll" class="action-btn">クリア</button>
         </div>
 
         <!-- 曜日一括選択ボタン -->
-        <div class="weekday-buttons">
-          <button
-            v-for="(day, index) in weekdays"
-            :key="index"
-            @click="selectByWeekday(index)"
-            class="weekday-btn"
-            :class="{ selected: isWeekdayFullySelected(index) }"
-          >
-            {{ day }}
-          </button>
+        <div class="weekday-selection-section">
+          <div class="weekday-selection-label">※曜日別で一括選択</div>
+          <div class="weekday-buttons">
+            <button
+              v-for="(day, index) in weekdays"
+              :key="index"
+              @click="selectByWeekday(index)"
+              class="weekday-btn"
+              :class="{ selected: isWeekdayFullySelected(index) }"
+            >
+              {{ day }}
+            </button>
+          </div>
         </div>
 
         <!-- 曜日ヘッダー -->
@@ -116,6 +120,7 @@ const {
   isWeekdayFullySelected,
   toggleDate,
   selectAll,
+  selectWeekdaysOnly,
   clearAll,
   selectByWeekday,
   setMonth
@@ -271,12 +276,22 @@ const isRemovedDate = (dateString: string): boolean => {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-/* 曜日一括選択ボタン */
+/* 曜日一括選択セクション */
+.weekday-selection-section {
+  margin-bottom: 0.5rem;
+}
+
+.weekday-selection-label {
+  font-size: 0.75rem;
+  color: #666;
+  text-align: center;
+  margin-bottom: 0.3rem;
+}
+
 .weekday-buttons {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
 }
 
 .weekday-btn {

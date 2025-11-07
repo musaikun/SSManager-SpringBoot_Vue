@@ -139,19 +139,6 @@
         </div>
       </div>
 
-      <!-- 休憩時間設定 -->
-      <div class="break-time-section">
-        <label class="break-time-toggle">
-          <input
-            type="checkbox"
-            :checked="includeBreak"
-            @change="handleBreakToggle"
-          />
-          <span>休憩時間を引く</span>
-          <button @click="showBreakHelp" class="help-btn">?</button>
-        </label>
-      </div>
-
       <!-- 合計統計 -->
       <div class="total-summary-section">
         <div class="summary-card">
@@ -163,16 +150,6 @@
           <div class="summary-row">
             <span class="summary-label">総勤務時間:</span>
             <span class="summary-value">{{ formatMinutesToHours(totalSummary.totalWorkMinutes) }}</span>
-          </div>
-          <div v-if="includeBreak" class="summary-row">
-            <span class="summary-label">休憩時間:</span>
-            <span class="summary-value">{{ formatMinutesToHours(totalSummary.totalBreakMinutes) }}</span>
-          </div>
-          <div v-if="includeBreak" class="summary-row total">
-            <span class="summary-label">実働時間:</span>
-            <span class="summary-value highlight">
-              {{ formatMinutesToHours(totalSummary.totalActualWorkMinutes) }}
-            </span>
           </div>
         </div>
       </div>
@@ -559,11 +536,6 @@ watch(() => route.path, (newPath) => {
 
 // 勤務時間のフォーマット
 const formatWorkTime = (workDay: WorkDay) => {
-  if (includeBreak.value) {
-    const breakMinutes = calculateBreakTime(workDay.workMinutes)
-    const actualMinutes = workDay.workMinutes - breakMinutes
-    return `${formatMinutesToHours(actualMinutes)} / 休憩${formatMinutesToHours(breakMinutes)}`
-  }
   return formatMinutesToHours(workDay.workMinutes)
 }
 
@@ -1332,24 +1304,23 @@ const confirmTimeEdit = () => {
 }
 
 .work-day-card.modified {
-  background: #fef3c7;
+  border-left-color: #f59e0b;
 }
 
-/* 一括設定が適用されたカードは青色 */
+/* 一括設定が適用されたカードは左端が青色 */
 .work-day-card.bulk-applied {
-  background: #dbeafe;
   border-left-color: #3b82f6;
 }
 
-/* 選択条件に該当するカードは水色でハイライト */
+/* 選択条件に該当するカードは濃い青の枠でハイライト */
 .work-day-card.highlighted {
-  background: #dbeafe;
-  border-left-color: #3b82f6;
+  border: 3px solid #2563eb;
+  border-left-width: 3px;
 }
 
-/* ハイライトとmodifiedが両方の場合は、modifiedを優先 */
+/* ハイライトとmodifiedが両方の場合 */
 .work-day-card.modified.highlighted {
-  background: #fef3c7;
+  border: 3px solid #2563eb;
   border-left-color: #f59e0b;
 }
 
