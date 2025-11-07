@@ -142,8 +142,6 @@
       <!-- 合計統計 -->
       <div class="total-summary-section">
         <div class="summary-card">
-          <h3>合計</h3>
-
           <!-- 休憩時間設定 -->
           <div class="summary-break-setting">
             <label class="break-time-toggle-inline">
@@ -1543,26 +1541,15 @@ const confirmTimeEdit = () => {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.summary-card h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.25rem;
-  color: #333;
-}
-
 .summary-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.summary-row:last-child {
-  border-bottom: none;
+  padding: 0.5rem 0;
 }
 
 .summary-row.total {
-  padding-top: 1rem;
+  padding-top: 0.75rem;
   margin-top: 0.5rem;
   border-top: 2px solid #e0e0e0;
 }

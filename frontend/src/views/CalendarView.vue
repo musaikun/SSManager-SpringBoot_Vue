@@ -23,7 +23,7 @@
         <!-- アクションボタン：休日基準で選択・平日のみ選択・クリア -->
         <div class="action-buttons">
           <button @click="selectAll" class="action-btn" :class="{ selected: isAllSelected }">休日基準で選択</button>
-          <button @click="selectWeekdaysOnly" class="action-btn">平日のみ選択</button>
+          <button @click="selectWeekdaysOnly" class="action-btn" :class="{ selected: isWeekdaysOnlySelected }">平日のみ選択</button>
           <button @click="clearAll" class="action-btn">クリア</button>
         </div>
 
@@ -117,6 +117,7 @@ const {
   weekdayCount,
   holidayCount,
   isAllSelected,
+  isWeekdaysOnlySelected,
   isWeekdayFullySelected,
   toggleDate,
   selectAll,

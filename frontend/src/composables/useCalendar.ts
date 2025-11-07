@@ -230,6 +230,32 @@ export function useCalendar() {
     return currentMonthFutureDates.value.every(date => store.isDateSelected(date))
   })
 
+  /**
+   * 平日のみが選択されているか
+   */
+  const isWeekdaysOnlySelected = computed<boolean>(() => {
+    const futureCells = currentMonthCells.value.filter(cell => !cell.isPast)
+    if (futureCells.length === 0) return false
+
+    // 平日（月〜金で祝日でない日）を抽出
+    const weekdayCells = futureCells.filter(cell => {
+      const isWeekday = cell.dayOfWeek >= 1 && cell.dayOfWeek <= 5
+      return isWeekday && !cell.isHoliday
+    })
+
+    // 非平日（土日祝日）を抽出
+    const nonWeekdayCells = futureCells.filter(cell => {
+      const isWeekday = cell.dayOfWeek >= 1 && cell.dayOfWeek <= 5
+      return !(isWeekday && !cell.isHoliday)
+    })
+
+    // 平日がすべて選択されていて、非平日がすべて選択されていない
+    const allWeekdaysSelected = weekdayCells.length > 0 && weekdayCells.every(cell => cell.isSelected)
+    const noNonWeekdaysSelected = nonWeekdayCells.every(cell => !cell.isSelected)
+
+    return allWeekdaysSelected && noNonWeekdaysSelected
+  })
+
   return {
     // Computed
     calendarCells,
@@ -239,6 +265,7 @@ export function useCalendar() {
     weekdayCount,
     holidayCount,
     isAllSelected,
+    isWeekdaysOnlySelected,
 
     // Store state (readonly)
     currentYear: computed(() => store.currentYear),
