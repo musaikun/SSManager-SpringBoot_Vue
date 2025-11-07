@@ -106,7 +106,11 @@ const closeSettingsModal = () => {
             <span class="icon">📋</span>
           </button>
           <button class="header-logo-btn" @click="handleLogoClick" title="ホームに戻る">
-            <span class="logo-text">S×S Manager</span>
+            <span class="logo-text">
+              <span class="title-s">S</span>
+              <span class="shine-x">×</span>
+              <span class="title-s2">S Manager</span>
+            </span>
           </button>
           <button class="header-icon-btn" @click="handleSettingsClick" title="初期値設定">
             <span class="icon">⚙️</span>
@@ -201,28 +205,64 @@ body {
 }
 
 .header-logo-btn {
-  background: rgba(255, 255, 255, 0.95);
+  background: transparent;
   border: none;
-  border-radius: 12px;
-  padding: 0.5rem 1.25rem;
+  padding: 0.25rem 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .header-logo-btn:hover {
-  background: white;
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .logo-text {
-  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  gap: 4px;
+}
+
+.title-s, .title-s2 {
+  background: linear-gradient(-60deg, rgba(255,255,255,0.9), rgba(220,250,255,0.4), rgba(255,255,255,0.9));
+  background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: windFlow 5s linear infinite;
+}
+
+@keyframes windFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.shine-x {
+  background: linear-gradient(120deg, #3a0d6f, #7c3aff, #d9b3ff, #6f3ad0);
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 2px #b393ff)
+          drop-shadow(0 0 6px #d9b3ff)
+          drop-shadow(0 0 12px #6f3ad0);
+  animation: shineMove 3s ease-in-out infinite, flicker 0.8s infinite;
+  display: inline-block;
+  position: relative;
+}
+
+@keyframes shineMove {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
 }
 
 .slider-content {

@@ -221,7 +221,7 @@
       <div v-if="showConfirmModal" class="modal-overlay" @click="showConfirmModal = false" @touchmove.prevent>
         <div class="modal-content confirm-modal" @click.stop>
           <h3 class="modal-title">{{ confirmModalData.title }}</h3>
-          <p class="modal-message">{{ confirmModalData.message }}</p>
+          <p class="modal-message" v-html="confirmModalData.message"></p>
           <div class="modal-options">
             <button
               v-for="option in confirmModalData.options"
@@ -229,8 +229,8 @@
               @click="confirmModalData.onConfirm(option.value)"
               class="option-btn"
               :class="{ primary: option.value === 'apply' || option.value === 'all' }"
+              v-html="option.label"
             >
-              {{ option.label }}
             </button>
           </div>
         </div>
@@ -816,8 +816,8 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
       title: '一括設定の確認',
       message: `${selectedLabel}で個別設定した箇所が${modifiedCount}日あります。`,
       options: [
-        { label: '個別設定の日は除いて適用', value: 'unmodified' },
-        { label: '個別設定も上書きして適用', value: 'all' },
+        { label: '個別設定の日は<span style="color: #3b82f6; font-weight: 700;">除いて</span>適用', value: 'unmodified' },
+        { label: '個別設定も<span style="color: #3b82f6; font-weight: 700;">上書き</span>して適用', value: 'all' },
         { label: 'キャンセル', value: 'cancel' }
       ],
       onConfirm: (value: string) => {
@@ -1357,7 +1357,7 @@ const confirmTimeEdit = () => {
 
 .bulk-btn {
   padding: 0.4rem 0.5rem;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
   border: none;
   border-radius: 8px;
@@ -1369,7 +1369,7 @@ const confirmTimeEdit = () => {
 
 .bulk-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 .bulk-btn:active {
@@ -1974,9 +1974,9 @@ const confirmTimeEdit = () => {
 
 .option-btn {
   padding: 0.875rem 1.5rem;
-  border: 2px solid #e0e0e0;
-  background: white;
-  color: #333;
+  border: 2px solid #3b82f6;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
@@ -1985,35 +1985,9 @@ const confirmTimeEdit = () => {
 }
 
 .option-btn:hover {
-  background: #f5f5f5;
-  border-color: #667eea;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   transform: translateY(-2px);
-}
-
-/* キャンセルボタン（薄い赤） */
-.option-btn[data-cancel="true"],
-.modal-options .option-btn:first-child {
-  background: #fee;
-  color: #dc2626;
-  border-color: #fca5a5;
-}
-
-.option-btn[data-cancel="true"]:hover,
-.modal-options .option-btn:first-child:hover {
-  background: #fdd;
-  border-color: #f87171;
-}
-
-.option-btn.primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border-color: #667eea;
-}
-
-.option-btn.primary:hover {
-  background: linear-gradient(135deg, #5568d3, #653a8b);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 /* ヘルプモーダル */
