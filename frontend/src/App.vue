@@ -102,7 +102,7 @@ const closeSettingsModal = () => {
       <!-- ヘッダー（固定） -->
       <div class="fixed-header">
         <div class="header-icons">
-          <button class="header-icon-btn" @click="handleHistoryClick" title="過去の提出記録">
+          <button class="header-icon-btn" @click="handleHistoryClick" title="過去の作成記録">
             <span class="icon">📋</span>
           </button>
           <button class="header-logo-btn" @click="handleLogoClick" title="ホームに戻る">

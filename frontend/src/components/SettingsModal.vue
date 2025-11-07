@@ -126,7 +126,20 @@ const emit = defineEmits<{
 }>()
 
 const timeRegisterStore = useTimeRegisterStore()
-const { bulkSettings } = storeToRefs(timeRegisterStore)
+
+// デフォルト時刻（LocalStorageから読み込み、独立管理）
+const loadDefaultTimes = () => {
+  const saved = localStorage.getItem('defaultTimes')
+  if (saved) {
+    return JSON.parse(saved)
+  }
+  return {
+    startTime: '09:00',
+    endTime: '18:00'
+  }
+}
+
+const defaultTimes = ref(loadDefaultTimes())
 
 // 時刻ピッカーの状態
 const showTimePicker = ref(false)
@@ -136,8 +149,8 @@ const selectedHour = ref(9)
 const selectedMinute = ref(0)
 
 // 表示用の時刻
-const displayStartTime = computed(() => bulkSettings.value.startTime)
-const displayEndTime = computed(() => bulkSettings.value.endTime)
+const displayStartTime = computed(() => defaultTimes.value.startTime)
+const displayEndTime = computed(() => defaultTimes.value.endTime)
 
 // 時間ボタン
 const hourButtons = computed(() => {
@@ -158,7 +171,7 @@ const formattedSelectedTime = computed(() => {
 // 時刻ピッカーを開く
 const openTimePicker = (type: 'start' | 'end') => {
   timePickerType.value = type
-  const timeStr = type === 'start' ? bulkSettings.value.startTime : bulkSettings.value.endTime
+  const timeStr = type === 'start' ? defaultTimes.value.startTime : defaultTimes.value.endTime
   const [hourStr, minuteStr] = timeStr.split(':')
   const hour = parseInt(hourStr)
   const minute = parseInt(minuteStr)
@@ -188,11 +201,23 @@ const selectMinute = (minute: number) => {
 // 時刻を適用
 const applyTime = () => {
   const timeStr = formattedSelectedTime.value
+
+  // デフォルト時刻を更新
   if (timePickerType.value === 'start') {
-    bulkSettings.value.startTime = timeStr
+    defaultTimes.value.startTime = timeStr
   } else {
-    bulkSettings.value.endTime = timeStr
+    defaultTimes.value.endTime = timeStr
   }
+
+  // LocalStorageに保存
+  localStorage.setItem('defaultTimes', JSON.stringify(defaultTimes.value))
+
+  // 一括設定にも反映
+  timeRegisterStore.updateBulkSettings({
+    startTime: defaultTimes.value.startTime,
+    endTime: defaultTimes.value.endTime
+  })
+
   closeTimePicker()
 }
 

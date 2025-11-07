@@ -4,7 +4,7 @@
       <button @click="handleBack" class="back-btn">
         <span class="back-icon">←</span>
       </button>
-      <h1 class="history-title">過去の提出記録</h1>
+      <h1 class="history-title">過去の作成記録</h1>
       <div class="spacer"></div>
     </div>
 
@@ -12,8 +12,8 @@
       <!-- 記録が無い場合 -->
       <div v-if="savedShifts.length === 0" class="empty-state">
         <div class="empty-icon">📋</div>
-        <p class="empty-text">まだ提出記録がありません</p>
-        <p class="empty-subtext">シフトを提出すると、ここに記録が保存されます</p>
+        <p class="empty-text">まだ作成記録がありません</p>
+        <p class="empty-subtext">シフトを作成・保存すると、ここに記録が保存されます</p>
         <div class="empty-actions">
           <button @click="goToCalendar" class="empty-btn calendar-btn">
             カレンダーへ
@@ -94,7 +94,7 @@
 
             <!-- アクション -->
             <div class="action-section">
-              <button @click="toggleFavorite" class="action-btn favorite-action-btn">
+              <button @click="toggleFavorite" class="action-btn favorite-action-btn" :class="{ 'favorite-active': selectedShift.isFavorite }">
                 <span class="action-icon">{{ selectedShift.isFavorite ? '⭐' : '☆' }}</span>
                 <span class="action-label">{{ selectedShift.isFavorite ? 'お気に入り解除' : 'お気に入り' }}</span>
               </button>
@@ -243,6 +243,12 @@ const createFromBase = () => {
   const currentYear = calendarStore.currentYear
   const currentMonth = calendarStore.currentMonth
 
+  // 確認ダイアログを表示
+  const monthLabel = `${currentYear}年${currentMonth + 1}月`
+  if (!confirm(`現在選択中の${monthLabel}に作成しますがよろしいですか？`)) {
+    return
+  }
+
   // カレンダーの選択をクリア
   calendarStore.clearAll()
 
@@ -258,7 +264,11 @@ const createFromBase = () => {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day)
-      const dateString = date.toISOString().split('T')[0]
+      // ローカルタイムゾーンで正しい日付文字列を生成
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const dayStr = String(date.getDate()).padStart(2, '0')
+      const dateString = `${year}-${month}-${dayStr}`
       const dayOfWeek = date.getDay()
 
       // 週番号を計算
@@ -273,7 +283,9 @@ const createFromBase = () => {
       // 曜日と週番号が一致する場合、選択リストに追加
       if (dayOfWeek === targetDayOfWeek && weekNumber === targetWeekNumber) {
         // 過去の日付は除外
-        if (date >= new Date(new Date().setHours(0, 0, 0, 0))) {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        if (date >= today) {
           datesToSelect.push(dateString)
         }
       }
@@ -745,6 +757,15 @@ onMounted(() => {
 .favorite-action-btn:hover {
   border-color: #fbbf24;
   background: #fffbeb;
+}
+
+.favorite-active {
+  border-color: #fbbf24 !important;
+  background: #fef3c7 !important;
+}
+
+.favorite-active .action-label {
+  color: #92400e;
 }
 
 .delete-btn:hover {

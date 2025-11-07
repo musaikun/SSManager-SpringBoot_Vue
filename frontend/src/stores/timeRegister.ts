@@ -12,26 +12,45 @@ import type {
 } from '../types/timeRegister'
 import type { DateString } from '../types/calendar'
 
+// LocalStorageからデフォルト時刻を読み込む
+const loadDefaultTimes = () => {
+  const saved = localStorage.getItem('defaultTimes')
+  if (saved) {
+    const parsed = JSON.parse(saved)
+    return {
+      startTime: parsed.startTime || '09:00',
+      endTime: parsed.endTime || '18:00'
+    }
+  }
+  return {
+    startTime: '09:00',
+    endTime: '18:00'
+  }
+}
+
 /**
  * 時間登録ストア
  */
 export const useTimeRegisterStore = defineStore('timeRegister', {
-  state: (): TimeRegisterState => ({
-    workDays: [],
-    bulkSettings: {
-      startTime: '09:00',
-      endTime: '18:00'
-    },
-    includeBreak: false,
-    showSubmitModal: false,
-    timePicker: {
-      isOpen: false,
-      mode: 'card',
-      currentCardIndex: null,
-      selectedStartTime: '09:00',
-      selectedEndTime: '18:00'
+  state: (): TimeRegisterState => {
+    const defaultTimes = loadDefaultTimes()
+    return {
+      workDays: [],
+      bulkSettings: {
+        startTime: defaultTimes.startTime,
+        endTime: defaultTimes.endTime
+      },
+      includeBreak: false,
+      showSubmitModal: false,
+      timePicker: {
+        isOpen: false,
+        mode: 'card',
+        currentCardIndex: null,
+        selectedStartTime: defaultTimes.startTime,
+        selectedEndTime: defaultTimes.endTime
+      }
     }
-  }),
+  },
 
   getters: {
     /**
