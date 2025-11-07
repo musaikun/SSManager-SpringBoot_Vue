@@ -66,12 +66,59 @@
           </div>
         </div>
       </div>
+
+      <!-- 備考入力欄 -->
+      <div class="remarks-section">
+        <label for="remarks" class="remarks-label">備考</label>
+        <textarea
+          id="remarks"
+          v-model="remarks"
+          class="remarks-input"
+          placeholder="上長への連絡事項や希望休暇の理由など"
+          rows="4"
+        ></textarea>
+      </div>
+
+      <!-- 提出ボタン -->
+      <div class="submit-section">
+        <button @click="showSubmitModal = true" class="submit-btn">
+          シフトを提出
+        </button>
+      </div>
     </div>
+
+    <!-- 提出方法選択モーダル -->
+    <Teleport to="body">
+      <div v-if="showSubmitModal" class="modal-overlay" @click="showSubmitModal = false">
+        <div class="modal-content submit-modal" @click.stop>
+          <h3 class="modal-title">提出方法を選択</h3>
+          <div class="submit-methods">
+            <button @click="submitViaEmail" class="method-btn email-btn">
+              <span class="method-icon">📧</span>
+              <span class="method-label">メールで送信</span>
+            </button>
+            <button @click="submitViaLine" class="method-btn line-btn">
+              <span class="method-icon">💬</span>
+              <span class="method-label">LINEで送信</span>
+            </button>
+            <button @click="downloadCSV" class="method-btn csv-btn">
+              <span class="method-icon">📊</span>
+              <span class="method-label">CSVダウンロード</span>
+            </button>
+            <button @click="copyToClipboard" class="method-btn copy-btn">
+              <span class="method-icon">📋</span>
+              <span class="method-label">コピーする</span>
+            </button>
+          </div>
+          <button @click="showSubmitModal = false" class="close-modal-btn">キャンセル</button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useTimeRegisterStore } from '../stores/timeRegister'
 import { useTimeFormat } from '../composables/useTimeFormat'
@@ -88,6 +135,10 @@ const { totalSummary } = storeToRefs(timeRegisterStore)
 const { formatMinutesToHours } = useTimeFormat()
 const { calculateBreakTime } = useTimeCalculation()
 
+// ローカル状態
+const remarks = ref<string>('')
+const showSubmitModal = ref<boolean>(false)
+
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
   return workDays.value.filter(wd => !wd.isRemoved)
@@ -101,6 +152,112 @@ const formatWorkTime = (workDay: WorkDay) => {
     return `${formatMinutesToHours(actualMinutes)}<br>休憩${breakMinutes}分`
   }
   return formatMinutesToHours(workDay.workMinutes)
+}
+
+// シフトデータをLocalStorageに保存
+const saveShiftData = () => {
+  const shiftData = {
+    workDays: activeWorkDays.value,
+    totalSummary: totalSummary.value,
+    remarks: remarks.value,
+    submittedAt: new Date().toISOString()
+  }
+
+  // LocalStorageに保存
+  const savedShifts = JSON.parse(localStorage.getItem('savedShifts') || '[]')
+  savedShifts.push(shiftData)
+  localStorage.setItem('savedShifts', JSON.stringify(savedShifts))
+}
+
+// シフトデータをテキスト形式で生成
+const generateShiftText = (): string => {
+  let text = '【シフト提出】\n\n'
+
+  activeWorkDays.value.forEach(day => {
+    const breakMinutes = calculateBreakTime(day.workMinutes)
+    const actualMinutes = day.workMinutes - breakMinutes
+    const actualHours = formatMinutesToHours(actualMinutes)
+    text += `${day.displayDate}: ${day.startTime}〜${day.endTime} (${actualHours})\n`
+  })
+
+  text += `\n【合計】\n`
+  text += `勤務日数: ${totalSummary.value.workDays}日\n`
+  text += `総勤務時間: ${formatMinutesToHours(totalSummary.value.totalWorkMinutes)}\n`
+  if (includeBreak.value) {
+    text += `実働時間: ${formatMinutesToHours(totalSummary.value.totalActualWorkMinutes)}\n`
+  }
+
+  if (remarks.value.trim()) {
+    text += `\n【備考】\n${remarks.value}\n`
+  }
+
+  return text
+}
+
+// メール送信
+const submitViaEmail = () => {
+  const subject = encodeURIComponent('シフト提出')
+  const body = encodeURIComponent(generateShiftText())
+  window.location.href = `mailto:?subject=${subject}&body=${body}`
+  saveShiftData()
+  showSubmitModal.value = false
+  alert('メーラーを起動しました')
+}
+
+// LINE送信
+const submitViaLine = () => {
+  const text = encodeURIComponent(generateShiftText())
+  window.open(`https://line.me/R/share?text=${text}`, '_blank')
+  saveShiftData()
+  showSubmitModal.value = false
+  alert('LINEで共有します')
+}
+
+// CSVダウンロード
+const downloadCSV = () => {
+  let csv = '日付,開始時刻,終了時刻,勤務時間,実働時間,設定\n'
+
+  activeWorkDays.value.forEach(day => {
+    const breakMinutes = calculateBreakTime(day.workMinutes)
+    const actualMinutes = day.workMinutes - breakMinutes
+    const status = day.isModified ? '個別設定' : day.isBulkApplied ? '一括設定' : '初期設定'
+    csv += `${day.displayDate},${day.startTime},${day.endTime},${formatMinutesToHours(day.workMinutes)},${formatMinutesToHours(actualMinutes)},${status}\n`
+  })
+
+  csv += `\n合計\n`
+  csv += `勤務日数,${totalSummary.value.workDays}日\n`
+  csv += `総勤務時間,${formatMinutesToHours(totalSummary.value.totalWorkMinutes)}\n`
+  csv += `実働時間,${formatMinutesToHours(totalSummary.value.totalActualWorkMinutes)}\n`
+
+  if (remarks.value.trim()) {
+    csv += `\n備考\n${remarks.value}\n`
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', `shift_${new Date().toISOString().split('T')[0]}.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+
+  saveShiftData()
+  showSubmitModal.value = false
+  alert('CSVファイルをダウンロードしました')
+}
+
+// クリップボードにコピー
+const copyToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(generateShiftText())
+    saveShiftData()
+    showSubmitModal.value = false
+    alert('クリップボードにコピーしました')
+  } catch (err) {
+    alert('コピーに失敗しました')
+  }
 }
 </script>
 
@@ -357,5 +514,158 @@ const formatWorkTime = (workDay: WorkDay) => {
     font-size: 0.65rem;
     padding: 0.15rem 0.4rem;
   }
+}
+
+/* 備考入力欄 */
+.remarks-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.remarks-label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.75rem;
+}
+
+.remarks-input {
+  width: 100%;
+  padding: 0.875rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.3s ease;
+}
+
+.remarks-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.remarks-input::placeholder {
+  color: #999;
+}
+
+/* 提出ボタン */
+.submit-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+/* モーダル */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  color: #333;
+  text-align: center;
+}
+
+.submit-methods {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.method-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.method-btn:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.method-icon {
+  font-size: 2rem;
+}
+
+.method-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-modal-btn {
+  width: 100%;
+  padding: 0.875rem;
+  background: #f0f0f0;
+  color: #666;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-modal-btn:hover {
+  background: #e0e0e0;
 }
 </style>
