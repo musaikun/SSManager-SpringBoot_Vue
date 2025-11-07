@@ -155,6 +155,12 @@ import { useTimeFormat } from '../composables/useTimeFormat'
 const router = useRouter()
 const { formatMinutesToHours } = useTimeFormat()
 
+import { useCalendarStore } from '../stores/calendar'
+import { useTimeRegisterStore } from '../stores/timeRegister'
+
+const calendarStore = useCalendarStore()
+const timeRegisterStore = useTimeRegisterStore()
+
 interface SavedShift {
   workDays: any[]
   totalSummary: any
@@ -233,9 +239,78 @@ const toggleFavorite = () => {
 const createFromBase = () => {
   if (!selectedShift.value) return
 
-  // TODO: このシフトデータをストアに読み込んでカレンダー画面へ遷移
-  alert('このシフトをベースに新しいシフトを作成します（実装予定）')
+  // 現在のカレンダーの月を取得
+  const currentYear = calendarStore.currentYear
+  const currentMonth = calendarStore.currentMonth
+
+  // カレンダーの選択をクリア
+  calendarStore.clearAll()
+
+  // 保存されたシフトの各勤務日について、同じ曜日・週番号の日付を見つける
+  const datesToSelect: string[] = []
+
+  selectedShift.value.workDays.forEach(savedDay => {
+    const targetDayOfWeek = savedDay.dayOfWeek
+    const targetWeekNumber = savedDay.weekNumber
+
+    // 現在の月の全ての日付をチェック
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(currentYear, currentMonth, day)
+      const dateString = date.toISOString().split('T')[0]
+      const dayOfWeek = date.getDay()
+
+      // 週番号を計算
+      const firstDay = new Date(currentYear, currentMonth, 1)
+      const firstDayOfWeek = firstDay.getDay()
+      const firstSunday = new Date(firstDay)
+      firstSunday.setDate(firstDay.getDate() - firstDayOfWeek)
+      const diffTime = date.getTime() - firstSunday.getTime()
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+      const weekNumber = Math.floor(diffDays / 7) + 1
+
+      // 曜日と週番号が一致する場合、選択リストに追加
+      if (dayOfWeek === targetDayOfWeek && weekNumber === targetWeekNumber) {
+        // 過去の日付は除外
+        if (date >= new Date(new Date().setHours(0, 0, 0, 0))) {
+          datesToSelect.push(dateString)
+        }
+      }
+    }
+  })
+
+  // カレンダーに日付を選択
+  datesToSelect.forEach(date => {
+    calendarStore.selectDate(date)
+  })
+
+  // 選択された日付でworkDaysを初期化
+  timeRegisterStore.initializeFromDates(datesToSelect)
+
+  // 保存されたシフトの時間を適用
+  timeRegisterStore.workDays.forEach((workDay, index) => {
+    // 同じ曜日・週番号の保存されたシフトを探す
+    const matchedSavedDay = selectedShift.value!.workDays.find(
+      savedDay =>
+        savedDay.dayOfWeek === workDay.dayOfWeek &&
+        savedDay.weekNumber === workDay.weekNumber
+    )
+
+    if (matchedSavedDay) {
+      // 時間を適用
+      timeRegisterStore.updateWorkDay(index, {
+        startTime: matchedSavedDay.startTime,
+        endTime: matchedSavedDay.endTime
+      })
+    }
+  })
+
+  // 詳細モーダルを閉じて、時間登録画面へ遷移
   closeDetail()
+  router.push('/time-register')
+
+  alert(`${datesToSelect.length}日のシフトをベースに作成しました`)
 }
 
 const generateShiftText = (): string => {
