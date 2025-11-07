@@ -23,6 +23,11 @@ const router = createRouter({
       path: '/confirm',
       name: 'confirm',
       component: () => import('../views/ConfirmView.vue')
+    },
+    {
+      path: '/history',
+      name: 'history',
+      component: () => import('../views/HistoryView.vue')
     }
   ]
 })

@@ -69,8 +69,7 @@ const handleNext = () => {
 
 // ヘッダーアイコンのハンドラー
 const handleHistoryClick = () => {
-  // TODO: 過去の提出記録画面へ遷移
-  alert('過去の提出記録（実装予定）')
+  router.push('/history')
 }
 
 const handleLogoClick = () => {
@@ -113,14 +112,6 @@ const handleSettingsClick = () => {
       <!-- フッター（固定） -->
       <div class="fixed-footer">
         <ProgressIndicator />
-        <div class="footer-buttons" v-if="route.path !== '/confirm'">
-          <button v-if="showBackButton" @click="handleBack" class="action-btn back-btn">
-            戻る
-          </button>
-          <button @click="handleNext" class="action-btn next-btn">
-            {{ nextButtonLabel }}
-          </button>
-        </div>
       </div>
     </div>
   </div>
