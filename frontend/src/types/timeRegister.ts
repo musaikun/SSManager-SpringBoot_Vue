@@ -49,6 +49,8 @@ export interface WorkDay {
   customEndTime: boolean
   /** 一括設定が適用されたか */
   isBulkApplied: boolean
+  /** 過去のシフトベースから作成されたか */
+  isFromBase?: boolean
 }
 
 /**

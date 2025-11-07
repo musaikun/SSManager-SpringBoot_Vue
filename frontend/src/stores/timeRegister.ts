@@ -141,7 +141,8 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
           displayDate: formatDisplayDate(dateObj, dayOfWeek),
           customStartTime: false,
           customEndTime: false,
-          isBulkApplied: false
+          isBulkApplied: false,
+          isFromBase: false
         }
       })
     },
@@ -182,7 +183,8 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
             displayDate: formatDisplayDate(dateObj, dayOfWeek),
             customStartTime: false,
             customEndTime: false,
-            isBulkApplied: false
+            isBulkApplied: false,
+            isFromBase: false
           }
         }
       })

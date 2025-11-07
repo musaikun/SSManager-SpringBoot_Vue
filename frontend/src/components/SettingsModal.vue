@@ -15,7 +15,7 @@
             <!-- 開始時刻 -->
             <div class="time-setting">
               <label class="time-label">開始時刻</label>
-              <div class="time-display" @click="openTimePicker('start')">
+              <div class="time-display" @click="openTimePicker">
                 {{ displayStartTime }}
                 <span class="edit-icon">✎</span>
               </div>
@@ -24,7 +24,7 @@
             <!-- 終了時刻 -->
             <div class="time-setting">
               <label class="time-label">終了時刻</label>
-              <div class="time-display" @click="openTimePicker('end')">
+              <div class="time-display" @click="openTimePicker">
                 {{ displayEndTime }}
                 <span class="edit-icon">✎</span>
               </div>
@@ -47,15 +47,17 @@
     </div>
 
     <!-- 時刻選択モーダル -->
-    <div v-if="showTimePicker" class="modal-overlay" @click="closeTimePicker">
+    <div v-if="showTimePicker" class="modal-overlay" @click="closeTimePicker" @touchmove.prevent>
       <div class="modal-content time-picker-modal" @click.stop>
-        <h3 class="modal-title">{{ timePickerType === 'start' ? '開始時刻' : '終了時刻' }}</h3>
+        <h3 class="modal-title">デフォルト時刻設定</h3>
 
+        <!-- 開始時間 -->
         <div class="modal-section">
           <div class="modal-section-header">
+            <label class="modal-label">開始時間</label>
             <div class="toggle-switch">
-              <input type="checkbox" id="periodToggle" v-model="isPm" class="toggle-input">
-              <label for="periodToggle" class="toggle-label">
+              <input type="checkbox" id="startPeriodToggle" v-model="startPm" class="toggle-input">
+              <label for="startPeriodToggle" class="toggle-label">
                 <span class="toggle-text-am">午前</span>
                 <span class="toggle-text-pm">午後</span>
                 <span class="toggle-slider"></span>
@@ -63,25 +65,25 @@
             </div>
           </div>
 
-          <!-- 時間選択 -->
+          <!-- 時間選択（24時間制：午前0-11、午後12-23） -->
           <div class="hour-selector-row">
             <button
-              v-for="hour in hourButtons.slice(0, 6)"
-              :key="'hour-' + hour"
+              v-for="hour in startHourButtons.slice(0, 6)"
+              :key="'start-' + hour"
               class="hour-btn"
-              :class="{ active: selectedHour === hour }"
-              @click="selectHour(hour)"
+              :class="{ active: selectedStartHour === hour }"
+              @click="selectStartHour(hour)"
             >
               {{ hour }}
             </button>
           </div>
           <div class="hour-selector-row">
             <button
-              v-for="hour in hourButtons.slice(6, 12)"
-              :key="'hour-' + hour"
+              v-for="hour in startHourButtons.slice(6, 12)"
+              :key="'start-' + hour"
               class="hour-btn"
-              :class="{ active: selectedHour === hour }"
-              @click="selectHour(hour)"
+              :class="{ active: selectedStartHour === hour }"
+              @click="selectStartHour(hour)"
             >
               {{ hour }}
             </button>
@@ -91,21 +93,75 @@
           <div class="minute-selector-row">
             <button
               v-for="minute in [0, 15, 30, 45]"
-              :key="'min-' + minute"
+              :key="'start-min-' + minute"
               class="minute-btn"
-              :class="{ active: selectedMinute === minute }"
-              @click="selectMinute(minute)"
+              :class="{ active: selectedStartMinute === minute }"
+              @click="selectStartMinute(minute)"
             >
               {{ String(minute).padStart(2, '0') }}
             </button>
           </div>
 
-          <div class="time-preview">選択: <span>{{ formattedSelectedTime }}</span></div>
+          <div class="time-preview">選択: <span>{{ formattedStartTime }}</span></div>
         </div>
 
-        <div class="modal-actions">
-          <button @click="closeTimePicker" class="cancel-btn">キャンセル</button>
-          <button @click="applyTime" class="apply-btn">決定</button>
+        <!-- 終了時間 -->
+        <div class="modal-section">
+          <div class="modal-section-header">
+            <label class="modal-label">終了時間</label>
+            <div class="toggle-switch">
+              <input type="checkbox" id="endPeriodToggle" v-model="endPm" class="toggle-input">
+              <label for="endPeriodToggle" class="toggle-label">
+                <span class="toggle-text-am">午前</span>
+                <span class="toggle-text-pm">午後</span>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 時間選択（24時間制：午前0-11、午後12-23） -->
+          <div class="hour-selector-row">
+            <button
+              v-for="hour in endHourButtons.slice(0, 6)"
+              :key="'end-' + hour"
+              class="hour-btn"
+              :class="{ active: selectedEndHour === hour }"
+              @click="selectEndHour(hour)"
+            >
+              {{ hour }}
+            </button>
+          </div>
+          <div class="hour-selector-row">
+            <button
+              v-for="hour in endHourButtons.slice(6, 12)"
+              :key="'end-' + hour"
+              class="hour-btn"
+              :class="{ active: selectedEndHour === hour }"
+              @click="selectEndHour(hour)"
+            >
+              {{ hour }}
+            </button>
+          </div>
+
+          <!-- 分選択 -->
+          <div class="minute-selector-row">
+            <button
+              v-for="minute in [0, 15, 30, 45]"
+              :key="'end-min-' + minute"
+              class="minute-btn"
+              :class="{ active: selectedEndMinute === minute }"
+              @click="selectEndMinute(minute)"
+            >
+              {{ String(minute).padStart(2, '0') }}
+            </button>
+          </div>
+
+          <div class="time-preview">選択: <span>{{ formattedEndTime }}</span></div>
+        </div>
+
+        <div class="modal-buttons">
+          <button @click="closeTimePicker" class="btn-modal btn-secondary-modal">キャンセル</button>
+          <button @click="applyTime" class="btn-modal btn-primary-modal">設定</button>
         </div>
       </div>
     </div>
@@ -143,42 +199,67 @@ const defaultTimes = ref(loadDefaultTimes())
 
 // 時刻ピッカーの状態
 const showTimePicker = ref(false)
-const timePickerType = ref<'start' | 'end'>('start')
-const isPm = ref(false)
-const selectedHour = ref(9)
-const selectedMinute = ref(0)
+const startPm = ref(false) // 午前=false（0-11）, 午後=true（12-23）
+const endPm = ref(true)
+const selectedStartHour = ref(9) // 0-23の範囲
+const selectedStartMinute = ref(0) // 0, 15, 30, 45
+const selectedEndHour = ref(18) // 0-23の範囲
+const selectedEndMinute = ref(0) // 0, 15, 30, 45
 
 // 表示用の時刻
 const displayStartTime = computed(() => defaultTimes.value.startTime)
 const displayEndTime = computed(() => defaultTimes.value.endTime)
 
-// 時間ボタン
-const hourButtons = computed(() => {
-  if (isPm.value) {
+// 開始時間ボタン配列（午前: 0-11、午後: 12-23）
+const startHourButtons = computed(() => {
+  if (startPm.value) {
     return [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
   } else {
     return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
   }
 })
 
-// 選択中の時刻の表示
-const formattedSelectedTime = computed(() => {
-  const h = String(selectedHour.value).padStart(2, '0')
-  const m = String(selectedMinute.value).padStart(2, '0')
+// 終了時間ボタン配列（午前: 0-11、午後: 12-23）
+const endHourButtons = computed(() => {
+  if (endPm.value) {
+    return [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+  } else {
+    return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+  }
+})
+
+// 選択中の開始時刻の表示
+const formattedStartTime = computed(() => {
+  const h = String(selectedStartHour.value).padStart(2, '0')
+  const m = String(selectedStartMinute.value).padStart(2, '0')
+  return `${h}:${m}`
+})
+
+// 選択中の終了時刻の表示
+const formattedEndTime = computed(() => {
+  const h = String(selectedEndHour.value).padStart(2, '0')
+  const m = String(selectedEndMinute.value).padStart(2, '0')
   return `${h}:${m}`
 })
 
 // 時刻ピッカーを開く
-const openTimePicker = (type: 'start' | 'end') => {
-  timePickerType.value = type
-  const timeStr = type === 'start' ? defaultTimes.value.startTime : defaultTimes.value.endTime
-  const [hourStr, minuteStr] = timeStr.split(':')
-  const hour = parseInt(hourStr)
-  const minute = parseInt(minuteStr)
+const openTimePicker = () => {
+  // 現在のデフォルト時刻を取得
+  const [startHourStr, startMinuteStr] = defaultTimes.value.startTime.split(':')
+  const [endHourStr, endMinuteStr] = defaultTimes.value.endTime.split(':')
 
-  selectedHour.value = hour
-  selectedMinute.value = minute
-  isPm.value = hour >= 12
+  const startHour = parseInt(startHourStr)
+  const startMinute = parseInt(startMinuteStr)
+  const endHour = parseInt(endHourStr)
+  const endMinute = parseInt(endMinuteStr)
+
+  selectedStartHour.value = startHour
+  selectedStartMinute.value = startMinute
+  startPm.value = startHour >= 12
+
+  selectedEndHour.value = endHour
+  selectedEndMinute.value = endMinute
+  endPm.value = endHour >= 12
 
   showTimePicker.value = true
 }
@@ -188,26 +269,29 @@ const closeTimePicker = () => {
   showTimePicker.value = false
 }
 
-// 時間選択
-const selectHour = (hour: number) => {
-  selectedHour.value = hour
+// 開始時間選択
+const selectStartHour = (hour: number) => {
+  selectedStartHour.value = hour
 }
 
-// 分選択
-const selectMinute = (minute: number) => {
-  selectedMinute.value = minute
+const selectStartMinute = (minute: number) => {
+  selectedStartMinute.value = minute
+}
+
+// 終了時間選択
+const selectEndHour = (hour: number) => {
+  selectedEndHour.value = hour
+}
+
+const selectEndMinute = (minute: number) => {
+  selectedEndMinute.value = minute
 }
 
 // 時刻を適用
 const applyTime = () => {
-  const timeStr = formattedSelectedTime.value
-
   // デフォルト時刻を更新
-  if (timePickerType.value === 'start') {
-    defaultTimes.value.startTime = timeStr
-  } else {
-    defaultTimes.value.endTime = timeStr
-  }
+  defaultTimes.value.startTime = formattedStartTime.value
+  defaultTimes.value.endTime = formattedEndTime.value
 
   // LocalStorageに保存
   localStorage.setItem('defaultTimes', JSON.stringify(defaultTimes.value))
@@ -235,11 +319,19 @@ const deleteNonFavorites = () => {
 }
 
 // 午前/午後切り替え時に時間を調整
-watch(isPm, (newIsPm) => {
-  if (newIsPm && selectedHour.value < 12) {
-    selectedHour.value += 12
-  } else if (!newIsPm && selectedHour.value >= 12) {
-    selectedHour.value -= 12
+watch(startPm, (newIsPm) => {
+  if (newIsPm && selectedStartHour.value < 12) {
+    selectedStartHour.value += 12
+  } else if (!newIsPm && selectedStartHour.value >= 12) {
+    selectedStartHour.value -= 12
+  }
+})
+
+watch(endPm, (newIsPm) => {
+  if (newIsPm && selectedEndHour.value < 12) {
+    selectedEndHour.value += 12
+  } else if (!newIsPm && selectedEndHour.value >= 12) {
+    selectedEndHour.value -= 12
   }
 })
 </script>
@@ -281,11 +373,19 @@ watch(isPm, (newIsPm) => {
   z-index: 10;
 }
 
-.modal-title {
+.settings-modal .modal-title {
   font-size: 1.125rem;
   font-weight: 700;
   color: #333;
   margin: 0;
+}
+
+.time-picker-modal .modal-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #667eea;
+  text-align: center;
 }
 
 .close-btn {
@@ -406,20 +506,32 @@ watch(isPm, (newIsPm) => {
 
 /* Time Picker Modal */
 .time-picker-modal {
-  max-width: 320px;
+  max-width: 450px;
+  width: 100%;
+  padding: 1rem;
 }
 
 .modal-section {
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
   padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
 }
 
 .modal-section-header {
   display: flex;
-  justify-content: center;
-  margin-bottom: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
 }
 
+.modal-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #333;
+}
+
+/* トグルスイッチ */
 .toggle-switch {
   position: relative;
   display: inline-block;
@@ -432,91 +544,132 @@ watch(isPm, (newIsPm) => {
 .toggle-label {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 120px;
-  height: 32px;
   background: #e0e0e0;
   border-radius: 16px;
-  padding: 0 0.4rem;
+  padding: 2px;
   cursor: pointer;
   position: relative;
-  transition: background 0.3s;
+  width: 85px;
+  height: 28px;
 }
 
 .toggle-text-am,
 .toggle-text-pm {
-  font-size: 0.75rem;
+  flex: 1;
+  text-align: center;
+  font-size: 0.7rem;
   font-weight: 600;
+  z-index: 2;
+  transition: color 0.3s ease;
   color: #666;
-  z-index: 1;
-  transition: color 0.3s;
+}
+
+.toggle-input:checked + .toggle-label .toggle-text-am {
+  color: #666;
+}
+
+.toggle-input:checked + .toggle-label .toggle-text-pm {
+  color: white;
+}
+
+.toggle-input:not(:checked) + .toggle-label .toggle-text-am {
+  color: white;
+}
+
+.toggle-input:not(:checked) + .toggle-label .toggle-text-pm {
+  color: #666;
 }
 
 .toggle-slider {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 56px;
-  height: 28px;
-  background: white;
+  width: 40px;
+  height: 24px;
+  background: #ff9800;
   border-radius: 14px;
-  transition: transform 0.3s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
 }
 
 .toggle-input:checked + .toggle-label .toggle-slider {
-  transform: translateX(60px);
+  transform: translateX(41px);
+  background: #2196F3;
 }
 
-.toggle-input:checked + .toggle-label .toggle-text-pm {
-  color: #667eea;
-}
-
-.toggle-input:not(:checked) + .toggle-label .toggle-text-am {
-  color: #667eea;
-}
-
-.hour-selector-row,
-.minute-selector-row {
+/* 時間選択ボタン */
+.hour-selector-row {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 0.3rem;
-  margin-bottom: 0.4rem;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  min-width: 0;
 }
 
-.hour-btn,
+.hour-btn {
+  padding: 0.5rem 0.2rem;
+  border: 1.5px solid #e0e0e0;
+  background: white;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.hour-btn:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.hour-btn.active {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  transform: scale(1.05);
+}
+
+/* 分選択ボタン */
+.minute-selector-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  min-width: 0;
+}
+
 .minute-btn {
   padding: 0.5rem 0.2rem;
   border: 1.5px solid #e0e0e0;
-  border-radius: 6px;
   background: white;
+  border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #666;
+  color: #333;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.hour-btn:hover,
 .minute-btn:hover {
   border-color: #667eea;
-  background: #f8f9ff;
+  background: rgba(102, 126, 234, 0.05);
 }
 
-.hour-btn.active,
 .minute-btn.active {
   border-color: #667eea;
-  background: #667eea;
+  background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
+  transform: scale(1.05);
 }
 
 .time-preview {
-  text-align: center;
-  padding: 0.6rem;
-  background: #f8f9fa;
-  border-radius: 8px;
   font-size: 0.8rem;
   color: #666;
+  text-align: center;
 }
 
 .time-preview span {
@@ -525,41 +678,41 @@ watch(isPm, (newIsPm) => {
   font-size: 1rem;
 }
 
-.modal-actions {
-  display: flex;
+.modal-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.6rem;
-  padding: 0.75rem;
-  border-top: 1px solid #e0e0e0;
+  width: 100%;
 }
 
-.cancel-btn,
-.apply-btn {
-  flex: 1;
-  padding: 0.6rem;
+.btn-modal {
+  padding: 0.7rem 0.5rem;
   border: none;
   border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 0;
 }
 
-.cancel-btn {
-  background: #f0f0f0;
-  color: #666;
-}
-
-.cancel-btn:hover {
-  background: #e0e0e0;
-}
-
-.apply-btn {
+.btn-primary-modal {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
 }
 
-.apply-btn:hover {
+.btn-primary-modal:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary-modal {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.btn-secondary-modal:hover {
+  background: #e0e0e0;
 }
 </style>
