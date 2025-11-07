@@ -152,6 +152,19 @@ onMounted(async () => {
 const handleDateClick = (cell: CalendarCell) => {
   if (!cell.isCurrentMonth) return
   if (cell.isPast) return // 過去の日付は選択できない
+
+  // 日付を外す場合（選択済み→未選択）、設定がある場合は確認
+  if (store.isDateSelected(cell.dateString)) {
+    const workDay = timeRegisterStore.workDays.find(wd => wd.date === cell.dateString)
+
+    // 一括設定または個別設定が適用されている場合は確認
+    if (workDay && (workDay.isBulkApplied || workDay.customStartTime || workDay.customEndTime)) {
+      if (!confirm('この日には時間設定が適用されています。\n日付を外してもよろしいですか？')) {
+        return // キャンセルされた場合は何もしない
+      }
+    }
+  }
+
   toggleDate(cell.dateString)
 }
 
