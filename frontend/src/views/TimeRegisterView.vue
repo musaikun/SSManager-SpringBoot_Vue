@@ -197,6 +197,7 @@
                 <span class="salary-result-value">{{ calculatedSalary.toLocaleString() }}円</span>
               </div>
               <div class="salary-result-note">
+                ※ 深夜給（22:00～05:00は25%増）を含む概算です。<br>
                 ※ 各種税金や社会保険料などの控除を考慮していません。
               </div>
             </div>

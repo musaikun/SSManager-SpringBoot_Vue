@@ -8,6 +8,7 @@ import CalendarView from './views/CalendarView.vue'
 import TimeRegisterView from './views/TimeRegisterView.vue'
 import ConfirmView from './views/ConfirmView.vue'
 import HomeView from './views/HomeView.vue'
+import HistoryView from './views/HistoryView.vue'
 import { useNavigationStore } from './stores/navigation'
 import { useTimeRegisterStore } from './stores/timeRegister'
 
@@ -86,6 +87,9 @@ const handleSettingsClick = () => {
   <div id="app">
     <!-- ホーム画面は通常表示 -->
     <HomeView v-if="isHomePage" />
+
+    <!-- 履歴画面 -->
+    <HistoryView v-else-if="route.path === '/history'" />
 
     <!-- カレンダー・時間設定・確認画面 -->
     <div v-else-if="isSliderPage" class="slider-layout">
