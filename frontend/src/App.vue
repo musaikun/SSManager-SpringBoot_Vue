@@ -118,6 +118,7 @@ body {
   width: 100%;
   min-height: 100vh;
   overflow: hidden;
+  background: #1a1a2e;
 }
 
 /* スライドレイアウト */
@@ -127,6 +128,9 @@ body {
   flex-direction: column;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   overflow: hidden;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
 }
 
 .fixed-header {
