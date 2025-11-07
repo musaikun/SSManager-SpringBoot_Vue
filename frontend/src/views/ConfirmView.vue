@@ -88,6 +88,10 @@
         <div class="modal-content submit-modal" @click.stop>
           <h3 class="modal-title">提出方法を選択</h3>
           <div class="submit-methods">
+            <button @click="saveOnly" class="method-btn save-btn">
+              <span class="method-icon">💾</span>
+              <span class="method-label">保存のみ</span>
+            </button>
             <button @click="submitViaEmail" class="method-btn email-btn">
               <span class="method-icon">📧</span>
               <span class="method-label">メールで送信</span>
@@ -179,6 +183,13 @@ const generateShiftText = (): string => {
   }
 
   return text
+}
+
+// 保存のみ
+const saveOnly = () => {
+  saveShiftData()
+  timeRegisterStore.closeSubmitModal()
+  alert('シフトを保存しました')
 }
 
 // メール送信
@@ -602,6 +613,15 @@ const copyToClipboard = async () => {
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+.submit-methods .save-btn {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.submit-methods .save-btn .method-label {
+  color: white;
 }
 
 .method-btn {

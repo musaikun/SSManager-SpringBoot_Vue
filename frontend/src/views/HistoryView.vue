@@ -14,6 +14,14 @@
         <div class="empty-icon">📋</div>
         <p class="empty-text">まだ提出記録がありません</p>
         <p class="empty-subtext">シフトを提出すると、ここに記録が保存されます</p>
+        <div class="empty-actions">
+          <button @click="goToCalendar" class="empty-btn calendar-btn">
+            📅 カレンダーへ
+          </button>
+          <button @click="goToHome" class="empty-btn home-btn">
+            🏠 ホームへ
+          </button>
+        </div>
       </div>
 
       <!-- 記録一覧 -->
@@ -150,6 +158,14 @@ const selectedShift = ref<SavedShift | null>(null)
 const selectedIndex = ref<number>(-1)
 
 const handleBack = () => {
+  router.push('/')
+}
+
+const goToCalendar = () => {
+  router.push('/calendar')
+}
+
+const goToHome = () => {
   router.push('/')
 }
 
@@ -347,6 +363,39 @@ onMounted(() => {
 .empty-subtext {
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2rem;
+}
+
+.empty-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.empty-btn {
+  padding: 0.875rem 1.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.empty-btn:hover {
+  background: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.calendar-btn {
+  color: #667eea;
+}
+
+.home-btn {
+  color: #764ba2;
 }
 
 /* 記録一覧 */
