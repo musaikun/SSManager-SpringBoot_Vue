@@ -22,9 +22,9 @@
 
         <!-- アクションボタン：休日基準で選択・平日のみ選択・クリア -->
         <div class="action-buttons">
-          <button @click="selectAll" class="action-btn" :class="{ selected: isAllSelected }">休日基準で選択</button>
-          <button @click="selectWeekdaysOnly" class="action-btn" :class="{ selected: isWeekdaysOnlySelected }">平日のみ選択</button>
-          <button @click="clearAll" class="action-btn">クリア</button>
+          <button @click="handleSelectAll" class="action-btn" :class="{ selected: isAllSelected }">休日基準で選択</button>
+          <button @click="handleSelectWeekdaysOnly" class="action-btn" :class="{ selected: isWeekdaysOnlySelected }">平日のみ選択</button>
+          <button @click="handleClearAll" class="action-btn">クリア</button>
         </div>
 
         <!-- 曜日一括選択ボタン -->
@@ -34,7 +34,7 @@
             <button
               v-for="(day, index) in weekdays"
               :key="index"
-              @click="selectByWeekday(index)"
+              @click="handleSelectByWeekday(index)"
               class="weekday-btn"
               :class="{ selected: isWeekdayFullySelected(index) }"
             >
@@ -72,7 +72,10 @@
               'saturday': cell.dayOfWeek === 6,
               'sunday': cell.dayOfWeek === 0,
               'selected': cell.isSelected,
-              'removed': isRemovedDate(cell.dateString)
+              'removed': isRemovedDate(cell.dateString),
+              'from-base': isFromBase(cell.dateString),
+              'custom-time': hasCustomTime(cell.dateString),
+              'bulk-applied': hasBulkApplied(cell.dateString)
             }"
             @click="handleDateClick(cell)"
           >
@@ -180,6 +183,115 @@ const setNextMonth = () => {
 const isRemovedDate = (dateString: string): boolean => {
   const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
   return workDay?.isRemoved ?? false
+}
+
+// 過去のシフトベースから作成された日付かどうかを判定
+const isFromBase = (dateString: string): boolean => {
+  const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
+  return (workDay?.isFromBase ?? false) && !workDay?.isRemoved
+}
+
+// 個別設定された日付かどうかを判定
+const hasCustomTime = (dateString: string): boolean => {
+  const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
+  return ((workDay?.customStartTime ?? false) || (workDay?.customEndTime ?? false)) && !workDay?.isRemoved && !workDay?.isFromBase
+}
+
+// 一括設定が適用された日付かどうかを判定
+const hasBulkApplied = (dateString: string): boolean => {
+  const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
+  return (workDay?.isBulkApplied ?? false) && !workDay?.isRemoved && !workDay?.isFromBase && !workDay?.customStartTime && !workDay?.customEndTime
+}
+
+// 時間設定がある日付かどうかをチェック
+const hasTimeSettings = (dateString: string): boolean => {
+  const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
+  if (!workDay) return false
+  return workDay.isBulkApplied || workDay.customStartTime || workDay.customEndTime || workDay.isFromBase
+}
+
+// 休日基準で選択（確認付き）
+const handleSelectAll = () => {
+  // 選択を解除する日付を確認
+  const currentMonthCells = calendarCells.value.filter(cell => cell.isCurrentMonth && !cell.isPast)
+  const datesToDeselect = currentMonthCells.filter(cell => cell.isSelected).map(cell => cell.dateString)
+
+  // 時間設定がある日付が含まれているか確認
+  const hasSettings = datesToDeselect.some(date => hasTimeSettings(date))
+
+  if (hasSettings && datesToDeselect.length > 0) {
+    if (!confirm('時間設定が適用されている日付が含まれています。\n選択を変更してもよろしいですか？')) {
+      return
+    }
+  }
+
+  selectAll()
+}
+
+// 平日のみ選択（確認付き）
+const handleSelectWeekdaysOnly = () => {
+  const currentMonthCells = calendarCells.value.filter(cell => cell.isCurrentMonth && !cell.isPast)
+
+  // 選択を解除される日付（土日祝日）を取得
+  const datesToDeselect = currentMonthCells
+    .filter(cell => {
+      const isWeekend = cell.dayOfWeek === 0 || cell.dayOfWeek === 6
+      const isHoliday = cell.isHoliday
+      return cell.isSelected && (isWeekend || isHoliday)
+    })
+    .map(cell => cell.dateString)
+
+  // 時間設定がある日付が含まれているか確認
+  const hasSettings = datesToDeselect.some(date => hasTimeSettings(date))
+
+  if (hasSettings && datesToDeselect.length > 0) {
+    if (!confirm('時間設定が適用されている日付が含まれています。\n選択を変更してもよろしいですか？')) {
+      return
+    }
+  }
+
+  selectWeekdaysOnly()
+}
+
+// クリア（確認付き）
+const handleClearAll = () => {
+  const selectedDates = calendarCells.value.filter(cell => cell.isSelected).map(cell => cell.dateString)
+
+  // 時間設定がある日付が含まれているか確認
+  const hasSettings = selectedDates.some(date => hasTimeSettings(date))
+
+  if (hasSettings && selectedDates.length > 0) {
+    if (!confirm('時間設定が適用されている日付が含まれています。\nすべての選択を解除してもよろしいですか？')) {
+      return
+    }
+  }
+
+  clearAll()
+}
+
+// 曜日別選択（確認付き）
+const handleSelectByWeekday = (dayOfWeek: number) => {
+  const currentMonthCells = calendarCells.value.filter(cell => cell.isCurrentMonth && !cell.isPast)
+
+  // 対象曜日の日付を取得
+  const targetDates = currentMonthCells.filter(cell => cell.dayOfWeek === dayOfWeek).map(cell => cell.dateString)
+
+  // すでに全て選択されている場合は解除される
+  const allSelected = targetDates.every(date => store.isDateSelected(date))
+
+  if (allSelected) {
+    // 時間設定がある日付が含まれているか確認
+    const hasSettings = targetDates.some(date => hasTimeSettings(date))
+
+    if (hasSettings) {
+      const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土']
+      if (!confirm(`時間設定が適用されている${weekdayLabels[dayOfWeek]}曜日が含まれています。\n選択を解除してもよろしいですか？`)) {
+        return
+      }
+    }
+  }
+
+  selectByWeekday(dayOfWeek)
 }
 </script>
 
@@ -453,6 +565,24 @@ const isRemovedDate = (dateString: string): boolean => {
   background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
   font-weight: 700;
+}
+
+/* 過去のシフトベースから作成された日付 - 薄い赤 */
+.date-cell.selected.from-base {
+  background: linear-gradient(135deg, #fca5a5, #fecaca);
+  color: #991b1b;
+}
+
+/* 個別設定された日付 - 黄色 */
+.date-cell.selected.custom-time {
+  background: linear-gradient(135deg, #fbbf24, #fcd34d);
+  color: #78350f;
+}
+
+/* 一括設定が適用された日付 - 青色 */
+.date-cell.selected.bulk-applied {
+  background: linear-gradient(135deg, #60a5fa, #93c5fd);
+  color: #1e3a8a;
 }
 
 .date-cell.removed {

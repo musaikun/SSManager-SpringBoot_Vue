@@ -98,6 +98,7 @@
             removed: workDay.isRemoved,
             modified: workDay.isModified,
             'bulk-applied': workDay.isBulkApplied,
+            'from-base': workDay.isFromBase,
             highlighted: isHighlighted(workDay)
           }"
         >
@@ -114,17 +115,22 @@
               <div class="card-time-section">
                 <span class="time-value" :class="{
                   'custom-time': workDay.customStartTime,
-                  'bulk-time': workDay.isBulkApplied && !workDay.customStartTime && workDay.startTime !== workDay.initialStartTime
+                  'bulk-time': workDay.isBulkApplied && !workDay.customStartTime && workDay.startTime !== workDay.initialStartTime,
+                  'from-base-time': workDay.isFromBase
                 }">{{ workDay.startTime }}</span>
-                <span class="time-separator">〜</span>
+                <span class="time-separator" :class="{ 'from-base-time': workDay.isFromBase }">〜</span>
                 <span class="time-value" :class="{
                   'custom-time': workDay.customEndTime,
-                  'bulk-time': workDay.isBulkApplied && !workDay.customEndTime && workDay.endTime !== workDay.initialEndTime
+                  'bulk-time': workDay.isBulkApplied && !workDay.customEndTime && workDay.endTime !== workDay.initialEndTime,
+                  'from-base-time': workDay.isFromBase
                 }">{{ workDay.endTime }}</span>
               </div>
               <div class="card-hours">
                 <span class="hours-icon">💼</span>
                 <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
+                <span v-if="workDay.isFromBase" class="state-label from-base-label">/過去のシフトベース</span>
+                <span v-else-if="workDay.customStartTime || workDay.customEndTime" class="state-label custom-label">/個別設定</span>
+                <span v-else-if="workDay.isBulkApplied" class="state-label bulk-label">/一括設定</span>
               </div>
             </div>
           </div>
@@ -1457,6 +1463,13 @@ const confirmTimeEdit = () => {
   border-left-width: 4px;
 }
 
+/* 過去のシフトベースから作成されたカード - 薄い赤 */
+.work-day-card.from-base {
+  background: #fee2e2;
+  border-left-color: #ef4444;
+  border-left-width: 4px;
+}
+
 /* 選択条件に該当するカードは蛍光緑色の枠 */
 .work-day-card.highlighted {
   border: 3px solid #00ff00;
@@ -1496,6 +1509,33 @@ const confirmTimeEdit = () => {
 .time-value.bulk-time {
   color: #2563eb;
   font-weight: 700;
+}
+
+/* 過去のシフトベースから作成された時間のみ赤 */
+.time-value.from-base-time,
+.time-separator.from-base-time {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* 状態ラベル */
+.state-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 0.3rem;
+  white-space: nowrap;
+}
+
+.state-label.from-base-label {
+  color: #dc2626;
+}
+
+.state-label.custom-label {
+  color: #d97706;
+}
+
+.state-label.bulk-label {
+  color: #2563eb;
 }
 
 /* removed は modified より優先（グレーアウト） */
