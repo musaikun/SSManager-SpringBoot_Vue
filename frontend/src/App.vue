@@ -68,13 +68,8 @@ const handleNext = () => {
     navigationStore.setForward()
     router.push('/confirm')
   } else if (route.path === '/confirm') {
-    // 提出処理
-    const activeWorkDays = workDays.value.filter(wd => !wd.isRemoved)
-    alert('提出されました（実装予定）')
-    console.log('Submit data:', {
-      workDays: activeWorkDays,
-      summary: totalSummary.value
-    })
+    // 提出方法選択モーダルを開く
+    timeRegisterStore.openSubmitModal()
   }
 }
 </script>

@@ -23,6 +23,7 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
       endTime: '18:00'
     },
     includeBreak: false,
+    showSubmitModal: false,
     timePicker: {
       isOpen: false,
       mode: 'card',
@@ -378,6 +379,7 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
         endTime: '18:00'
       }
       this.includeBreak = false
+      this.showSubmitModal = false
       this.timePicker = {
         isOpen: false,
         mode: 'card',
@@ -385,6 +387,20 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
         selectedStartTime: '09:00',
         selectedEndTime: '18:00'
       }
+    },
+
+    /**
+     * 提出モーダルを開く
+     */
+    openSubmitModal() {
+      this.showSubmitModal = true
+    },
+
+    /**
+     * 提出モーダルを閉じる
+     */
+    closeSubmitModal() {
+      this.showSubmitModal = false
     }
   }
 })

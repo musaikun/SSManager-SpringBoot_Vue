@@ -138,6 +138,8 @@ export interface TimeRegisterState {
   bulkSettings: BulkSettings
   /** 休憩時間を加味するか */
   includeBreak: boolean
+  /** 提出モーダルが開いているか */
+  showSubmitModal: boolean
   /** 時間ピッカーの状態 */
   timePicker: TimePickerState
 }

@@ -78,18 +78,11 @@
           rows="4"
         ></textarea>
       </div>
-
-      <!-- 提出ボタン -->
-      <div class="submit-section">
-        <button @click="showSubmitModal = true" class="submit-btn">
-          シフトを提出
-        </button>
-      </div>
     </div>
 
     <!-- 提出方法選択モーダル -->
     <Teleport to="body">
-      <div v-if="showSubmitModal" class="modal-overlay" @click="showSubmitModal = false">
+      <div v-if="showSubmitModal" class="modal-overlay" @click="timeRegisterStore.closeSubmitModal()">
         <div class="modal-content submit-modal" @click.stop>
           <h3 class="modal-title">提出方法を選択</h3>
           <div class="submit-methods">
@@ -110,7 +103,7 @@
               <span class="method-label">コピーする</span>
             </button>
           </div>
-          <button @click="showSubmitModal = false" class="close-modal-btn">キャンセル</button>
+          <button @click="timeRegisterStore.closeSubmitModal()" class="close-modal-btn">キャンセル</button>
         </div>
       </div>
     </Teleport>
@@ -129,7 +122,7 @@ import type { WorkDay } from '../types/timeRegister'
 const timeRegisterStore = useTimeRegisterStore()
 const { isHoliday } = useHolidays()
 
-const { includeBreak, workDays } = storeToRefs(timeRegisterStore)
+const { includeBreak, workDays, showSubmitModal } = storeToRefs(timeRegisterStore)
 const { totalSummary } = storeToRefs(timeRegisterStore)
 
 const { formatMinutesToHours } = useTimeFormat()
@@ -137,7 +130,6 @@ const { calculateBreakTime } = useTimeCalculation()
 
 // ローカル状態
 const remarks = ref<string>('')
-const showSubmitModal = ref<boolean>(false)
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
@@ -200,7 +192,7 @@ const submitViaEmail = () => {
   const body = encodeURIComponent(generateShiftText())
   window.location.href = `mailto:?subject=${subject}&body=${body}`
   saveShiftData()
-  showSubmitModal.value = false
+  timeRegisterStore.closeSubmitModal()
   alert('メーラーを起動しました')
 }
 
@@ -209,7 +201,7 @@ const submitViaLine = () => {
   const text = encodeURIComponent(generateShiftText())
   window.open(`https://line.me/R/share?text=${text}`, '_blank')
   saveShiftData()
-  showSubmitModal.value = false
+  timeRegisterStore.closeSubmitModal()
   alert('LINEで共有します')
 }
 
@@ -244,7 +236,7 @@ const downloadCSV = () => {
   document.body.removeChild(link)
 
   saveShiftData()
-  showSubmitModal.value = false
+  timeRegisterStore.closeSubmitModal()
   alert('CSVファイルをダウンロードしました')
 }
 
@@ -253,7 +245,7 @@ const copyToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(generateShiftText())
     saveShiftData()
-    showSubmitModal.value = false
+    timeRegisterStore.closeSubmitModal()
     alert('クリップボードにコピーしました')
   } catch (err) {
     alert('コピーに失敗しました')
@@ -552,37 +544,6 @@ const copyToClipboard = async () => {
 
 .remarks-input::placeholder {
   color: #999;
-}
-
-/* 提出ボタン */
-.submit-section {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1rem;
-}
-
-.submit-btn {
-  width: 100%;
-  padding: 1rem;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.submit-btn:active {
-  transform: translateY(0);
 }
 
 /* モーダル */
