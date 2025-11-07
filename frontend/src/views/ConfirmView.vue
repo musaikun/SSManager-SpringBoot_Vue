@@ -193,7 +193,6 @@ const submitViaEmail = () => {
   window.location.href = `mailto:?subject=${subject}&body=${body}`
   saveShiftData()
   timeRegisterStore.closeSubmitModal()
-  alert('メーラーを起動しました')
 }
 
 // LINE送信
@@ -202,7 +201,6 @@ const submitViaLine = () => {
   window.open(`https://line.me/R/share?text=${text}`, '_blank')
   saveShiftData()
   timeRegisterStore.closeSubmitModal()
-  alert('LINEで共有します')
 }
 
 // CSVダウンロード
@@ -237,7 +235,6 @@ const downloadCSV = () => {
 
   saveShiftData()
   timeRegisterStore.closeSubmitModal()
-  alert('CSVファイルをダウンロードしました')
 }
 
 // クリップボードにコピー
@@ -246,9 +243,8 @@ const copyToClipboard = async () => {
     await navigator.clipboard.writeText(generateShiftText())
     saveShiftData()
     timeRegisterStore.closeSubmitModal()
-    alert('クリップボードにコピーしました')
   } catch (err) {
-    alert('コピーに失敗しました')
+    console.error('クリップボードへのコピーに失敗:', err)
   }
 }
 </script>
