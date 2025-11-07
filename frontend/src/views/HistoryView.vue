@@ -32,25 +32,10 @@
           class="history-card"
           @click="openDetail(shift, index)"
         >
-          <div class="card-header">
-            <span class="card-month">{{ getMonthLabel(shift) }}</span>
-            <span v-if="shift.isFavorite" class="favorite-icon">⭐</span>
-          </div>
-          <div class="card-body">
-            <div class="card-info">
-              <span class="info-label">提出日</span>
-              <span class="info-value">{{ formatDate(shift.submittedAt) }}</span>
-            </div>
-            <div class="card-info">
-              <span class="info-label">勤務日数</span>
-              <span class="info-value">{{ shift.totalSummary.workDays }}日</span>
-            </div>
-            <div class="card-info">
-              <span class="info-label">総勤務時間</span>
-              <span class="info-value">{{ formatMinutesToHours(shift.totalSummary.totalWorkMinutes) }}</span>
-            </div>
-          </div>
-          <div class="card-footer">
+          <div class="card-content">
+            <span class="card-text">
+              <span v-if="shift.isFavorite" class="favorite-star">★</span>保存された日　{{ formatDate(shift.submittedAt) }}
+            </span>
             <span class="card-arrow">→</span>
           </div>
         </div>
@@ -72,7 +57,7 @@
               <h3 class="section-title">基本情報</h3>
               <div class="detail-info">
                 <div class="detail-row">
-                  <span class="detail-label">提出日</span>
+                  <span class="detail-label">保存日時</span>
                   <span class="detail-value">{{ formatDate(selectedShift.submittedAt) }}</span>
                 </div>
                 <div class="detail-row">
@@ -82,10 +67,6 @@
                 <div class="detail-row">
                   <span class="detail-label">総勤務時間</span>
                   <span class="detail-value">{{ formatMinutesToHours(selectedShift.totalSummary.totalWorkMinutes) }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">実働時間</span>
-                  <span class="detail-value">{{ formatMinutesToHours(selectedShift.totalSummary.totalActualWorkMinutes) }}</span>
                 </div>
               </div>
             </div>
@@ -115,15 +96,15 @@
             <div class="action-section">
               <button @click="toggleFavorite" class="action-btn favorite-action-btn">
                 <span class="action-icon">{{ selectedShift.isFavorite ? '⭐' : '☆' }}</span>
-                <span class="action-label">{{ selectedShift.isFavorite ? 'お気に入り解除' : 'お気に入り登録' }}</span>
+                <span class="action-label">{{ selectedShift.isFavorite ? 'お気に入り解除' : 'お気に入り' }}</span>
               </button>
               <button @click="createFromBase" class="action-btn create-btn">
                 <span class="action-icon">📝</span>
-                <span class="action-label">このシフトをベースに作成</span>
+                <span class="action-label">ベースに作成</span>
               </button>
               <button @click="shareShift" class="action-btn share-btn">
                 <span class="action-icon">📤</span>
-                <span class="action-label">このシフトを共有</span>
+                <span class="action-label">共有</span>
               </button>
               <button @click="deleteShift" class="action-btn delete-btn">
                 <span class="action-icon">🗑️</span>
@@ -158,7 +139,7 @@ const selectedShift = ref<SavedShift | null>(null)
 const selectedIndex = ref<number>(-1)
 
 const handleBack = () => {
-  router.push('/')
+  router.push('/calendar')
 }
 
 const goToCalendar = () => {
@@ -188,7 +169,12 @@ const getMonthLabel = (shift: SavedShift): string => {
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString)
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const hours = date.getHours()
+  const minutes = date.getMinutes()
+  return `${year}年${month}月${day}日 ${hours}時${minutes}分`
 }
 
 const openDetail = (shift: SavedShift, index: number) => {
@@ -409,7 +395,7 @@ onMounted(() => {
 .history-card {
   background: white;
   border-radius: 12px;
-  padding: 1.25rem;
+  padding: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -420,50 +406,21 @@ onMounted(() => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.card-month {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #333;
-}
-
-.favorite-icon {
-  font-size: 1.25rem;
-}
-
-.card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.card-info {
+.card-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.info-label {
-  font-size: 0.875rem;
-  color: #666;
-}
-
-.info-value {
-  font-size: 0.875rem;
+.card-text {
+  font-size: 0.95rem;
   font-weight: 600;
   color: #333;
 }
 
-.card-footer {
-  display: flex;
-  justify-content: flex-end;
+.favorite-star {
+  color: #fbbf24;
+  margin-right: 0.25rem;
 }
 
 .card-arrow {
@@ -614,8 +571,8 @@ onMounted(() => {
 }
 
 .action-section {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
   padding-top: 1rem;
   border-top: 1px solid #e0e0e0;
@@ -623,9 +580,10 @@ onMounted(() => {
 
 .action-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
+  gap: 0.25rem;
+  padding: 0.75rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   background: white;
@@ -636,17 +594,18 @@ onMounted(() => {
 .action-btn:hover {
   border-color: #667eea;
   background: #f8f9ff;
-  transform: translateX(4px);
+  transform: translateY(-2px);
 }
 
 .action-icon {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
 }
 
 .action-label {
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #333;
+  text-align: center;
 }
 
 .favorite-action-btn:hover {

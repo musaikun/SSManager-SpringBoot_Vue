@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import PageSlider from './components/PageSlider.vue'
 import ProgressIndicator from './components/ProgressIndicator.vue'
+import SettingsModal from './components/SettingsModal.vue'
 import CalendarView from './views/CalendarView.vue'
 import TimeRegisterView from './views/TimeRegisterView.vue'
 import ConfirmView from './views/ConfirmView.vue'
@@ -17,6 +18,8 @@ const router = useRouter()
 const navigationStore = useNavigationStore()
 const timeRegisterStore = useTimeRegisterStore()
 const { workDays, totalSummary } = storeToRefs(timeRegisterStore)
+
+const showSettingsModal = ref(false)
 
 // スライド対象のページ
 const sliderPages = [
@@ -78,8 +81,11 @@ const handleLogoClick = () => {
 }
 
 const handleSettingsClick = () => {
-  // TODO: 初期値設定画面へ遷移
-  alert('初期値設定（実装予定）')
+  showSettingsModal.value = true
+}
+
+const closeSettingsModal = () => {
+  showSettingsModal.value = false
 }
 </script>
 
@@ -118,6 +124,9 @@ const handleSettingsClick = () => {
         <ProgressIndicator />
       </div>
     </div>
+
+    <!-- 設定モーダル -->
+    <SettingsModal :isOpen="showSettingsModal" @close="closeSettingsModal" />
   </div>
 </template>
 
