@@ -16,10 +16,10 @@
         <p class="empty-subtext">シフトを提出すると、ここに記録が保存されます</p>
         <div class="empty-actions">
           <button @click="goToCalendar" class="empty-btn calendar-btn">
-            📅 カレンダーへ
+            カレンダーへ
           </button>
           <button @click="goToHome" class="empty-btn home-btn">
-            🏠 ホームへ
+            ホームへ
           </button>
         </div>
       </div>

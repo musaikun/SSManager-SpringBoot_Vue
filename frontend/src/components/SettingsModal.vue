@@ -381,17 +381,18 @@ watch(isPm, (newIsPm) => {
 
 /* Time Picker Modal */
 .time-picker-modal {
-  max-width: 350px;
+  max-width: 320px;
 }
 
 .modal-section {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
 }
 
 .modal-section-header {
   display: flex;
   justify-content: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .toggle-switch {
@@ -407,11 +408,11 @@ watch(isPm, (newIsPm) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 140px;
-  height: 36px;
+  width: 120px;
+  height: 32px;
   background: #e0e0e0;
-  border-radius: 18px;
-  padding: 0 0.5rem;
+  border-radius: 16px;
+  padding: 0 0.4rem;
   cursor: pointer;
   position: relative;
   transition: background 0.3s;
@@ -419,7 +420,7 @@ watch(isPm, (newIsPm) => {
 
 .toggle-text-am,
 .toggle-text-pm {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #666;
   z-index: 1;
@@ -428,18 +429,18 @@ watch(isPm, (newIsPm) => {
 
 .toggle-slider {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 64px;
-  height: 30px;
+  top: 2px;
+  left: 2px;
+  width: 56px;
+  height: 28px;
   background: white;
-  border-radius: 15px;
+  border-radius: 14px;
   transition: transform 0.3s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .toggle-input:checked + .toggle-label .toggle-slider {
-  transform: translateX(70px);
+  transform: translateX(60px);
 }
 
 .toggle-input:checked + .toggle-label .toggle-text-pm {
@@ -454,17 +455,17 @@ watch(isPm, (newIsPm) => {
 .minute-selector-row {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 0.4rem;
-  margin-bottom: 0.5rem;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
 }
 
 .hour-btn,
 .minute-btn {
-  padding: 0.6rem 0.3rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 0.5rem 0.2rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
   background: white;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #666;
   cursor: pointer;
@@ -486,33 +487,33 @@ watch(isPm, (newIsPm) => {
 
 .time-preview {
   text-align: center;
-  padding: 0.75rem;
+  padding: 0.6rem;
   background: #f8f9fa;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #666;
 }
 
 .time-preview span {
   font-weight: 700;
   color: #667eea;
-  font-size: 1.125rem;
+  font-size: 1rem;
 }
 
 .modal-actions {
   display: flex;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: 0.6rem;
+  padding: 0.75rem;
   border-top: 1px solid #e0e0e0;
 }
 
 .cancel-btn,
 .apply-btn {
   flex: 1;
-  padding: 0.75rem;
+  padding: 0.6rem;
   border: none;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;

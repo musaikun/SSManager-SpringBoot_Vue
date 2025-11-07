@@ -618,11 +618,6 @@ const copyToClipboard = async () => {
 
 .submit-methods .save-btn {
   grid-column: 1 / -1;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-}
-
-.submit-methods .save-btn .method-label {
-  color: white;
 }
 
 .method-btn {
