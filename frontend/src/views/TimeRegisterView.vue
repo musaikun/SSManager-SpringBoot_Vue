@@ -182,6 +182,17 @@
               給与の簡易概算
             </button>
           </div>
+
+          <!-- 給与計算結果 -->
+          <div v-if="calculatedSalary > 0" class="salary-result">
+            <div class="salary-result-row">
+              <span class="salary-result-label">概算給与:</span>
+              <span class="salary-result-value">{{ calculatedSalary.toLocaleString() }}円</span>
+            </div>
+            <div class="salary-result-note">
+              ※ 各種税金や社会保険料などの控除を考慮していません。
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -258,7 +269,7 @@
                 <span class="result-value">{{ calculatedSalary.toLocaleString() }}円</span>
               </div>
               <div class="result-note">
-                ※ 休憩時間{{ includeBreak ? 'あり' : 'なし' }}で計算しています
+                ※ 休憩時間を除いた実働時間で計算しています
               </div>
             </div>
           </div>
@@ -768,7 +779,7 @@ const showBreakHelp = () => {
   showHelpModal.value = true
 }
 
-// 給与計算
+// 給与計算（常に休憩時間を除く）
 const calculateSalary = () => {
   const wage = hourlyWage.value
   let totalSalary = 0
@@ -779,13 +790,11 @@ const calculateSalary = () => {
 
     let workMinutes = workDay.workMinutes
 
-    // 休憩時間を引く場合
-    if (includeBreak.value) {
-      const breakMinutes = calculateBreakTime(workMinutes)
-      workMinutes -= breakMinutes
-    }
+    // 常に休憩時間を引く
+    const breakMinutes = calculateBreakTime(workMinutes)
+    workMinutes -= breakMinutes
 
-    // 通常時間の給与（深夜給を除く）
+    // 通常時間の給与
     const normalHours = workMinutes / 60
     totalSalary += normalHours * wage
   })
@@ -1397,6 +1406,13 @@ const confirmTimeEdit = () => {
   border-left-width: 4px;
 }
 
+/* 一括設定+個別設定カード：個別設定の黄色を優先 */
+.work-day-card.bulk-applied.modified {
+  background: #fef3c7;
+  border-left-color: #f59e0b;
+  border-left-width: 4px;
+}
+
 /* 選択条件に該当するカードは蛍光緑色の枠 */
 .work-day-card.highlighted {
   border: 3px solid #00ff00;
@@ -1415,6 +1431,14 @@ const confirmTimeEdit = () => {
   background: #dbeafe;
   border: 3px solid #00ff00;
   border-left-color: #3b82f6;
+  border-left-width: 4px;
+}
+
+/* ハイライトと一括設定+個別設定が両方の場合：個別設定の黄色を優先 */
+.work-day-card.bulk-applied.modified.highlighted {
+  background: #fef3c7;
+  border: 3px solid #00ff00;
+  border-left-color: #f59e0b;
   border-left-width: 4px;
 }
 
@@ -1635,6 +1659,40 @@ const confirmTimeEdit = () => {
 .salary-calc-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* 給与計算結果表示 */
+.salary-result {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border-left: 4px solid #10b981;
+}
+
+.salary-result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.salary-result-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.salary-result-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.salary-result-note {
+  font-size: 0.75rem;
+  color: #999;
+  line-height: 1.5;
 }
 
 /* モーダル共通 */
