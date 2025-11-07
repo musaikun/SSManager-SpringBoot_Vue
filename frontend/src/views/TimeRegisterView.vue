@@ -152,7 +152,7 @@
                 :checked="includeBreak"
                 @change="handleBreakToggle"
               />
-              <span>休憩時間を引く</span>
+              <span>休憩時間を表示</span>
               <button @click="showBreakHelp" class="help-btn-small">?</button>
             </label>
           </div>
