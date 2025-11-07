@@ -73,6 +73,13 @@
           rows="4"
         ></textarea>
       </div>
+
+      <!-- 提出ボタン -->
+      <div class="submit-button-section">
+        <button @click="timeRegisterStore.openSubmitModal()" class="submit-btn-main">
+          提出する
+        </button>
+      </div>
     </div>
 
     <!-- 提出方法選択モーダル -->
@@ -528,6 +535,36 @@ const copyToClipboard = async () => {
 
 .remarks-input::placeholder {
   color: #999;
+}
+
+/* 提出ボタンセクション */
+.submit-button-section {
+  padding: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.submit-btn-main {
+  padding: 1rem 3rem;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  min-width: 200px;
+}
+
+.submit-btn-main:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+.submit-btn-main:active {
+  transform: translateY(0);
 }
 
 /* モーダル */

@@ -66,6 +66,21 @@ const handleNext = () => {
     timeRegisterStore.openSubmitModal()
   }
 }
+
+// ヘッダーアイコンのハンドラー
+const handleHistoryClick = () => {
+  // TODO: 過去の提出記録画面へ遷移
+  alert('過去の提出記録（実装予定）')
+}
+
+const handleLogoClick = () => {
+  router.push('/')
+}
+
+const handleSettingsClick = () => {
+  // TODO: 初期値設定画面へ遷移
+  alert('初期値設定（実装予定）')
+}
 </script>
 
 <template>
@@ -77,7 +92,17 @@ const handleNext = () => {
     <div v-else-if="isSliderPage" class="slider-layout">
       <!-- ヘッダー（固定） -->
       <div class="fixed-header">
-        <ProgressIndicator />
+        <div class="header-icons">
+          <button class="header-icon-btn" @click="handleHistoryClick" title="過去の提出記録">
+            <span class="icon">📋</span>
+          </button>
+          <button class="header-logo-btn" @click="handleLogoClick" title="ホームに戻る">
+            <span class="logo-text">S×S Manager</span>
+          </button>
+          <button class="header-icon-btn" @click="handleSettingsClick" title="初期値設定">
+            <span class="icon">⚙️</span>
+          </button>
+        </div>
       </div>
 
       <!-- メインコンテンツ（スライド） -->
@@ -87,11 +112,12 @@ const handleNext = () => {
 
       <!-- フッター（固定） -->
       <div class="fixed-footer">
-        <div class="footer-buttons">
+        <ProgressIndicator />
+        <div class="footer-buttons" v-if="route.path !== '/confirm'">
           <button v-if="showBackButton" @click="handleBack" class="action-btn back-btn">
             戻る
           </button>
-          <button @click="handleNext" class="action-btn next-btn" :class="{ 'submit-btn': route.path === '/confirm' }">
+          <button @click="handleNext" class="action-btn next-btn">
             {{ nextButtonLabel }}
           </button>
         </div>
@@ -135,8 +161,64 @@ body {
 
 .fixed-header {
   flex-shrink: 0;
-  padding: 1rem 1rem 0 1rem;
+  padding: 0.75rem 1rem;
   z-index: 100;
+}
+
+.header-icons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-icon-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.header-icon-btn .icon {
+  font-size: 1.25rem;
+}
+
+.header-logo-btn {
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 12px;
+  padding: 0.5rem 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.header-logo-btn:hover {
+  background: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.logo-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .slider-content {

@@ -5,20 +5,13 @@
       :key="step.id"
       class="progress-item"
     >
-      <!-- ステップ -->
+      <!-- ステップドット -->
       <div
         class="progress-step"
-        :class="{
-          completed: step.completed,
-          active: step.active,
-          clickable: step.clickable
-        }"
+        :class="{ active: step.active }"
         @click="handleStepClick(step)"
       >
-        <div class="step-circle">
-          <span v-if="step.completed" class="check-mark">✓</span>
-          <span v-else>{{ step.number }}</span>
-        </div>
+        <div class="step-dot"></div>
         <div class="step-label">{{ step.label }}</div>
       </div>
 
@@ -26,7 +19,6 @@
       <div
         v-if="index < steps.length - 1"
         class="progress-line"
-        :class="{ completed: step.completed }"
       ></div>
     </div>
   </div>
@@ -59,11 +51,8 @@ const handleStepClick = (step: ProgressStepInfo) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem 1rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1rem;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
   flex-shrink: 0;
 }
 
@@ -76,92 +65,89 @@ const handleStepClick = (step: ProgressStepInfo) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.progress-step.clickable {
+  gap: 0.4rem;
   cursor: pointer;
-}
-
-.progress-step.clickable:hover .step-circle {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.step-circle {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  font-weight: 700;
-  background: #e0e0e0;
-  color: #999;
   transition: all 0.3s ease;
 }
 
-.progress-step.completed .step-circle {
-  background: linear-gradient(135deg, #10b981, #34d399);
-  color: white;
-}
-
-.progress-step.active .step-circle {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+.progress-step:hover .step-dot {
   transform: scale(1.1);
 }
 
-.check-mark {
-  font-size: 1.5rem;
+.step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+}
+
+.progress-step.active .step-dot {
+  width: 14px;
+  height: 14px;
+  background: white;
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.8),
+    0 0 20px rgba(255, 255, 255, 0.6),
+    0 0 30px rgba(255, 255, 255, 0.4);
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 10px rgba(255, 255, 255, 0.8),
+      0 0 20px rgba(255, 255, 255, 0.6),
+      0 0 30px rgba(255, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 0 15px rgba(255, 255, 255, 1),
+      0 0 30px rgba(255, 255, 255, 0.8),
+      0 0 45px rgba(255, 255, 255, 0.6);
+  }
 }
 
 .step-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #666;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
-}
-
-.progress-step.completed .step-label {
-  color: #10b981;
+  transition: all 0.3s ease;
 }
 
 .progress-step.active .step-label {
-  color: #667eea;
+  color: white;
   font-weight: 700;
 }
 
 .progress-line {
-  width: 80px;
-  height: 3px;
-  background: #e0e0e0;
-  margin: 0 1rem;
-  transition: all 0.3s ease;
+  width: 60px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  margin: 0 0.75rem;
   position: relative;
-  top: -12px;
-}
-
-.progress-line.completed {
-  background: linear-gradient(90deg, #10b981, #34d399);
+  top: -10px;
 }
 
 /* レスポンシブ */
 @media (max-width: 768px) {
   .progress-indicator {
-    padding: 1rem 0.5rem;
+    padding: 0.5rem 0.5rem;
   }
 
-  .step-circle {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
+  .step-dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .progress-step.active .step-dot {
+    width: 12px;
+    height: 12px;
   }
 
   .step-label {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
   }
 
   .progress-line {
@@ -171,14 +157,18 @@ const handleStepClick = (step: ProgressStepInfo) => {
 }
 
 @media (max-width: 480px) {
-  .step-circle {
-    width: 36px;
-    height: 36px;
-    font-size: 0.9rem;
+  .step-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .progress-step.active .step-dot {
+    width: 10px;
+    height: 10px;
   }
 
   .step-label {
-    font-size: 0.7rem;
+    font-size: 0.6rem;
   }
 
   .progress-line {
