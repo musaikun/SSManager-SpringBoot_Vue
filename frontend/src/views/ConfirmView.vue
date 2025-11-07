@@ -24,23 +24,15 @@
                 'holiday': isHoliday(workDay.date)
               }">{{ workDay.displayDate }}</td>
               <td class="time-cell">
-                <span :class="{
-                  'custom-time': workDay.customStartTime,
-                  'bulk-time': workDay.isBulkApplied && !workDay.customStartTime && workDay.startTime !== workDay.initialStartTime
-                }">{{ workDay.startTime }}</span>
+                <span :class="getStartTimeClass(workDay)">{{ workDay.startTime }}</span>
                 <span class="separator">〜</span>
-                <span :class="{
-                  'custom-time': workDay.customEndTime,
-                  'bulk-time': workDay.isBulkApplied && !workDay.customEndTime && workDay.endTime !== workDay.initialEndTime
-                }">{{ workDay.endTime }}</span>
+                <span :class="getEndTimeClass(workDay)">{{ workDay.endTime }}</span>
               </td>
               <td class="hours-cell">
                 <div v-html="formatWorkTime(workDay)"></div>
               </td>
               <td class="status-cell">
-                <span v-if="workDay.isModified" class="custom-badge">個別設定</span>
-                <span v-else-if="workDay.isBulkApplied" class="bulk-badge">一括設定</span>
-                <span v-else class="initial-badge">初期設定</span>
+                <span :class="getStatusBadgeClass(workDay)">{{ getStatusText(workDay) }}</span>
               </td>
             </tr>
           </tbody>
@@ -153,6 +145,98 @@ const formatWorkTime = (workDay: WorkDay) => {
   return formatMinutesToHours(workDay.workMinutes)
 }
 
+// デフォルト時刻を読み込む
+const loadDefaultTimes = () => {
+  const saved = localStorage.getItem('defaultTimes')
+  if (saved) {
+    const parsed = JSON.parse(saved)
+    return {
+      startTime: parsed.startTime || '09:00',
+      endTime: parsed.endTime || '18:00'
+    }
+  }
+  return {
+    startTime: '09:00',
+    endTime: '18:00'
+  }
+}
+
+// 開始時刻のテキスト色クラスを取得
+const getStartTimeClass = (workDay: WorkDay) => {
+  const defaultTimes = loadDefaultTimes()
+  // デフォルト時刻と同じ場合は黒
+  if (workDay.startTime === defaultTimes.startTime) {
+    return 'default-time'
+  }
+  // 設定方法によって色を変える
+  switch (workDay.startTimeSetBy) {
+    case 'custom':
+      return 'custom-time'
+    case 'bulk':
+      return 'bulk-time'
+    case 'base':
+      return 'from-base-time'
+    default:
+      return 'default-time'
+  }
+}
+
+// 終了時刻のテキスト色クラスを取得
+const getEndTimeClass = (workDay: WorkDay) => {
+  const defaultTimes = loadDefaultTimes()
+  // デフォルト時刻と同じ場合は黒
+  if (workDay.endTime === defaultTimes.endTime) {
+    return 'default-time'
+  }
+  // 設定方法によって色を変える
+  switch (workDay.endTimeSetBy) {
+    case 'custom':
+      return 'custom-time'
+    case 'bulk':
+      return 'bulk-time'
+    case 'base':
+      return 'from-base-time'
+    default:
+      return 'default-time'
+  }
+}
+
+// 設定状態のテキストを取得
+const getStatusText = (workDay: WorkDay) => {
+  // 個別設定が存在する場合は常に「個別設定」
+  if (workDay.startTimeSetBy === 'custom' || workDay.endTimeSetBy === 'custom') {
+    return '個別設定'
+  }
+  // 過去ベースの設定がある場合
+  if (workDay.startTimeSetBy === 'base' || workDay.endTimeSetBy === 'base') {
+    return '過去ベース'
+  }
+  // 一括設定がある場合
+  if (workDay.startTimeSetBy === 'bulk' || workDay.endTimeSetBy === 'bulk') {
+    return '一括設定'
+  }
+  // デフォルトの場合
+  return 'デフォルト'
+}
+
+// 設定状態のバッジクラスを取得
+const getStatusBadgeClass = (workDay: WorkDay) => {
+  // 個別設定が存在する場合は常に「個別設定」
+  if (workDay.startTimeSetBy === 'custom' || workDay.endTimeSetBy === 'custom') {
+    return 'custom-badge'
+  }
+  // 過去ベースの設定がある場合
+  if (workDay.startTimeSetBy === 'base' || workDay.endTimeSetBy === 'base') {
+    return 'base-badge'
+  }
+  // 一括設定がある場合
+  if (workDay.startTimeSetBy === 'bulk' || workDay.endTimeSetBy === 'bulk') {
+    return 'bulk-badge'
+  }
+  // デフォルトの場合
+  return 'initial-badge'
+}
+
 // シフトデータをLocalStorageに保存
 const saveShiftData = () => {
   const shiftData = {
@@ -217,7 +301,7 @@ const downloadCSV = () => {
   activeWorkDays.value.forEach(day => {
     const breakMinutes = calculateBreakTime(day.workMinutes)
     const actualMinutes = day.workMinutes - breakMinutes
-    const status = day.isModified ? '個別設定' : day.isBulkApplied ? '一括設定' : '初期設定'
+    const status = getStatusText(day)
     csv += `${day.displayDate},${day.startTime},${day.endTime},${formatMinutesToHours(day.workMinutes)},${formatMinutesToHours(actualMinutes)},${status}\n`
   })
 
@@ -354,15 +438,24 @@ const copyToClipboard = async () => {
   margin: 0 0.25rem;
 }
 
-/* 個別設定された時間のみ黄色 */
+/* 時刻テキストの色 */
+.default-time {
+  color: #333;
+  font-weight: 600;
+}
+
 .custom-time {
-  color: #d97706;
+  color: #f59e0b;
   font-weight: 700;
 }
 
-/* 一括設定された時間のみ青色 */
 .bulk-time {
-  color: #2563eb;
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+.from-base-time {
+  color: #ef4444;
   font-weight: 700;
 }
 
@@ -405,6 +498,17 @@ const copyToClipboard = async () => {
   display: inline-block;
   padding: 0.2rem 0.4rem;
   background: #f59e0b;
+  color: white;
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.base-badge {
+  display: inline-block;
+  padding: 0.2rem 0.4rem;
+  background: #ef4444;
   color: white;
   border-radius: 10px;
   font-size: 0.65rem;

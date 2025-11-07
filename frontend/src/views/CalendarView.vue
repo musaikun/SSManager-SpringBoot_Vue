@@ -160,8 +160,8 @@ const handleDateClick = (cell: CalendarCell) => {
   if (store.isDateSelected(cell.dateString)) {
     const workDay = timeRegisterStore.workDays.find(wd => wd.date === cell.dateString)
 
-    // 一括設定または個別設定が適用されている場合は確認
-    if (workDay && (workDay.isBulkApplied || workDay.customStartTime || workDay.customEndTime)) {
+    // デフォルト以外の設定が適用されている場合は確認
+    if (workDay && (workDay.startTimeSetBy !== 'default' || workDay.endTimeSetBy !== 'default')) {
       if (!confirm('この日には時間設定が適用されています。\n日付を外してもよろしいですか？')) {
         return // キャンセルされた場合は何もしない
       }
@@ -185,29 +185,42 @@ const isRemovedDate = (dateString: string): boolean => {
   return workDay?.isRemoved ?? false
 }
 
-// 過去のシフトベースから作成された日付かどうかを判定
+// 過去のシフトベースから作成された日付かどうかを判定（個別設定がない場合）
 const isFromBase = (dateString: string): boolean => {
   const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
-  return (workDay?.isFromBase ?? false) && !workDay?.isRemoved
+  if (!workDay || workDay.isRemoved) return false
+  // 個別設定が存在する場合はfalse（個別設定が優先）
+  if (workDay.startTimeSetBy === 'custom' || workDay.endTimeSetBy === 'custom') return false
+  // 過去ベースの設定がある場合
+  return workDay.startTimeSetBy === 'base' || workDay.endTimeSetBy === 'base'
 }
 
 // 個別設定された日付かどうかを判定
 const hasCustomTime = (dateString: string): boolean => {
   const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
-  return ((workDay?.customStartTime ?? false) || (workDay?.customEndTime ?? false)) && !workDay?.isRemoved && !workDay?.isFromBase
+  if (!workDay || workDay.isRemoved) return false
+  // 個別設定が存在する場合
+  return workDay.startTimeSetBy === 'custom' || workDay.endTimeSetBy === 'custom'
 }
 
-// 一括設定が適用された日付かどうかを判定
+// 一括設定が適用された日付かどうかを判定（個別設定や過去ベースがない場合）
 const hasBulkApplied = (dateString: string): boolean => {
   const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
-  return (workDay?.isBulkApplied ?? false) && !workDay?.isRemoved && !workDay?.isFromBase && !workDay?.customStartTime && !workDay?.customEndTime
+  if (!workDay || workDay.isRemoved) return false
+  // 個別設定が存在する場合はfalse（個別設定が優先）
+  if (workDay.startTimeSetBy === 'custom' || workDay.endTimeSetBy === 'custom') return false
+  // 過去ベースの場合もfalse（過去ベースが優先）
+  if (workDay.startTimeSetBy === 'base' || workDay.endTimeSetBy === 'base') return false
+  // 一括設定がある場合
+  return workDay.startTimeSetBy === 'bulk' || workDay.endTimeSetBy === 'bulk'
 }
 
 // 時間設定がある日付かどうかをチェック
 const hasTimeSettings = (dateString: string): boolean => {
   const workDay = timeRegisterStore.workDays.find(wd => wd.date === dateString)
   if (!workDay) return false
-  return workDay.isBulkApplied || workDay.customStartTime || workDay.customEndTime || workDay.isFromBase
+  // デフォルト以外の設定方法がある場合
+  return workDay.startTimeSetBy !== 'default' || workDay.endTimeSetBy !== 'default'
 }
 
 // 休日基準で選択（確認付き）
