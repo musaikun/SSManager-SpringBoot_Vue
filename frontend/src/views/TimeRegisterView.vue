@@ -816,8 +816,8 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
       title: '一括設定の確認',
       message: `${selectedLabel}で個別設定した箇所が${modifiedCount}日あります。`,
       options: [
-        { label: '個別設定以外の日を一括設定', value: 'unmodified' },
-        { label: '個別設定も含め一括設定', value: 'all' },
+        { label: '個別設定の日は除いて適用', value: 'unmodified' },
+        { label: '個別設定も上書きして適用', value: 'all' },
         { label: 'キャンセル', value: 'cancel' }
       ],
       onConfirm: (value: string) => {
@@ -1367,17 +1367,9 @@ const confirmTimeEdit = () => {
   transition: all 0.3s ease;
 }
 
-.bulk-btn-all {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
 .bulk-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.bulk-btn-all:hover {
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .bulk-btn:active {
