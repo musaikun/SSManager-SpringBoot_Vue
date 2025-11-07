@@ -115,6 +115,35 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- 共有モーダル -->
+    <Teleport to="body">
+      <div v-if="showShareModal" class="modal-overlay" @click="closeShareModal">
+        <div class="modal-content share-modal" @click.stop>
+          <div class="modal-header">
+            <h2 class="modal-title">共有方法を選択</h2>
+            <button @click="closeShareModal" class="close-btn">×</button>
+          </div>
+
+          <div class="modal-body">
+            <div class="share-options">
+              <button @click="shareViaLine" class="share-option-btn line-btn">
+                <span class="share-icon">💬</span>
+                <span class="share-label">LINE</span>
+              </button>
+              <button @click="shareViaEmail" class="share-option-btn email-btn">
+                <span class="share-icon">✉️</span>
+                <span class="share-label">メール</span>
+              </button>
+              <button @click="copyToClipboard" class="share-option-btn copy-btn">
+                <span class="share-icon">📋</span>
+                <span class="share-label">コピー</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -137,6 +166,7 @@ interface SavedShift {
 const savedShifts = ref<SavedShift[]>([])
 const selectedShift = ref<SavedShift | null>(null)
 const selectedIndex = ref<number>(-1)
+const showShareModal = ref<boolean>(false)
 
 const handleBack = () => {
   router.push('/calendar')
@@ -208,8 +238,8 @@ const createFromBase = () => {
   closeDetail()
 }
 
-const shareShift = () => {
-  if (!selectedShift.value) return
+const generateShiftText = (): string => {
+  if (!selectedShift.value) return ''
 
   // シフトデータをテキスト形式で生成
   let text = `【${getMonthLabel(selectedShift.value)}】\n\n`
@@ -226,11 +256,40 @@ const shareShift = () => {
     text += `\n【備考】\n${selectedShift.value.remarks}\n`
   }
 
-  // クリップボードにコピー
+  return text
+}
+
+const shareShift = () => {
+  if (!selectedShift.value) return
+  showShareModal.value = true
+}
+
+const closeShareModal = () => {
+  showShareModal.value = false
+}
+
+const shareViaLine = () => {
+  const text = generateShiftText()
+  const url = `https://line.me/R/share?text=${encodeURIComponent(text)}`
+  window.open(url, '_blank')
+  closeShareModal()
+}
+
+const shareViaEmail = () => {
+  const text = generateShiftText()
+  const subject = encodeURIComponent(getMonthLabel(selectedShift.value!))
+  const body = encodeURIComponent(text)
+  const mailtoLink = `mailto:?subject=${subject}&body=${body}`
+  window.location.href = mailtoLink
+  closeShareModal()
+}
+
+const copyToClipboard = () => {
+  const text = generateShiftText()
   navigator.clipboard.writeText(text)
     .then(() => {
       alert('シフト情報をコピーしました')
-      closeDetail()
+      closeShareModal()
     })
     .catch(err => {
       console.error('コピーに失敗:', err)
@@ -620,5 +679,60 @@ onMounted(() => {
 
 .delete-btn:hover .action-label {
   color: #ef4444;
+}
+
+/* 共有モーダル */
+.share-modal {
+  max-width: 350px;
+}
+
+.share-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.share-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.share-option-btn:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+  transform: translateX(5px);
+}
+
+.share-icon {
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.share-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.line-btn:hover {
+  border-color: #06c755;
+  background: #f0fdf4;
+}
+
+.email-btn:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.copy-btn:hover {
+  border-color: #8b5cf6;
+  background: #faf5ff;
 }
 </style>
