@@ -176,21 +176,31 @@
             </span>
           </div>
 
-          <!-- 給与簡易概算ボタン -->
-          <div class="summary-action">
-            <button @click="showSalaryModal = true" class="salary-calc-btn">
-              給与の簡易概算
-            </button>
-          </div>
-
-          <!-- 給与計算結果 -->
-          <div v-if="calculatedSalary > 0" class="salary-result">
-            <div class="salary-result-row">
-              <span class="salary-result-label">概算給与:</span>
-              <span class="salary-result-value">{{ calculatedSalary.toLocaleString() }}円</span>
+          <!-- 給与簡易概算 -->
+          <div class="salary-calc-section">
+            <div class="salary-input-row">
+              <input
+                type="number"
+                v-model.number="hourlyWage"
+                class="wage-input"
+                min="0"
+                step="10"
+                placeholder="時給（円）"
+              />
+              <button @click="calculateSalary" class="salary-calc-btn">
+                給与の簡易概算
+              </button>
             </div>
-            <div class="salary-result-note">
-              ※ 各種税金や社会保険料などの控除を考慮していません。
+
+            <!-- 給与計算結果 -->
+            <div v-if="calculatedSalary > 0" class="salary-result">
+              <div class="salary-result-row">
+                <span class="salary-result-label">概算給与:</span>
+                <span class="salary-result-value">{{ calculatedSalary.toLocaleString() }}円</span>
+              </div>
+              <div class="salary-result-note">
+                ※ 各種税金や社会保険料などの控除を考慮していません。
+              </div>
             </div>
           </div>
         </div>
@@ -241,39 +251,6 @@
             </div>
           </div>
           <button @click="showHelpModal = false" class="close-btn">閉じる</button>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- 給与計算モーダル（Teleportでbody直下に配置） -->
-    <Teleport to="body">
-      <div v-if="showSalaryModal" class="modal-overlay" @click="showSalaryModal = false" @touchmove.prevent>
-        <div class="modal-content salary-modal" @click.stop>
-          <h3 class="modal-title">給与の簡易概算</h3>
-          <div class="salary-content">
-            <div class="input-row">
-              <label class="input-label">時給（円）:</label>
-              <input
-                type="number"
-                v-model.number="hourlyWage"
-                class="wage-input"
-                min="0"
-                step="10"
-              />
-            </div>
-            <button @click="calculateSalary" class="calc-btn">計算する</button>
-
-            <div v-if="calculatedSalary > 0" class="result-section">
-              <div class="result-row">
-                <span class="result-label">概算給与:</span>
-                <span class="result-value">{{ calculatedSalary.toLocaleString() }}円</span>
-              </div>
-              <div class="result-note">
-                ※ 休憩時間を除いた実働時間で計算しています
-              </div>
-            </div>
-          </div>
-          <button @click="showSalaryModal = false" class="close-btn">閉じる</button>
         </div>
       </div>
     </Teleport>
@@ -494,13 +471,12 @@ const confirmModalData = ref({
 // ヘルプモーダルの状態
 const showHelpModal = ref(false)
 
-// 給与計算モーダルの状態
-const showSalaryModal = ref(false)
+// 給与計算の状態
 const hourlyWage = ref<number>(1000) // 時給（デフォルト1000円）
 const calculatedSalary = ref<number>(0)
 
 // モーダル状態をPageSliderに提供（スライド制御用）
-provide('isModalOpen', computed(() => showTimeModal.value || showConfirmModal.value || showHelpModal.value || showSalaryModal.value))
+provide('isModalOpen', computed(() => showTimeModal.value || showConfirmModal.value || showHelpModal.value))
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
@@ -782,6 +758,8 @@ const showBreakHelp = () => {
 // 給与計算（常に休憩時間を除く）
 const calculateSalary = () => {
   const wage = hourlyWage.value
+  if (wage <= 0) return
+
   let totalSalary = 0
 
   // 各勤務日ごとに計算
@@ -801,6 +779,18 @@ const calculateSalary = () => {
 
   calculatedSalary.value = Math.floor(totalSalary)
 }
+
+// workDaysが変更されたら自動で再計算
+watch(
+  () => workDays.value,
+  () => {
+    // 時給が入力されていれば自動計算
+    if (hourlyWage.value > 0 && calculatedSalary.value > 0) {
+      calculateSalary()
+    }
+  },
+  { deep: true }
+)
 
 // 開始時間の選択
 const selectStartHour = (hour: number) => {
@@ -1636,24 +1626,54 @@ const confirmTimeEdit = () => {
   transform: scale(1.1);
 }
 
-/* 給与計算ボタン */
-.summary-action {
+/* 給与計算セクション */
+.salary-calc-section {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 2px solid #e0e0e0;
 }
 
-.salary-calc-btn {
-  width: 100%;
+.salary-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.wage-input {
+  flex: 1;
   padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+  transition: all 0.3s ease;
+  min-width: 0; /* flexで縮小可能にする */
+}
+
+.wage-input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.wage-input::placeholder {
+  color: #999;
+  font-weight: 500;
+}
+
+.salary-calc-btn {
+  padding: 0.75rem 1.25rem;
   background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .salary-calc-btn:hover {
@@ -1845,98 +1865,6 @@ const confirmTimeEdit = () => {
 .close-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-/* 給与計算モーダル */
-.salary-modal {
-  max-width: 400px;
-  width: 100%;
-}
-
-.salary-content {
-  margin-bottom: 1.5rem;
-}
-
-.input-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.input-label {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #333;
-  white-space: nowrap;
-}
-
-.wage-input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #333;
-  transition: all 0.3s ease;
-}
-
-.wage-input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.calc-btn {
-  width: 100%;
-  padding: 0.875rem;
-  background: linear-gradient(135deg, #10b981, #34d399);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 1rem;
-}
-
-.calc-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-.result-section {
-  padding: 1rem;
-  background: #f0f4ff;
-  border-radius: 8px;
-  border-left: 4px solid #667eea;
-}
-
-.result-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.result-label {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #666;
-}
-
-.result-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #667eea;
-}
-
-.result-note {
-  font-size: 0.75rem;
-  color: #999;
-  text-align: right;
 }
 
 /* 時刻選択モーダル */
