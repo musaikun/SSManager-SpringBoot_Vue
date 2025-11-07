@@ -83,9 +83,23 @@
         </transition>
       </div>
 
-      <!-- 注意書き -->
-      <div class="info-note">
-        ※時間表示：<span class="color-label default-color">デフォルト</span> / <span class="color-label custom-color">個別設定</span> / <span class="color-label bulk-color">一括設定</span>
+      <!-- 時間表示凡例 -->
+      <div class="time-display-legend">
+        <div class="legend-label">※時間表示:</div>
+        <div class="legend-items">
+          <div class="legend-item default-style">
+            <div class="legend-card">デフォルト</div>
+          </div>
+          <div class="legend-item custom-style">
+            <div class="legend-card">個別設定</div>
+          </div>
+          <div class="legend-item bulk-style">
+            <div class="legend-card">一括設定</div>
+          </div>
+          <div class="legend-item base-style">
+            <div class="legend-card">過去のシフトベース</div>
+          </div>
+        </div>
       </div>
 
       <!-- 勤務日カードリスト -->
@@ -128,9 +142,6 @@
               <div class="card-hours">
                 <span class="hours-icon">💼</span>
                 <span class="hours-text">{{ formatWorkTime(workDay) }}</span>
-                <span v-if="workDay.isFromBase" class="state-label from-base-label">/過去のシフトベース</span>
-                <span v-else-if="workDay.customStartTime || workDay.customEndTime" class="state-label custom-label">/個別設定</span>
-                <span v-else-if="workDay.isBulkApplied" class="state-label bulk-label">/一括設定</span>
               </div>
             </div>
           </div>
@@ -1271,33 +1282,66 @@ const confirmTimeEdit = () => {
 }
 
 /* 注意書き */
-.info-note {
-  text-align: center;
-  font-size: 0.75rem;
-  color: white;
-  padding: 0.5rem 1rem;
+/* 時間表示凡例 */
+.time-display-legend {
+  padding: 0.75rem 1rem;
   margin-bottom: 1rem;
 }
 
-.info-note .color-label {
-  font-weight: 700;
-  padding: 0.1rem 0.3rem;
-  border-radius: 4px;
+.legend-label {
+  font-size: 0.75rem;
+  color: white;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
 }
 
-.info-note .default-color {
+.legend-items {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+}
+
+.legend-card {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border-left-width: 3px;
+  border-left-style: solid;
+  white-space: nowrap;
+}
+
+/* デフォルトスタイル */
+.legend-item.default-style .legend-card {
+  background: white;
   color: #333;
-  background: rgba(255, 255, 255, 0.9);
+  border-left-color: #e5e7eb;
 }
 
-.info-note .custom-color {
-  color: #d97706;
-  background: rgba(255, 255, 255, 0.9);
+/* 個別設定スタイル - 黄色 */
+.legend-item.custom-style .legend-card {
+  background: #fef3c7;
+  color: #78350f;
+  border-left-color: #f59e0b;
 }
 
-.info-note .bulk-color {
-  color: #2563eb;
-  background: rgba(255, 255, 255, 0.9);
+/* 一括設定スタイル - 青色 */
+.legend-item.bulk-style .legend-card {
+  background: #dbeafe;
+  color: #1e3a8a;
+  border-left-color: #3b82f6;
+}
+
+/* 過去のシフトベーススタイル - 赤色 */
+.legend-item.base-style .legend-card {
+  background: #fee2e2;
+  color: #991b1b;
+  border-left-color: #ef4444;
 }
 
 /* 休憩時間設定 */
@@ -1516,26 +1560,6 @@ const confirmTimeEdit = () => {
 .time-separator.from-base-time {
   color: #dc2626;
   font-weight: 700;
-}
-
-/* 状態ラベル */
-.state-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  margin-left: 0.3rem;
-  white-space: nowrap;
-}
-
-.state-label.from-base-label {
-  color: #dc2626;
-}
-
-.state-label.custom-label {
-  color: #d97706;
-}
-
-.state-label.bulk-label {
-  color: #2563eb;
 }
 
 /* removed は modified より優先（グレーアウト） */
