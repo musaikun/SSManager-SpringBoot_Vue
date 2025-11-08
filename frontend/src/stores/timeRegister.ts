@@ -41,6 +41,7 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
         endTime: defaultTimes.endTime
       },
       includeBreak: false,
+      remarks: '',
       showSubmitModal: false,
       timePicker: {
         isOpen: false,
@@ -354,6 +355,13 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
     },
 
     /**
+     * 備考欄を更新
+     */
+    updateRemarks(newRemarks: string) {
+      this.remarks = newRemarks
+    },
+
+    /**
      * 時間ピッカーを開く
      */
     openTimePicker(mode: TimePickerMode, cardIndex?: number) {
@@ -424,6 +432,7 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
         endTime: '18:00'
       }
       this.includeBreak = false
+      this.remarks = ''
       this.showSubmitModal = false
       this.timePicker = {
         isOpen: false,

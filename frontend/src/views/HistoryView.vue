@@ -319,9 +319,14 @@ const createFromBase = () => {
     }
   })
 
-  // 詳細モーダルを閉じて、時間登録画面へ遷移
+  // 備考欄も復元
+  if (selectedShift.value!.remarks) {
+    timeRegisterStore.remarks = selectedShift.value!.remarks
+  }
+
+  // 詳細モーダルを閉じて、カレンダー画面へ遷移
   closeDetail()
-  router.push('/time-register')
+  router.push('/calendar')
 
   alert(`${datesToSelect.length}日のシフトをベースに作成しました`)
 }

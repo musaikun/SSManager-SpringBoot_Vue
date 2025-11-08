@@ -59,7 +59,7 @@
         <label for="remarks" class="remarks-label">備考</label>
         <textarea
           id="remarks"
-          v-model="remarks"
+          v-model="timeRegisterStore.remarks"
           class="remarks-input"
           placeholder="未ログインの場合、氏名の情報は含まれないので入力しましょう"
           rows="4"
@@ -125,9 +125,6 @@ const { totalSummary } = storeToRefs(timeRegisterStore)
 
 const { formatMinutesToHours } = useTimeFormat()
 const { calculateBreakTime } = useTimeCalculation()
-
-// ローカル状態
-const remarks = ref<string>('')
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
@@ -242,7 +239,7 @@ const saveShiftData = () => {
   const shiftData = {
     workDays: activeWorkDays.value,
     totalSummary: totalSummary.value,
-    remarks: remarks.value,
+    remarks: timeRegisterStore.remarks,
     submittedAt: new Date().toISOString()
   }
 
@@ -263,8 +260,8 @@ const generateShiftText = (): string => {
   text += `\n【合計】\n`
   text += `勤務日数: ${totalSummary.value.workDays}日\n`
 
-  if (remarks.value.trim()) {
-    text += `\n【備考】\n${remarks.value}\n`
+  if (timeRegisterStore.remarks.trim()) {
+    text += `\n【備考】\n${timeRegisterStore.remarks}\n`
   }
 
   return text
@@ -310,8 +307,8 @@ const downloadCSV = () => {
   csv += `総勤務時間,${formatMinutesToHours(totalSummary.value.totalWorkMinutes)}\n`
   csv += `実働時間,${formatMinutesToHours(totalSummary.value.totalActualWorkMinutes)}\n`
 
-  if (remarks.value.trim()) {
-    csv += `\n備考\n${remarks.value}\n`
+  if (timeRegisterStore.remarks.trim()) {
+    csv += `\n備考\n${timeRegisterStore.remarks}\n`
   }
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })

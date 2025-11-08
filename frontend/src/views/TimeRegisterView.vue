@@ -222,6 +222,18 @@
               </div>
             </div>
           </div>
+
+          <!-- 備考欄 -->
+          <div class="remarks-section-time">
+            <label for="remarks-time" class="remarks-label-time">備考</label>
+            <textarea
+              id="remarks-time"
+              v-model="timeRegisterStore.remarks"
+              class="remarks-input-time"
+              placeholder="未ログインの場合、氏名の情報は含まれないので入力しましょう"
+              rows="4"
+            ></textarea>
+          </div>
         </div>
       </div>
     </div>
@@ -1460,15 +1472,19 @@ const confirmTimeEdit = () => {
 /* 個別設定ヘッダー */
 .individual-settings-header {
   margin-bottom: 0.75rem;
-  padding: 0.5rem 0;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .individual-settings-header h3 {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
-  color: #667eea;
-  text-align: left;
+  color: white;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* 休憩時間設定 */
@@ -1956,6 +1972,43 @@ const confirmTimeEdit = () => {
   font-size: 0.75rem;
   color: #999;
   line-height: 1.5;
+}
+
+/* 備考欄（時間設定ページ） */
+.remarks-section-time {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #e0e0e0;
+}
+
+.remarks-label-time {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.remarks-input-time {
+  width: 100%;
+  padding: 0.875rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #333;
+  resize: vertical;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.remarks-input-time:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.remarks-input-time::placeholder {
+  color: #999;
 }
 
 /* モーダル共通 */
