@@ -1088,13 +1088,13 @@ onMounted(() => {
   initializeWorkDays()
 })
 
-// カレンダーの選択状態が変わったら workDays を更新
+// カレンダーの選択状態が変わったら workDays を即座に更新
 watch(() => calendarStore.selectedDatesArray, (newDates) => {
-  // 時間設定画面にいる場合のみ更新
-  if (route.path === '/time-register') {
+  // カレンダー画面または時間設定画面にいる場合に即座更新
+  if (route.path === '/calendar' || route.path === '/time-register') {
     initializeWorkDays()
   }
-}, { deep: true })
+}, { deep: true, immediate: false })
 
 // ルートが時間設定画面に変わったときも初期化チェック
 watch(() => route.path, (newPath) => {
@@ -2406,16 +2406,22 @@ const confirmTimeEdit = () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
 }
 
 .group-wage-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-width: 120px;
+  flex: 0 0 auto;
+  max-width: 50%;
   font-size: 0.9rem;
   font-weight: 600;
   color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .group-color-dot {
@@ -2427,7 +2433,9 @@ const confirmTimeEdit = () => {
 }
 
 .wage-input-small {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 150px;
   padding: 0.5rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;

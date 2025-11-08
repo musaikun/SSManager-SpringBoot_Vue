@@ -62,6 +62,13 @@
                     ✎
                   </button>
                   <button
+                    @click="deleteGroupDirect(group.id as GroupId)"
+                    class="group-delete-btn"
+                    title="グループを削除"
+                  >
+                    🗑️
+                  </button>
+                  <button
                     v-if="isGroupActive(group.id as GroupId)"
                     @click="clearGroupDates(group.id as GroupId)"
                     class="group-clear-btn"
@@ -345,8 +352,16 @@ const addNewGroup = () => {
   }
 }
 
-// グループを削除
+// グループを削除（モーダルから）
 const deleteGroup = (groupId: GroupId) => {
+  if (confirm('このグループを削除しますか？\n（日付の割り当ても解除されます）')) {
+    groupStore.deleteGroup(groupId)
+    closeGroupEditModal()
+  }
+}
+
+// グループを直接削除（アコーディオンから）
+const deleteGroupDirect = (groupId: GroupId) => {
   if (confirm('このグループを削除しますか？\n（日付の割り当ても解除されます）')) {
     groupStore.deleteGroup(groupId)
   }
@@ -832,6 +847,28 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   background: #764ba2;
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.group-delete-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f97316;
+  color: white;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.group-delete-btn:hover {
+  background: #ea580c;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
 }
 
 .add-group-btn {
