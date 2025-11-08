@@ -23,7 +23,6 @@ export type GroupColor =
   | 'fluorescent-pink'
   | 'fluorescent-purple'
   | 'fluorescent-blue'
-  | 'fluorescent-green'
   | 'fluorescent-orange'
   | 'fluorescent-red'
   | 'fluorescent-cyan'

@@ -51,15 +51,15 @@
                     }"
                   >
                     <span class="group-color-indicator" :style="{ background: getGroupColorConfig(group.id as GroupId)?.gradientColor }"></span>
-                    <span class="group-name">{{ group.name }}</span>
+                    <input
+                      type="text"
+                      :value="group.name"
+                      @click.stop
+                      @change="(e) => updateGroupName(group.id as GroupId, (e.target as HTMLInputElement).value)"
+                      class="group-name-input"
+                      :placeholder="group.name"
+                    />
                     <span v-if="group.dates.length > 0" class="group-count">{{ group.dates.length }}</span>
-                  </button>
-                  <button
-                    @click="openGroupEditModal(group.id as GroupId)"
-                    class="group-edit-btn"
-                    title="グループ編集"
-                  >
-                    ✎
                   </button>
                   <button
                     @click="deleteOrHideGroup(group.id as GroupId)"
@@ -359,10 +359,21 @@ const deleteGroup = (groupId: GroupId) => {
   }
 }
 
+// グループ名を更新
+const updateGroupName = (groupId: GroupId, newName: string) => {
+  if (!newName || !newName.trim()) return
+  groupStore.updateGroupName(groupId, newName.trim())
+}
+
 // グループを非表示または削除（アコーディオンから）
 const deleteOrHideGroup = (groupId: GroupId) => {
   const group = groupStore.getGroupById(groupId)
   if (!group) return
+
+  // 確認ダイアログを表示
+  if (!confirm('選択したグループはすべて解除されます。\nよろしいですか？')) {
+    return
+  }
 
   // 日付の割り当てがある場合
   const hasDates = group.dates.length > 0
@@ -375,6 +386,11 @@ const deleteOrHideGroup = (groupId: GroupId) => {
     groupStore.hideGroup(groupId)
   } else {
     groupStore.deleteGroup(groupId)
+  }
+
+  // 削除したグループが選択されていた場合、選択を解除
+  if (selectedGroupId.value === groupId) {
+    selectedGroupId.value = null
   }
 }
 
@@ -853,9 +869,27 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   flex-shrink: 0;
 }
 
-.group-name {
+.group-name-input {
   flex: 1;
   text-align: left;
+  border: none;
+  background: transparent;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  padding: 0.25rem;
+  min-width: 0;
+}
+
+.group-name-input:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.group-name-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
 }
 
 .group-count {
@@ -892,28 +926,6 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   background: #dc2626;
   transform: scale(1.1) rotate(90deg);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-}
-
-.group-edit-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #667eea;
-  color: white;
-  border: none;
-  font-size: 1.25rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.group-edit-btn:hover {
-  background: #764ba2;
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .group-delete-or-hide-btn {

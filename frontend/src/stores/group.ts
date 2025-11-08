@@ -56,13 +56,6 @@ export const GROUP_COLOR_CONFIGS: Record<GroupColor, GroupColorConfig> = {
     gradientColor: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
     shadowColor: 'rgba(14, 165, 233, 0.6)'
   },
-  'fluorescent-green': {
-    name: 'fluorescent-green',
-    displayName: '蛍光グリーン',
-    borderColor: '#10b981',
-    gradientColor: 'linear-gradient(135deg, #10b981, #34d399)',
-    shadowColor: 'rgba(16, 185, 129, 0.6)'
-  },
   'fluorescent-orange': {
     name: 'fluorescent-orange',
     displayName: '蛍光オレンジ',
@@ -102,7 +95,6 @@ const AVAILABLE_COLORS: GroupColor[] = [
   'fluorescent-pink',
   'fluorescent-purple',
   'fluorescent-blue',
-  'fluorescent-green',
   'fluorescent-orange',
   'fluorescent-red',
   'fluorescent-cyan',

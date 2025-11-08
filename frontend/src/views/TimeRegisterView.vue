@@ -2405,6 +2405,7 @@ const confirmTimeEdit = () => {
   font-size: 0.9rem;
   font-weight: 600;
   color: #333;
+  text-align: right;
   transition: all 0.3s ease;
 }
 
