@@ -43,7 +43,8 @@
                     class="group-btn"
                     :class="{
                       active: selectedGroupId === group.id,
-                      'has-dates': isGroupActive(group.id as GroupId)
+                      'has-dates': isGroupActive(group.id as GroupId),
+                      'has-overlaps': groupHasOverlaps(group.id as GroupId)
                     }"
                     :style="{
                       '--group-color': getGroupColorConfig(group.id as GroupId)?.borderColor,
@@ -52,6 +53,14 @@
                   >
                     <span class="group-color-indicator" :style="{ background: getGroupColorConfig(group.id as GroupId)?.gradientColor }"></span>
                     <span class="group-name">{{ group.name }}</span>
+                    <button
+                      v-if="groupHasOverlaps(group.id as GroupId)"
+                      @click.stop="openOverlapModal(group.id as GroupId)"
+                      class="overlap-warning-icon"
+                      title="時間重複あり"
+                    >
+                      ！
+                    </button>
                     <span v-if="group.dates.length > 0" class="group-count">{{ group.dates.length }}</span>
                   </button>
                   <button
@@ -226,6 +235,38 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- 重複詳細モーダル -->
+    <Teleport to="body">
+      <div v-if="showOverlapModal" class="modal-overlay" @click="closeOverlapModal">
+        <div class="modal-content overlap-modal" @click.stop>
+          <h3 class="modal-title">⚠️ 時間重複の警告</h3>
+          <div class="overlap-content">
+            <p class="overlap-description">以下の日付で複数のグループが重複しています：</p>
+            <div class="overlap-list">
+              <div
+                v-for="(overlap, index) in getOverlapsForSelectedGroup"
+                :key="index"
+                class="overlap-item"
+              >
+                <div class="overlap-date">📅 {{ overlap.date }}</div>
+                <div class="overlap-time">⏰ {{ overlap.overlappingTime.start }} 〜 {{ overlap.overlappingTime.end }}</div>
+                <div class="overlap-groups">
+                  <span
+                    v-for="(pair, pairIndex) in overlap.overlappingGroups"
+                    :key="pairIndex"
+                    class="overlap-pair"
+                  >
+                    {{ pair.group1Name }} ⚡ {{ pair.group2Name }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button @click="closeOverlapModal" class="close-btn">閉じる</button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -279,6 +320,8 @@ const showGroupEditModal = ref(false)
 const editingGroupId = ref<GroupId | null>(null)
 const editingGroupName = ref('')
 const editingGroupHourlyWage = ref(1000)
+const showOverlapModal = ref(false)
+const selectedOverlapGroupId = ref<GroupId | null>(null)
 
 // グループ化アコーディオンのトグル
 const toggleGrouping = () => {
@@ -366,6 +409,34 @@ const deleteGroup = (groupId: GroupId) => {
     groupStore.deleteGroup(groupId)
   }
 }
+
+// グループが重複を持っているかチェック
+const groupHasOverlaps = (groupId: GroupId): boolean => {
+  return groupStore.groupHasOverlaps(groupId)
+}
+
+// 重複詳細モーダルを開く
+const openOverlapModal = (groupId: GroupId) => {
+  selectedOverlapGroupId.value = groupId
+  showOverlapModal.value = true
+}
+
+// 重複詳細モーダルを閉じる
+const closeOverlapModal = () => {
+  showOverlapModal.value = false
+  selectedOverlapGroupId.value = null
+}
+
+// 選択されたグループの重複情報を取得
+const getOverlapsForSelectedGroup = computed(() => {
+  if (selectedOverlapGroupId.value === null) return []
+
+  return groupStore.timeOverlaps.filter(overlap =>
+    overlap.overlappingGroups.some(
+      pair => pair.group1Id === selectedOverlapGroupId.value || pair.group2Id === selectedOverlapGroupId.value
+    )
+  )
+})
 
 // 今月・来月の判定
 const isThisMonth = computed(() => {
@@ -1420,5 +1491,98 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
 .btn-save:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* 重複警告アイコン */
+.overlap-warning-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ff0000;
+  color: white;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-warning 2s ease-in-out infinite;
+  margin-left: 0.25rem;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(255, 0, 0, 0.9);
+    transform: scale(1.1);
+  }
+}
+
+.overlap-warning-icon:hover {
+  background: #dc2626;
+  transform: scale(1.2);
+}
+
+/* 重複モーダル */
+.overlap-modal {
+  max-width: 500px;
+}
+
+.overlap-content {
+  margin-bottom: 1.5rem;
+}
+
+.overlap-description {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  color: #666;
+  text-align: center;
+}
+
+.overlap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.overlap-item {
+  padding: 1rem;
+  background: #fff5f5;
+  border: 2px solid #fecaca;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.1);
+}
+
+.overlap-date {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #991b1b;
+  margin-bottom: 0.5rem;
+}
+
+.overlap-time {
+  font-size: 0.95rem;
+  color: #7f1d1d;
+  margin-bottom: 0.5rem;
+}
+
+.overlap-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.overlap-pair {
+  padding: 0.25rem 0.75rem;
+  background: white;
+  border: 1px solid #f87171;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  color: #991b1b;
+  font-weight: 600;
 }
 </style>

@@ -140,7 +140,8 @@
               getBorderClass(workDay),
               {
                 removed: workDay.isRemoved,
-                highlighted: isHighlighted(workDay)
+                highlighted: isHighlighted(workDay),
+                'has-overlap': hasTimeOverlap(workDay.date)
               }
             ]"
           >
@@ -600,6 +601,12 @@ const shouldShowGroupHeader = (index: number): boolean => {
 const getGroupHeaderInfo = (index: number) => {
   const day = activeWorkDays.value[index] as GroupedWorkDay
   return day.groupInfo
+}
+
+// 日付が時間重複しているかチェック
+const hasTimeOverlap = (date: string): boolean => {
+  const overlaps = groupStore.timeOverlaps
+  return overlaps.some(overlap => overlap.date === date)
 }
 
 // 選択条件に該当する勤務日かどうかを判定
@@ -1821,6 +1828,28 @@ const confirmTimeEdit = () => {
 .work-day-card.highlighted {
   border: 3px solid #00ff00;
   border-left-width: 4px !important;
+}
+
+/* 時間重複があるカードは赤い蛍光色の囲い */
+.work-day-card.has-overlap {
+  border: 3px solid #ff0000 !important;
+  box-shadow:
+    0 0 20px rgba(255, 0, 0, 0.6),
+    inset 0 0 15px rgba(255, 0, 0, 0.3);
+  animation: pulse-red 2s ease-in-out infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow:
+      0 0 20px rgba(255, 0, 0, 0.6),
+      inset 0 0 15px rgba(255, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 30px rgba(255, 0, 0, 0.8),
+      inset 0 0 20px rgba(255, 0, 0, 0.5);
+  }
 }
 
 /* 時刻テキストの色 */
