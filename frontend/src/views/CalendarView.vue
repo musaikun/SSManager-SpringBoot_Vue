@@ -20,6 +20,22 @@
           </button>
         </div>
 
+        <!-- グループ化設定アコーディオン -->
+        <div class="grouping-section">
+          <div class="grouping-header" @click="toggleGrouping">
+            <span class="grouping-title">グループ化設定</span>
+            <div class="grouping-controls">
+              <button @click.stop="showGroupingHelp" class="help-icon-btn">?</button>
+              <span class="accordion-icon">{{ isGroupingOpen ? '▲' : '▼' }}</span>
+            </div>
+          </div>
+          <transition name="accordion">
+            <div v-show="isGroupingOpen" class="grouping-content">
+              <p class="grouping-note">※グループ化機能は準備中です</p>
+            </div>
+          </transition>
+        </div>
+
         <!-- アクションボタン：休日基準で選択・平日のみ選択・クリア -->
         <div class="action-buttons">
           <button @click="handleSelectAll" class="action-btn" :class="{ selected: isAllSelected }">休日基準で選択</button>
@@ -91,6 +107,20 @@
           </div>
         </div>
       </div>
+
+    <!-- グループ化ヘルプモーダル -->
+    <Teleport to="body">
+      <div v-if="showGroupingHelpModal" class="modal-overlay" @click="closeGroupingHelp">
+        <div class="modal-content help-modal" @click.stop>
+          <h3 class="modal-title">グループ化設定について</h3>
+          <div class="help-content">
+            <p>グループ化機能は現在準備中です。</p>
+            <p>将来的に、日付をグループ分けして管理できる機能を追加予定です。</p>
+          </div>
+          <button @click="closeGroupingHelp" class="close-btn">閉じる</button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -134,6 +164,23 @@ const { fetchHolidaysWithCache, holidays: holidaysData } = useHolidays()
 
 // ローカル状態
 const weekdays = ['日', '月', '火', '水', '木', '金', '土']
+const isGroupingOpen = ref(false)
+const showGroupingHelpModal = ref(false)
+
+// グループ化アコーディオンのトグル
+const toggleGrouping = () => {
+  isGroupingOpen.value = !isGroupingOpen.value
+}
+
+// グループ化ヘルプモーダルを表示
+const showGroupingHelp = () => {
+  showGroupingHelpModal.value = true
+}
+
+// グループ化ヘルプモーダルを閉じる
+const closeGroupingHelp = () => {
+  showGroupingHelpModal.value = false
+}
 
 // 今月・来月の判定
 const isThisMonth = computed(() => {
@@ -382,6 +429,93 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* グループ化設定アコーディオン */
+.grouping-section {
+  margin-bottom: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.grouping-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  user-select: none;
+}
+
+.grouping-header:hover {
+  background: #e9ecef;
+}
+
+.grouping-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.grouping-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.help-icon-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-icon-btn:hover {
+  background: #764ba2;
+  transform: scale(1.1);
+}
+
+.accordion-icon {
+  font-size: 0.875rem;
+  color: #667eea;
+  font-weight: 700;
+}
+
+.grouping-content {
+  padding: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.grouping-note {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+  text-align: center;
+}
+
+/* アコーディオントランジション */
+.accordion-enter-active,
+.accordion-leave-active {
+  transition: all 0.3s ease;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.accordion-enter-from,
+.accordion-leave-to {
+  max-height: 0;
+  opacity: 0;
 }
 
 /* アクションボタン */
@@ -704,5 +838,82 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   .date-number {
     font-size: 0.9rem;
   }
+}
+
+/* ヘルプモーダル */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease;
+  max-width: 400px;
+  width: 100%;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.help-modal {
+  max-width: 400px;
+}
+
+.modal-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #667eea;
+  text-align: center;
+}
+
+.help-content {
+  margin-bottom: 1.5rem;
+}
+
+.help-content p {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+  color: #333;
+  line-height: 1.6;
+}
+
+.close-btn {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 </style>

@@ -600,11 +600,6 @@ const getCardBackgroundClass = (workDay: WorkDay) => {
 
 // 開始時刻のテキスト色クラスを取得
 const getStartTimeClass = (workDay: WorkDay) => {
-  const defaultTimes = loadDefaultTimes()
-  // デフォルト時刻と同じ場合は黒
-  if (workDay.startTime === defaultTimes.startTime) {
-    return 'default-time'
-  }
   // 設定方法によって色を変える
   switch (workDay.startTimeSetBy) {
     case 'custom':
@@ -620,11 +615,6 @@ const getStartTimeClass = (workDay: WorkDay) => {
 
 // 終了時刻のテキスト色クラスを取得
 const getEndTimeClass = (workDay: WorkDay) => {
-  const defaultTimes = loadDefaultTimes()
-  // デフォルト時刻と同じ場合は黒
-  if (workDay.endTime === defaultTimes.endTime) {
-    return 'default-time'
-  }
   // 設定方法によって色を変える
   switch (workDay.endTimeSetBy) {
     case 'custom':
@@ -641,6 +631,7 @@ const getEndTimeClass = (workDay: WorkDay) => {
 // 左ボーダーの色配列を取得（最大2色）
 const getBorderColors = (workDay: WorkDay) => {
   const colors = new Set<string>()
+  const defaultTimes = loadDefaultTimes()
 
   // 設定方法を収集
   if (workDay.startTimeSetBy === 'custom' || workDay.endTimeSetBy === 'custom') {
@@ -651,10 +642,18 @@ const getBorderColors = (workDay: WorkDay) => {
   }
   if (workDay.startTimeSetBy === 'base' || workDay.endTimeSetBy === 'base') {
     colors.add('base')
+
+    // baseの場合、デフォルト時刻と同じかチェック
+    const startIsDefault = workDay.startTime === defaultTimes.startTime && workDay.startTimeSetBy === 'base'
+    const endIsDefault = workDay.endTime === defaultTimes.endTime && workDay.endTimeSetBy === 'base'
+
+    if (startIsDefault || endIsDefault) {
+      colors.add('default')
+    }
   }
 
-  // 優先順位: custom → bulk → base
-  const priority = ['custom', 'bulk', 'base']
+  // 優先順位: custom → base → bulk → default
+  const priority = ['custom', 'base', 'bulk', 'default']
   const result = priority.filter(color => colors.has(color))
 
   // 最大2色まで
@@ -1685,6 +1684,11 @@ const confirmTimeEdit = () => {
 .work-day-card.border-bulk-base {
   border-left: 4px solid;
   border-image: linear-gradient(to bottom, #3b82f6 50%, #ef4444 50%) 1;
+}
+
+.work-day-card.border-base-default {
+  border-left: 4px solid;
+  border-image: linear-gradient(to bottom, #ef4444 50%, #e5e7eb 50%) 1;
 }
 
 /* 選択条件に該当するカードは蛍光緑色の枠 */
