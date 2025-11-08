@@ -18,12 +18,12 @@ export type GroupId = number
  * グループカラー（蛍光色）
  */
 export type GroupColor =
+  | 'fluorescent-white'
   | 'fluorescent-black'
   | 'fluorescent-yellow'
   | 'fluorescent-pink'
   | 'fluorescent-purple'
   | 'fluorescent-blue'
-  | 'fluorescent-green'
   | 'fluorescent-orange'
   | 'fluorescent-red'
   | 'fluorescent-cyan'
@@ -61,6 +61,8 @@ export interface Group {
   isActive: boolean
   /** 時給（円） */
   hourlyWage: number
+  /** 表示するか（UI表示制御用） */
+  isVisible?: boolean
 }
 
 /**
@@ -81,6 +83,8 @@ export interface GroupState {
   groups: Group[]
   /** 日付とグループのマッピング */
   dateGroupMappings: DateGroupMapping[]
+  /** グループなしの表示名 */
+  ungroupedName?: string
 }
 
 /**

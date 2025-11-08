@@ -21,6 +21,13 @@ import { useTimeRegisterStore } from './timeRegister'
  * グループカラーの定義（蛍光色10種）
  */
 export const GROUP_COLOR_CONFIGS: Record<GroupColor, GroupColorConfig> = {
+  'fluorescent-white': {
+    name: 'fluorescent-white',
+    displayName: '蛍光ホワイト',
+    borderColor: '#ffffff',
+    gradientColor: 'linear-gradient(135deg, #ffffff, #f0f0f0)',
+    shadowColor: 'rgba(255, 255, 255, 0.8)'
+  },
   'fluorescent-black': {
     name: 'fluorescent-black',
     displayName: '蛍光ブラック',
@@ -55,13 +62,6 @@ export const GROUP_COLOR_CONFIGS: Record<GroupColor, GroupColorConfig> = {
     borderColor: '#0ea5e9',
     gradientColor: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
     shadowColor: 'rgba(14, 165, 233, 0.6)'
-  },
-  'fluorescent-green': {
-    name: 'fluorescent-green',
-    displayName: '蛍光グリーン',
-    borderColor: '#10b981',
-    gradientColor: 'linear-gradient(135deg, #10b981, #34d399)',
-    shadowColor: 'rgba(16, 185, 129, 0.6)'
   },
   'fluorescent-orange': {
     name: 'fluorescent-orange',
@@ -102,7 +102,6 @@ const AVAILABLE_COLORS: GroupColor[] = [
   'fluorescent-pink',
   'fluorescent-purple',
   'fluorescent-blue',
-  'fluorescent-green',
   'fluorescent-orange',
   'fluorescent-red',
   'fluorescent-cyan',
@@ -132,7 +131,8 @@ const createInitialGroups = (): Group[] => {
       color: getColorForGroupId(0),
       dates: [],
       isActive: false,
-      hourlyWage: DEFAULT_HOURLY_WAGE
+      hourlyWage: DEFAULT_HOURLY_WAGE,
+      isVisible: true
     }
   ]
 }
@@ -143,6 +143,15 @@ export const useGroupStore = defineStore('group', {
     if (savedState) {
       try {
         const parsed = JSON.parse(savedState) as GroupState
+        // 後方互換性：isVisibleが未定義の場合はtrueに設定
+        parsed.groups = parsed.groups.map(g => ({
+          ...g,
+          isVisible: g.isVisible ?? true
+        }))
+        // 後方互換性：ungroupedNameが未定義の場合はデフォルト値を設定
+        if (!parsed.ungroupedName) {
+          parsed.ungroupedName = 'グループなし'
+        }
         return parsed
       } catch (e) {
         console.error('Failed to parse saved group state', e)
@@ -151,7 +160,8 @@ export const useGroupStore = defineStore('group', {
 
     return {
       groups: createInitialGroups(),
-      dateGroupMappings: []
+      dateGroupMappings: [],
+      ungroupedName: 'グループなし'
     }
   },
 
@@ -161,6 +171,13 @@ export const useGroupStore = defineStore('group', {
      */
     activeGroups: (state): Group[] => {
       return state.groups.filter(g => g.isActive)
+    },
+
+    /**
+     * 表示するグループのリストを取得
+     */
+    visibleGroups: (state): Group[] => {
+      return state.groups.filter(g => g.isVisible !== false)
     },
 
     /**
@@ -468,7 +485,8 @@ export const useGroupStore = defineStore('group', {
         color,
         dates: [],
         isActive: false,
-        hourlyWage: DEFAULT_HOURLY_WAGE
+        hourlyWage: DEFAULT_HOURLY_WAGE,
+        isVisible: true
       }
 
       this.groups.push(newGroup)
@@ -490,6 +508,28 @@ export const useGroupStore = defineStore('group', {
     },
 
     /**
+     * グループを非表示にする
+     */
+    hideGroup(groupId: GroupId) {
+      const group = this.groups.find(g => g.id === groupId)
+      if (!group) return
+
+      group.isVisible = false
+      this.saveToLocalStorage()
+    },
+
+    /**
+     * グループを表示する
+     */
+    showGroup(groupId: GroupId) {
+      const group = this.groups.find(g => g.id === groupId)
+      if (!group) return
+
+      group.isVisible = true
+      this.saveToLocalStorage()
+    },
+
+    /**
      * グループの時給を更新
      */
     updateGroupHourlyWage(groupId: GroupId, hourlyWage: number) {
@@ -506,6 +546,15 @@ export const useGroupStore = defineStore('group', {
     reset() {
       this.groups = createInitialGroups()
       this.dateGroupMappings = []
+      this.ungroupedName = 'グループなし'
+      this.saveToLocalStorage()
+    },
+
+    /**
+     * 「グループなし」の名前を更新
+     */
+    updateUngroupedName(newName: string) {
+      this.ungroupedName = newName || 'グループなし'
       this.saveToLocalStorage()
     },
 

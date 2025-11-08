@@ -126,8 +126,8 @@
           >
             <div class="group-header-line"></div>
             <div class="group-header-label">
-              <span class="group-indicator-dot" :style="{ background: getGroupHeaderInfo(index)?.color }"></span>
-              {{ getGroupHeaderInfo(index)?.name || 'グループなし' }}
+              <span class="group-indicator-dot" :style="{ background: getGroupHeaderInfo(index)?.color || '#9ca3af' }"></span>
+              {{ getGroupHeaderInfo(index)?.name || groupStore.ungroupedName }}
               <button
                 v-if="getGroupHeaderInfo(index) && groupHasOverlaps(getGroupHeaderInfo(index)!.id)"
                 @click="openOverlapModal(getGroupHeaderInfo(index)!.id)"
@@ -257,7 +257,16 @@
 
             <!-- グループなしの日付用の時給 -->
             <div v-if="hasUngroupedDays" class="group-wage-item">
-              <label class="group-wage-label">グループなし</label>
+              <div class="group-wage-label">
+                <span class="group-color-dot" :style="{ background: '#9ca3af' }"></span>
+                <input
+                  type="text"
+                  :value="groupStore.ungroupedName"
+                  @change="(e) => groupStore.updateUngroupedName((e.target as HTMLInputElement).value)"
+                  class="ungrouped-name-input"
+                  placeholder="グループなし"
+                />
+              </div>
               <input
                 type="number"
                 v-model.number="ungroupedWage"
@@ -644,20 +653,29 @@ interface GroupedWorkDay extends WorkDay {
 
 // アクティブな勤務日（削除されていない）をグループ別にソート
 const activeWorkDays = computed(() => {
-  const days: GroupedWorkDay[] = [...workDays.value]
+  const days: GroupedWorkDay[] = []
 
-  // 各日付にグループ情報を追加
-  days.forEach(day => {
+  // 各日付について、属するグループごとにカードを作成
+  workDays.value.forEach(day => {
     const groups = groupStore.getGroupsForDate(day.date)
+
     if (groups.length > 0) {
-      // 最初のグループを優先グループとして使用
-      const primaryGroup = groups[0]
-      day.groupInfo = {
-        id: primaryGroup.id,
-        name: primaryGroup.name,
-        color: GROUP_COLOR_CONFIGS[primaryGroup.color].borderColor,
-        hourlyWage: primaryGroup.hourlyWage
-      }
+      // 複数グループに属する場合、グループごとにカードを作成
+      groups.forEach(group => {
+        const groupedDay: GroupedWorkDay = {
+          ...day,
+          groupInfo: {
+            id: group.id,
+            name: group.name,
+            color: GROUP_COLOR_CONFIGS[group.color].borderColor,
+            hourlyWage: group.hourlyWage
+          }
+        }
+        days.push(groupedDay)
+      })
+    } else {
+      // グループなしの場合
+      days.push({ ...day })
     }
   })
 
@@ -827,7 +845,7 @@ const calculateGroupSalaries = () => {
     if (ungroupedSalary > 0) {
       results.push({
         groupId: null,
-        groupName: 'グループなし',
+        groupName: groupStore.ungroupedName || 'グループなし',
         color: '#999',
         salary: ungroupedSalary
       })
@@ -1088,13 +1106,13 @@ onMounted(() => {
   initializeWorkDays()
 })
 
-// カレンダーの選択状態が変わったら workDays を更新
+// カレンダーの選択状態が変わったら workDays を即座に更新
 watch(() => calendarStore.selectedDatesArray, (newDates) => {
-  // 時間設定画面にいる場合のみ更新
-  if (route.path === '/time-register') {
+  // カレンダー画面または時間設定画面にいる場合に即座更新
+  if (route.path === '/calendar' || route.path === '/time-register') {
     initializeWorkDays()
   }
-}, { deep: true })
+}, { deep: true, immediate: false })
 
 // ルートが時間設定画面に変わったときも初期化チェック
 watch(() => route.path, (newPath) => {
@@ -1268,98 +1286,6 @@ const showBreakHelp = () => {
   showHelpModal.value = true
 }
 
-// 深夜時間（22:00～05:00）の分数を計算
-const calculateLateNightMinutes = (startTime: string, endTime: string): number => {
-  const parseTime = (time: string): number => {
-    const [hours, minutes] = time.split(':').map(Number)
-    return hours * 60 + minutes
-  }
-
-  let start = parseTime(startTime)
-  let end = parseTime(endTime)
-
-  // 翌日にまたがる場合
-  if (end <= start) {
-    end += 24 * 60
-  }
-
-  // 深夜時間帯の開始と終了（分単位）
-  const lateNightStart = 22 * 60 // 22:00
-  const lateNightEnd = 29 * 60 // 05:00（翌日なので24+5=29）
-
-  let lateNightMinutes = 0
-
-  // 勤務時間が深夜時間帯と重複する部分を計算
-  // 22:00-24:00の範囲
-  const overlapStart1 = Math.max(start, lateNightStart)
-  const overlapEnd1 = Math.min(end, 24 * 60)
-  if (overlapStart1 < overlapEnd1) {
-    lateNightMinutes += overlapEnd1 - overlapStart1
-  }
-
-  // 00:00-05:00の範囲（翌日）
-  if (end > 24 * 60) {
-    const overlapStart2 = Math.max(start, 24 * 60)
-    const overlapEnd2 = Math.min(end, lateNightEnd)
-    if (overlapStart2 < overlapEnd2) {
-      lateNightMinutes += overlapEnd2 - overlapStart2
-    }
-  }
-
-  return lateNightMinutes
-}
-
-// 給与計算（常に休憩時間を除く、深夜割増25%を反映）
-const calculateSalary = () => {
-  const wage = hourlyWage.value
-  if (wage <= 0) return
-
-  let totalSalary = 0
-
-  // 各勤務日ごとに計算
-  workDays.value.forEach(workDay => {
-    if (workDay.isRemoved) return
-
-    let workMinutes = workDay.workMinutes
-
-    // 常に休憩時間を引く
-    const breakMinutes = calculateBreakTime(workMinutes)
-    workMinutes -= breakMinutes
-
-    // 深夜時間帯の勤務時間を計算
-    const lateNightMinutes = calculateLateNightMinutes(workDay.startTime, workDay.endTime)
-
-    // 深夜時間から休憩時間の比率分を引く（簡易計算）
-    const breakRatio = workDay.workMinutes > 0 ? breakMinutes / workDay.workMinutes : 0
-    const actualLateNightMinutes = lateNightMinutes * (1 - breakRatio)
-
-    // 通常時間帯の勤務時間
-    const normalMinutes = workMinutes - actualLateNightMinutes
-
-    // 通常時間の給与
-    const normalHours = normalMinutes / 60
-    totalSalary += normalHours * wage
-
-    // 深夜時間の給与（25%増）
-    const lateNightHours = actualLateNightMinutes / 60
-    totalSalary += lateNightHours * wage * 1.25
-  })
-
-  calculatedSalary.value = Math.floor(totalSalary)
-}
-
-// workDaysが変更されたら自動で再計算
-watch(
-  () => workDays.value,
-  () => {
-    // 時給が入力されていれば自動計算
-    if (hourlyWage.value > 0 && calculatedSalary.value > 0) {
-      calculateSalary()
-    }
-  },
-  { deep: true }
-)
-
 // 開始時間の選択
 const selectStartHour = (hour: number) => {
   selectedStartHour.value = hour
@@ -1454,13 +1380,27 @@ const handleCardClick = (event: MouseEvent, index: number) => {
     ripple.remove()
   }, 600)
 
+  // activeWorkDaysのインデックスから元のworkDaysのインデックスを取得
+  const clickedDate = activeWorkDays.value[index]?.date
+  if (!clickedDate) return
+
+  const actualIndex = workDays.value.findIndex(wd => wd.date === clickedDate)
+  if (actualIndex === -1) return
+
   // 時刻選択モーダルを開く
-  handleTimeClick(index, 'both')
+  handleTimeClick(actualIndex, 'both')
 }
 
 // シフトを外す/戻す
 const toggleRemoveDay = (index: number) => {
-  timeRegisterStore.toggleRemoveDay(index)
+  // activeWorkDaysのインデックスから元のworkDaysのインデックスを取得
+  const clickedDate = activeWorkDays.value[index]?.date
+  if (!clickedDate) return
+
+  const actualIndex = workDays.value.findIndex(wd => wd.date === clickedDate)
+  if (actualIndex === -1) return
+
+  timeRegisterStore.toggleRemoveDay(actualIndex)
 }
 
 // 時刻選択モーダルをキャンセル
@@ -2406,16 +2346,45 @@ const confirmTimeEdit = () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
 }
 
 .group-wage-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-width: 120px;
+  flex: 0 0 auto;
+  max-width: 50%;
+  padding-left: 0.5rem;
   font-size: 0.9rem;
   font-weight: 600;
   color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ungrouped-name-input {
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  padding: 0.25rem;
+  min-width: 0;
+  flex: 1;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.ungrouped-name-input:hover {
+  border-bottom-color: #cbd5e1;
+}
+
+.ungrouped-name-input:focus {
+  outline: none;
+  border-bottom-color: #3b82f6;
 }
 
 .group-color-dot {
@@ -2427,13 +2396,16 @@ const confirmTimeEdit = () => {
 }
 
 .wage-input-small {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 150px;
   padding: 0.5rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
   color: #333;
+  text-align: right;
   transition: all 0.3s ease;
 }
 

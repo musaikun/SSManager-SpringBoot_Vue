@@ -34,7 +34,7 @@
               <p class="grouping-note">※グループを選択してから日付をクリックすると、その日付をグループに追加できます</p>
               <div class="group-buttons">
                 <div
-                  v-for="group in groupStore.groups"
+                  v-for="group in groupStore.visibleGroups"
                   :key="group.id"
                   class="group-item"
                 >
@@ -51,21 +51,20 @@
                     }"
                   >
                     <span class="group-color-indicator" :style="{ background: getGroupColorConfig(group.id as GroupId)?.gradientColor }"></span>
-                    <span class="group-name">{{ group.name }}</span>
+                    <input
+                      type="text"
+                      :value="group.name"
+                      @click.stop
+                      @change="(e) => updateGroupName(group.id as GroupId, (e.target as HTMLInputElement).value)"
+                      class="group-name-input"
+                      :placeholder="group.name"
+                    />
                     <span v-if="group.dates.length > 0" class="group-count">{{ group.dates.length }}</span>
                   </button>
                   <button
-                    @click="openGroupEditModal(group.id as GroupId)"
-                    class="group-edit-btn"
-                    title="グループ編集"
-                  >
-                    ✎
-                  </button>
-                  <button
-                    v-if="isGroupActive(group.id as GroupId)"
-                    @click="clearGroupDates(group.id as GroupId)"
-                    class="group-clear-btn"
-                    title="グループをクリア"
+                    @click="deleteOrHideGroup(group.id as GroupId)"
+                    class="group-delete-or-hide-btn"
+                    :title="isGroupActive(group.id as GroupId) ? 'グループを非表示' : 'グループを削除'"
                   >
                     ×
                   </button>
@@ -208,7 +207,6 @@
             </div>
           </div>
           <div class="modal-buttons">
-            <button @click="deleteGroup(editingGroupId as GroupId)" class="btn-delete">削除</button>
             <button @click="closeGroupEditModal" class="btn-cancel">キャンセル</button>
             <button @click="saveGroupEdit" class="btn-save">保存</button>
           </div>
@@ -337,18 +335,62 @@ const closeGroupEditModal = () => {
   editingGroupName.value = ''
 }
 
-// グループを追加
+// グループを追加（または非表示グループを表示）
 const addNewGroup = () => {
-  const newId = groupStore.addGroup()
-  if (newId === null) {
-    alert('グループは最大4個まで追加できます')
+  // まず非表示のグループがあるか確認
+  const hiddenGroup = groupStore.groups.find(g => g.isVisible === false)
+  if (hiddenGroup) {
+    // 非表示のグループを表示
+    groupStore.showGroup(hiddenGroup.id)
+  } else {
+    // 新しいグループを追加
+    const newId = groupStore.addGroup()
+    if (newId === null) {
+      alert('グループは最大4個まで追加できます')
+    }
   }
 }
 
-// グループを削除
+// グループを削除（モーダルから）
 const deleteGroup = (groupId: GroupId) => {
   if (confirm('このグループを削除しますか？\n（日付の割り当ても解除されます）')) {
     groupStore.deleteGroup(groupId)
+    closeGroupEditModal()
+  }
+}
+
+// グループ名を更新
+const updateGroupName = (groupId: GroupId, newName: string) => {
+  if (!newName || !newName.trim()) return
+  groupStore.updateGroupName(groupId, newName.trim())
+}
+
+// グループを非表示または削除（アコーディオンから）
+const deleteOrHideGroup = (groupId: GroupId) => {
+  const group = groupStore.getGroupById(groupId)
+  if (!group) return
+
+  // 確認ダイアログを表示
+  if (!confirm('選択したグループはすべて解除されます。\nよろしいですか？')) {
+    return
+  }
+
+  // 日付の割り当てがある場合
+  const hasDates = group.dates.length > 0
+
+  // 日付のグループ化をクリア（[クリア]ボタンと同じ挙動）
+  groupStore.clearGroup(groupId)
+
+  // 日付が割り当てられていた場合は非表示、なかった場合は削除
+  if (hasDates) {
+    groupStore.hideGroup(groupId)
+  } else {
+    groupStore.deleteGroup(groupId)
+  }
+
+  // 削除したグループが選択されていた場合、選択を解除
+  if (selectedGroupId.value === groupId) {
+    selectedGroupId.value = null
   }
 }
 
@@ -483,6 +525,9 @@ const isInAnyGroup = (dateString: string): boolean => {
 const handleSelectAll = () => {
   // 選択を解除する日付を確認
   const currentMonthCells = calendarCells.value.filter(cell => cell.isCurrentMonth && !cell.isPast)
+  const allFutureDates = currentMonthCells.map(cell => cell.dateString)
+  const allSelected = allFutureDates.every(date => store.isDateSelected(date))
+
   const datesToDeselect = currentMonthCells.filter(cell => cell.isSelected).map(cell => cell.dateString)
 
   // 時間設定がある日付が含まれているか確認
@@ -494,12 +539,37 @@ const handleSelectAll = () => {
     }
   }
 
+  // 既に全選択されている場合は解除時、グループからも削除
+  if (allSelected && selectedGroupId.value !== null) {
+    allFutureDates.forEach(date => {
+      groupStore.removeDateFromGroup(selectedGroupId.value as GroupId, date)
+    })
+  }
+
   selectAll()
+
+  // グループが選択されている場合、選択した日付をグループに追加
+  if (selectedGroupId.value !== null && !allSelected) {
+    allFutureDates.forEach(date => {
+      groupStore.addDateToGroup(selectedGroupId.value as GroupId, date)
+    })
+  }
 }
 
 // 平日のみ選択（確認付き）
 const handleSelectWeekdaysOnly = () => {
   const currentMonthCells = calendarCells.value.filter(cell => cell.isCurrentMonth && !cell.isPast)
+
+  // 平日の日付を取得
+  const weekdayDates = currentMonthCells
+    .filter(cell => {
+      const isWeekday = cell.dayOfWeek >= 1 && cell.dayOfWeek <= 5
+      return isWeekday && !cell.isHoliday
+    })
+    .map(cell => cell.dateString)
+
+  // 平日が全て選択されているかチェック
+  const allWeekdaysSelected = weekdayDates.every(date => store.isDateSelected(date))
 
   // 選択を解除される日付（土日祝日）を取得
   const datesToDeselect = currentMonthCells
@@ -519,7 +589,21 @@ const handleSelectWeekdaysOnly = () => {
     }
   }
 
+  // 既に平日が全選択されている場合は解除時、グループからも削除
+  if (allWeekdaysSelected && selectedGroupId.value !== null) {
+    weekdayDates.forEach(date => {
+      groupStore.removeDateFromGroup(selectedGroupId.value as GroupId, date)
+    })
+  }
+
   selectWeekdaysOnly()
+
+  // グループが選択されている場合、選択した日付をグループに追加
+  if (selectedGroupId.value !== null && !allWeekdaysSelected) {
+    weekdayDates.forEach(date => {
+      groupStore.addDateToGroup(selectedGroupId.value as GroupId, date)
+    })
+  }
 }
 
 // クリア（確認付き）
@@ -562,9 +646,23 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
         return
       }
     }
+
+    // 解除時、グループからも削除
+    if (selectedGroupId.value !== null) {
+      targetDates.forEach(date => {
+        groupStore.removeDateFromGroup(selectedGroupId.value as GroupId, date)
+      })
+    }
   }
 
   selectByWeekday(dayOfWeek)
+
+  // グループが選択されている場合、選択した日付をグループに追加
+  if (selectedGroupId.value !== null && !allSelected) {
+    targetDates.forEach(date => {
+      groupStore.addDateToGroup(selectedGroupId.value as GroupId, date)
+    })
+  }
 }
 </script>
 
@@ -771,9 +869,27 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   flex-shrink: 0;
 }
 
-.group-name {
+.group-name-input {
   flex: 1;
   text-align: left;
+  border: none;
+  background: transparent;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  padding: 0.25rem;
+  min-width: 0;
+}
+
+.group-name-input:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.group-name-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
 }
 
 .group-count {
@@ -812,14 +928,15 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
-.group-edit-btn {
+.group-delete-or-hide-btn {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #667eea;
+  background: #f97316;
   color: white;
   border: none;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
+  font-weight: 300;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -828,10 +945,10 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   flex-shrink: 0;
 }
 
-.group-edit-btn:hover {
-  background: #764ba2;
+.group-delete-or-hide-btn:hover {
+  background: #ea580c;
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
 }
 
 .add-group-btn {

@@ -13,28 +13,47 @@
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="(workDay, index) in activeWorkDays"
-              :key="workDay.date"
-              :class="{ modified: workDay.isModified }"
-            >
-              <td class="date-cell" :class="{
-                'saturday': workDay.dayOfWeek === 6,
-                'sunday': workDay.dayOfWeek === 0,
-                'holiday': isHoliday(workDay.date)
-              }">{{ workDay.displayDate }}</td>
-              <td class="time-cell">
-                <span :class="getStartTimeClass(workDay)">{{ workDay.startTime }}</span>
-                <span class="separator">〜</span>
-                <span :class="getEndTimeClass(workDay)">{{ workDay.endTime }}</span>
-              </td>
-              <td class="hours-cell">
-                <div v-html="formatWorkTime(workDay)"></div>
-              </td>
-              <td class="status-cell">
-                <span :class="getStatusBadgeClass(workDay)">{{ getStatusText(workDay) }}</span>
-              </td>
-            </tr>
+            <template v-for="(workDay, index) in activeWorkDays" :key="workDay.date">
+              <!-- グループヘッダー行 -->
+              <tr
+                v-if="shouldShowGroupHeader(index)"
+                class="group-header-row"
+              >
+                <td colspan="4" class="group-header-cell">
+                  <div class="group-header-content" :style="{
+                    '--group-color': getGroupHeaderInfo(index)?.color,
+                    '--group-shadow': getGroupHeaderInfo(index)?.color + '66'
+                  }">
+                    <div class="group-header-line"></div>
+                    <div class="group-header-label">
+                      <span class="group-indicator-dot" :style="{ background: getGroupHeaderInfo(index)?.color || '#9ca3af' }"></span>
+                      {{ getGroupHeaderInfo(index)?.name || groupStore.ungroupedName }}
+                    </div>
+                    <div class="group-header-line"></div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- 勤務日行 -->
+              <tr :class="{ modified: workDay.isModified }">
+                <td class="date-cell" :class="{
+                  'saturday': workDay.dayOfWeek === 6,
+                  'sunday': workDay.dayOfWeek === 0,
+                  'holiday': isHoliday(workDay.date)
+                }">{{ workDay.displayDate }}</td>
+                <td class="time-cell">
+                  <span :class="getStartTimeClass(workDay)">{{ workDay.startTime }}</span>
+                  <span class="separator">〜</span>
+                  <span :class="getEndTimeClass(workDay)">{{ workDay.endTime }}</span>
+                </td>
+                <td class="hours-cell">
+                  <div v-html="formatWorkTime(workDay)"></div>
+                </td>
+                <td class="status-cell">
+                  <span :class="getStatusBadgeClass(workDay)">{{ getStatusText(workDay) }}</span>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -112,7 +131,7 @@
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useTimeRegisterStore } from '../stores/timeRegister'
-import { useGroupStore } from '../stores/group'
+import { useGroupStore, GROUP_COLOR_CONFIGS } from '../stores/group'
 import { useTimeFormat } from '../composables/useTimeFormat'
 import { useTimeCalculation } from '../composables/useTimeCalculation'
 import { useHolidays } from '../composables/useHolidays'
@@ -128,10 +147,67 @@ const { totalSummary } = storeToRefs(timeRegisterStore)
 const { formatMinutesToHours } = useTimeFormat()
 const { calculateBreakTime } = useTimeCalculation()
 
-// アクティブな勤務日（削除されていない）
+// グループ情報を持つWorkDay型
+interface GroupedWorkDay extends WorkDay {
+  groupInfo?: {
+    id: number
+    name: string
+    color: string
+  }
+}
+
+// アクティブな勤務日（削除されていない）をグループごとにソート
 const activeWorkDays = computed(() => {
-  return workDays.value.filter(wd => !wd.isRemoved)
+  const days: GroupedWorkDay[] = workDays.value.filter(wd => !wd.isRemoved)
+
+  // 各日付にグループ情報を追加
+  days.forEach(day => {
+    const groups = groupStore.getGroupsForDate(day.date)
+    if (groups.length > 0) {
+      const primaryGroup = groups[0]
+      day.groupInfo = {
+        id: primaryGroup.id,
+        name: primaryGroup.name,
+        color: GROUP_COLOR_CONFIGS[primaryGroup.color].borderColor
+      }
+    }
+  })
+
+  // グループIDでソート（グループなしは最後）
+  return days.sort((a, b) => {
+    if (a.groupInfo && b.groupInfo) {
+      if (a.groupInfo.id !== b.groupInfo.id) {
+        return a.groupInfo.id - b.groupInfo.id
+      }
+      return a.date.localeCompare(b.date)
+    }
+    if (a.groupInfo && !b.groupInfo) return -1
+    if (!a.groupInfo && b.groupInfo) return 1
+    return a.date.localeCompare(b.date)
+  })
 })
+
+// グループヘッダーを表示すべきかチェック
+const shouldShowGroupHeader = (index: number): boolean => {
+  // 最初のアイテムは常にヘッダーを表示
+  if (index === 0) {
+    return true
+  }
+
+  const currentDay = activeWorkDays.value[index] as GroupedWorkDay
+  const prevDay = activeWorkDays.value[index - 1] as GroupedWorkDay
+
+  const currentGroupId = currentDay.groupInfo?.id
+  const prevGroupId = prevDay.groupInfo?.id
+
+  return currentGroupId !== prevGroupId
+}
+
+// 指定インデックスのグループ情報を取得
+const getGroupHeaderInfo = (index: number) => {
+  const day = activeWorkDays.value[index] as GroupedWorkDay
+  return day.groupInfo
+}
 
 // 勤務時間のフォーマット
 const formatWorkTime = (workDay: WorkDay) => {
@@ -260,7 +336,21 @@ const saveShiftData = () => {
 const generateShiftText = (): string => {
   let text = '【シフト提出】\n\n'
 
-  activeWorkDays.value.forEach(day => {
+  let currentGroupId: number | null = null
+
+  activeWorkDays.value.forEach((day, index) => {
+    const groupedDay = day as GroupedWorkDay
+
+    // グループヘッダーを表示
+    if (shouldShowGroupHeader(index)) {
+      const groupInfo = getGroupHeaderInfo(index)
+      if (groupInfo) {
+        text += `\n【${groupInfo.name}】\n`
+      } else {
+        text += `\n【${groupStore.ungroupedName}】\n`
+      }
+    }
+
     text += `${day.displayDate}: ${day.startTime}〜${day.endTime}\n`
   })
 
@@ -779,5 +869,53 @@ const copyToClipboard = async () => {
 
 .close-modal-btn:hover {
   background: #e0e0e0;
+}
+
+/* グループヘッダー */
+.group-header-row {
+  background: transparent;
+  border: none;
+}
+
+.group-header-cell {
+  padding: 1.5rem 0;
+  border: none;
+}
+
+.group-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.group-header-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--group-color), transparent);
+  box-shadow: 0 0 8px var(--group-shadow);
+}
+
+.group-header-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 2px solid var(--group-color);
+  border-radius: 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #333;
+  box-shadow: 0 0 15px var(--group-shadow);
+  white-space: nowrap;
+}
+
+.group-header-label .group-indicator-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+  flex-shrink: 0;
 }
 </style>
