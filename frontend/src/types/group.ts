@@ -61,6 +61,8 @@ export interface Group {
   isActive: boolean
   /** 時給（円） */
   hourlyWage: number
+  /** 表示するか（UI表示制御用） */
+  isVisible?: boolean
 }
 
 /**

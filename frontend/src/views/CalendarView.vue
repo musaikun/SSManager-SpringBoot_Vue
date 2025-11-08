@@ -34,7 +34,7 @@
               <p class="grouping-note">※グループを選択してから日付をクリックすると、その日付をグループに追加できます</p>
               <div class="group-buttons">
                 <div
-                  v-for="group in groupStore.groups"
+                  v-for="group in groupStore.visibleGroups"
                   :key="group.id"
                   class="group-item"
                 >
@@ -62,11 +62,11 @@
                     ✎
                   </button>
                   <button
-                    @click="deleteGroupDirect(group.id as GroupId)"
-                    class="group-delete-btn"
-                    title="グループを削除"
+                    @click="hideGroupDirect(group.id as GroupId)"
+                    class="group-hide-btn"
+                    title="グループを非表示"
                   >
-                    🗑️
+                    👁️‍🗨️
                   </button>
                   <button
                     v-if="isGroupActive(group.id as GroupId)"
@@ -344,11 +344,19 @@ const closeGroupEditModal = () => {
   editingGroupName.value = ''
 }
 
-// グループを追加
+// グループを追加（または非表示グループを表示）
 const addNewGroup = () => {
-  const newId = groupStore.addGroup()
-  if (newId === null) {
-    alert('グループは最大4個まで追加できます')
+  // まず非表示のグループがあるか確認
+  const hiddenGroup = groupStore.groups.find(g => g.isVisible === false)
+  if (hiddenGroup) {
+    // 非表示のグループを表示
+    groupStore.showGroup(hiddenGroup.id)
+  } else {
+    // 新しいグループを追加
+    const newId = groupStore.addGroup()
+    if (newId === null) {
+      alert('グループは最大4個まで追加できます')
+    }
   }
 }
 
@@ -360,11 +368,9 @@ const deleteGroup = (groupId: GroupId) => {
   }
 }
 
-// グループを直接削除（アコーディオンから）
-const deleteGroupDirect = (groupId: GroupId) => {
-  if (confirm('このグループを削除しますか？\n（日付の割り当ても解除されます）')) {
-    groupStore.deleteGroup(groupId)
-  }
+// グループを非表示にする（アコーディオンから）
+const hideGroupDirect = (groupId: GroupId) => {
+  groupStore.hideGroup(groupId)
 }
 
 // 今月・来月の判定
@@ -849,11 +855,11 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.group-delete-btn {
+.group-hide-btn {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #f97316;
+  background: #8b5cf6;
   color: white;
   border: none;
   font-size: 1.1rem;
@@ -865,10 +871,10 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   flex-shrink: 0;
 }
 
-.group-delete-btn:hover {
-  background: #ea580c;
+.group-hide-btn:hover {
+  background: #7c3aed;
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
 }
 
 .add-group-btn {

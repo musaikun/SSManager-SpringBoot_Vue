@@ -132,7 +132,8 @@ const createInitialGroups = (): Group[] => {
       color: getColorForGroupId(0),
       dates: [],
       isActive: false,
-      hourlyWage: DEFAULT_HOURLY_WAGE
+      hourlyWage: DEFAULT_HOURLY_WAGE,
+      isVisible: true
     }
   ]
 }
@@ -143,6 +144,11 @@ export const useGroupStore = defineStore('group', {
     if (savedState) {
       try {
         const parsed = JSON.parse(savedState) as GroupState
+        // 後方互換性：isVisibleが未定義の場合はtrueに設定
+        parsed.groups = parsed.groups.map(g => ({
+          ...g,
+          isVisible: g.isVisible ?? true
+        }))
         return parsed
       } catch (e) {
         console.error('Failed to parse saved group state', e)
@@ -161,6 +167,13 @@ export const useGroupStore = defineStore('group', {
      */
     activeGroups: (state): Group[] => {
       return state.groups.filter(g => g.isActive)
+    },
+
+    /**
+     * 表示するグループのリストを取得
+     */
+    visibleGroups: (state): Group[] => {
+      return state.groups.filter(g => g.isVisible !== false)
     },
 
     /**
@@ -468,7 +481,8 @@ export const useGroupStore = defineStore('group', {
         color,
         dates: [],
         isActive: false,
-        hourlyWage: DEFAULT_HOURLY_WAGE
+        hourlyWage: DEFAULT_HOURLY_WAGE,
+        isVisible: true
       }
 
       this.groups.push(newGroup)
@@ -486,6 +500,28 @@ export const useGroupStore = defineStore('group', {
 
       // グループを削除
       this.groups = this.groups.filter(g => g.id !== groupId)
+      this.saveToLocalStorage()
+    },
+
+    /**
+     * グループを非表示にする
+     */
+    hideGroup(groupId: GroupId) {
+      const group = this.groups.find(g => g.id === groupId)
+      if (!group) return
+
+      group.isVisible = false
+      this.saveToLocalStorage()
+    },
+
+    /**
+     * グループを表示する
+     */
+    showGroup(groupId: GroupId) {
+      const group = this.groups.find(g => g.id === groupId)
+      if (!group) return
+
+      group.isVisible = true
       this.saveToLocalStorage()
     },
 
