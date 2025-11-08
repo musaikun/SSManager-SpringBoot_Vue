@@ -21,6 +21,13 @@ import { useTimeRegisterStore } from './timeRegister'
  * グループカラーの定義（蛍光色10種）
  */
 export const GROUP_COLOR_CONFIGS: Record<GroupColor, GroupColorConfig> = {
+  'fluorescent-white': {
+    name: 'fluorescent-white',
+    displayName: '蛍光ホワイト',
+    borderColor: '#ffffff',
+    gradientColor: 'linear-gradient(135deg, #ffffff, #f0f0f0)',
+    shadowColor: 'rgba(255, 255, 255, 0.8)'
+  },
   'fluorescent-black': {
     name: 'fluorescent-black',
     displayName: '蛍光ブラック',

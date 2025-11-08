@@ -18,6 +18,7 @@ export type GroupId = number
  * グループカラー（蛍光色）
  */
 export type GroupColor =
+  | 'fluorescent-white'
   | 'fluorescent-black'
   | 'fluorescent-yellow'
   | 'fluorescent-pink'
