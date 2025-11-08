@@ -31,7 +31,39 @@
           </div>
           <transition name="accordion">
             <div v-show="isGroupingOpen" class="grouping-content">
-              <p class="grouping-note">※グループ化機能は準備中です</p>
+              <p class="grouping-note">※グループを選択してから日付をクリックすると、その日付をグループに追加できます</p>
+              <div class="group-buttons">
+                <div
+                  v-for="group in groupStore.groups"
+                  :key="group.id"
+                  class="group-item"
+                >
+                  <button
+                    @click="toggleGroupSelection(group.id as GroupId)"
+                    class="group-btn"
+                    :class="{
+                      active: selectedGroupId === group.id,
+                      'has-dates': isGroupActive(group.id as GroupId)
+                    }"
+                    :style="{
+                      '--group-color': getGroupColorConfig(group.id as GroupId)?.borderColor,
+                      '--group-shadow': getGroupColorConfig(group.id as GroupId)?.shadowColor
+                    }"
+                  >
+                    <span class="group-color-indicator" :style="{ background: getGroupColorConfig(group.id as GroupId)?.gradientColor }"></span>
+                    <span class="group-name">{{ group.name }}</span>
+                    <span v-if="group.dates.length > 0" class="group-count">{{ group.dates.length }}</span>
+                  </button>
+                  <button
+                    v-if="isGroupActive(group.id as GroupId)"
+                    @click="clearGroupDates(group.id as GroupId)"
+                    class="group-clear-btn"
+                    title="グループをクリア"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
             </div>
           </transition>
         </div>
@@ -91,11 +123,22 @@
               'removed': isRemovedDate(cell.dateString),
               'from-base': isFromBase(cell.dateString),
               'custom-time': hasCustomTime(cell.dateString),
-              'bulk-applied': hasBulkApplied(cell.dateString)
+              'bulk-applied': hasBulkApplied(cell.dateString),
+              'in-group': isInAnyGroup(cell.dateString)
             }"
+            :style="getGroupBorderStyle(cell.dateString)"
             @click="handleDateClick(cell)"
           >
             <div class="date-number">{{ cell.date.getDate() }}</div>
+            <!-- グループインジケーター -->
+            <div v-if="isInAnyGroup(cell.dateString)" class="group-indicators">
+              <span
+                v-for="group in getDateGroups(cell.dateString)"
+                :key="group.id"
+                class="group-indicator-dot"
+                :style="{ background: GROUP_COLOR_CONFIGS[group.color].borderColor }"
+              ></span>
+            </div>
           </div>
         </div>
 
@@ -114,8 +157,19 @@
         <div class="modal-content help-modal" @click.stop>
           <h3 class="modal-title">グループ化設定について</h3>
           <div class="help-content">
-            <p>グループ化機能は現在準備中です。</p>
-            <p>将来的に、日付をグループ分けして管理できる機能を追加予定です。</p>
+            <p><strong>グループ化機能の使い方：</strong></p>
+            <ol>
+              <li>グループボタンをクリックして選択状態にします</li>
+              <li>カレンダーの日付をクリックしてグループに追加します</li>
+              <li>同じ日付に複数のグループを割り当てることができます</li>
+              <li>隣り合う日付は蛍光色の囲い線で接続されます</li>
+            </ol>
+            <p><strong>特徴：</strong></p>
+            <ul>
+              <li>最大4つのグループで管理できます</li>
+              <li>各グループには蛍光色が自動割り当てされます</li>
+              <li>時間設定画面ではグループ別にソートされます</li>
+            </ul>
           </div>
           <button @click="closeGroupingHelp" class="close-btn">閉じる</button>
         </div>
@@ -130,11 +184,14 @@ import { useCalendar } from '../composables/useCalendar'
 import { useHolidays } from '../composables/useHolidays'
 import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
+import { useGroupStore, GROUP_COLOR_CONFIGS } from '../stores/group'
 import type { CalendarCell } from '../types/calendar'
+import type { GroupId } from '../types/group'
 import SwipeTutorial from '../components/SwipeTutorial.vue'
 
 const store = useCalendarStore()
 const timeRegisterStore = useTimeRegisterStore()
+const groupStore = useGroupStore()
 
 // 今月と来月の情報
 const today = new Date()
@@ -166,6 +223,7 @@ const { fetchHolidaysWithCache, holidays: holidaysData } = useHolidays()
 const weekdays = ['日', '月', '火', '水', '木', '金', '土']
 const isGroupingOpen = ref(false)
 const showGroupingHelpModal = ref(false)
+const selectedGroupId = ref<GroupId | null>(null)
 
 // グループ化アコーディオンのトグル
 const toggleGrouping = () => {
@@ -180,6 +238,35 @@ const showGroupingHelp = () => {
 // グループ化ヘルプモーダルを閉じる
 const closeGroupingHelp = () => {
   showGroupingHelpModal.value = false
+}
+
+// グループ選択のトグル
+const toggleGroupSelection = (groupId: GroupId) => {
+  if (selectedGroupId.value === groupId) {
+    selectedGroupId.value = null
+  } else {
+    selectedGroupId.value = groupId
+  }
+}
+
+// グループのカラー設定を取得
+const getGroupColorConfig = (groupId: GroupId) => {
+  const group = groupStore.getGroupById(groupId)
+  if (!group) return null
+  return GROUP_COLOR_CONFIGS[group.color]
+}
+
+// グループがアクティブかチェック
+const isGroupActive = (groupId: GroupId) => {
+  const group = groupStore.getGroupById(groupId)
+  return group?.isActive ?? false
+}
+
+// グループをクリア
+const clearGroupDates = (groupId: GroupId) => {
+  if (confirm('このグループのすべての日付を解除しますか？')) {
+    groupStore.clearGroup(groupId)
+  }
 }
 
 // 今月・来月の判定
@@ -203,6 +290,17 @@ const handleDateClick = (cell: CalendarCell) => {
   if (!cell.isCurrentMonth) return
   if (cell.isPast) return // 過去の日付は選択できない
 
+  // グループが選択されている場合、グループに日付を追加/削除
+  if (selectedGroupId.value !== null) {
+    // 日付が選択されていない場合は選択する
+    if (!store.isDateSelected(cell.dateString)) {
+      toggleDate(cell.dateString)
+    }
+    // グループに日付を追加/削除
+    groupStore.toggleDateGroup(selectedGroupId.value, cell.dateString)
+    return
+  }
+
   // 日付を外す場合（選択済み→未選択）、設定がある場合は確認
   if (store.isDateSelected(cell.dateString)) {
     const workDay = timeRegisterStore.workDays.find(wd => wd.date === cell.dateString)
@@ -213,6 +311,9 @@ const handleDateClick = (cell: CalendarCell) => {
         return // キャンセルされた場合は何もしない
       }
     }
+
+    // 日付を外す際、その日付をすべてのグループから削除
+    groupStore.removeDateFromAllGroups(cell.dateString)
   }
 
   toggleDate(cell.dateString)
@@ -268,6 +369,31 @@ const hasTimeSettings = (dateString: string): boolean => {
   if (!workDay) return false
   // デフォルト以外の設定方法がある場合
   return workDay.startTimeSetBy !== 'default' || workDay.endTimeSetBy !== 'default'
+}
+
+// 日付が属するグループを取得
+const getDateGroups = (dateString: string) => {
+  return groupStore.getGroupsForDate(dateString)
+}
+
+// 日付のグループボーダースタイルを取得
+const getGroupBorderStyle = (dateString: string) => {
+  const groups = getDateGroups(dateString)
+  if (groups.length === 0) return {}
+
+  // 最初のグループの色を使用（複数の場合は後で対応）
+  const group = groups[0]
+  const colorConfig = GROUP_COLOR_CONFIGS[group.color]
+
+  return {
+    '--group-border-color': colorConfig.borderColor,
+    '--group-shadow-color': colorConfig.shadowColor
+  }
+}
+
+// 日付がグループに属しているかチェック
+const isInAnyGroup = (dateString: string): boolean => {
+  return getDateGroups(dateString).length > 0
 }
 
 // 休日基準で選択（確認付き）
@@ -327,6 +453,8 @@ const handleClearAll = () => {
   }
 
   clearAll()
+  // 備考欄もクリア
+  timeRegisterStore.remarks = ''
 }
 
 // 曜日別選択（確認付き）
@@ -498,10 +626,105 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
 }
 
 .grouping-note {
-  margin: 0;
-  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+  font-size: 0.85rem;
   color: #666;
   text-align: center;
+}
+
+/* グループボタン */
+.group-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.group-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.group-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.group-btn:hover {
+  border-color: var(--group-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--group-shadow);
+}
+
+.group-btn.active {
+  border-color: var(--group-color);
+  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+  box-shadow: 0 0 20px var(--group-shadow), inset 0 0 10px var(--group-shadow);
+  transform: scale(1.02);
+}
+
+.group-btn.has-dates {
+  border-width: 3px;
+}
+
+.group-color-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--group-shadow);
+  flex-shrink: 0;
+}
+
+.group-name {
+  flex: 1;
+  text-align: left;
+}
+
+.group-count {
+  background: var(--group-color);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: center;
+  box-shadow: 0 2px 8px var(--group-shadow);
+}
+
+.group-clear-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.group-clear-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
 /* アコーディオントランジション */
@@ -756,9 +979,46 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   font-weight: 700;
 }
 
+/* グループに属する日付 - 蛍光色のボーダーとグロー効果 */
+.date-cell.in-group {
+  border: 3px solid var(--group-border-color);
+  box-shadow:
+    0 0 15px var(--group-shadow-color),
+    inset 0 0 10px var(--group-shadow-color);
+  position: relative;
+}
+
+.date-cell.in-group:hover:not(.other-month):not(.past) {
+  box-shadow:
+    0 0 25px var(--group-shadow-color),
+    inset 0 0 15px var(--group-shadow-color),
+    0 0 15px rgba(102, 126, 234, 0.3);
+  transform: scale(1.08);
+}
+
+/* グループインジケーター（ドット） */
+.group-indicators {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 3px;
+  z-index: 10;
+}
+
+.group-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px currentColor;
+}
+
 .date-number {
   font-size: 1.125rem;
   font-weight: 600;
+  position: relative;
+  z-index: 5;
 }
 
 /* レスポンシブ */

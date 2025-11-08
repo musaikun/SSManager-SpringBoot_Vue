@@ -114,19 +114,36 @@
 
       <!-- 勤務日カードリスト -->
       <div class="work-days-list">
-        <div
-          v-for="(workDay, index) in activeWorkDays"
-          :key="workDay.date"
-          class="work-day-card"
-          :class="[
-            getCardBackgroundClass(workDay),
-            getBorderClass(workDay),
-            {
-              removed: workDay.isRemoved,
-              highlighted: isHighlighted(workDay)
-            }
-          ]"
-        >
+        <template v-for="(workDay, index) in activeWorkDays" :key="workDay.date">
+          <!-- グループヘッダー -->
+          <div
+            v-if="shouldShowGroupHeader(index)"
+            class="group-header-separator"
+            :style="{
+              '--group-color': getGroupHeaderInfo(index)?.color,
+              '--group-shadow': getGroupHeaderInfo(index)?.color + '66'
+            }"
+          >
+            <div class="group-header-line"></div>
+            <div class="group-header-label">
+              <span class="group-indicator-dot" :style="{ background: getGroupHeaderInfo(index)?.color }"></span>
+              {{ getGroupHeaderInfo(index)?.name || 'グループなし' }}
+            </div>
+            <div class="group-header-line"></div>
+          </div>
+
+          <!-- 勤務日カード -->
+          <div
+            class="work-day-card"
+            :class="[
+              getCardBackgroundClass(workDay),
+              getBorderClass(workDay),
+              {
+                removed: workDay.isRemoved,
+                highlighted: isHighlighted(workDay)
+              }
+            ]"
+          >
           <div class="card-main" @click="handleCardClick($event, index)">
             <div class="card-content-single-line">
               <div class="card-date-section">
@@ -156,7 +173,8 @@
             <span v-if="!workDay.isRemoved" class="remove-icon">×</span>
             <span v-else class="restore-icon">↶</span>
           </button>
-        </div>
+          </div>
+        </template>
       </div>
 
       <!-- 合計統計 -->
@@ -427,6 +445,7 @@ import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
+import { useGroupStore, GROUP_COLOR_CONFIGS } from '../stores/group'
 import { useTimeFormat } from '../composables/useTimeFormat'
 import { useTimeCalculation } from '../composables/useTimeCalculation'
 import { useHolidays } from '../composables/useHolidays'
@@ -435,6 +454,7 @@ import type { BulkApplyType, WorkDay } from '../types/timeRegister'
 const route = useRoute()
 const calendarStore = useCalendarStore()
 const timeRegisterStore = useTimeRegisterStore()
+const groupStore = useGroupStore()
 const { isHoliday } = useHolidays()
 
 const { bulkSettings, includeBreak, workDays } = storeToRefs(timeRegisterStore)
@@ -509,10 +529,76 @@ const calculatedSalary = ref<number>(0)
 // モーダル状態をPageSliderに提供（スライド制御用）
 provide('isModalOpen', computed(() => showTimeModal.value || showConfirmModal.value || showHelpModal.value))
 
-// アクティブな勤務日（削除されていない）
+// グループ別にソートされた勤務日を作成
+interface GroupedWorkDay extends WorkDay {
+  groupInfo?: {
+    id: number
+    name: string
+    color: string
+  }
+}
+
+// アクティブな勤務日（削除されていない）をグループ別にソート
 const activeWorkDays = computed(() => {
-  return workDays.value
+  const days: GroupedWorkDay[] = [...workDays.value]
+
+  // 各日付にグループ情報を追加
+  days.forEach(day => {
+    const groups = groupStore.getGroupsForDate(day.date)
+    if (groups.length > 0) {
+      // 最初のグループを優先グループとして使用
+      const primaryGroup = groups[0]
+      day.groupInfo = {
+        id: primaryGroup.id,
+        name: primaryGroup.name,
+        color: GROUP_COLOR_CONFIGS[primaryGroup.color].borderColor
+      }
+    }
+  })
+
+  // グループIDでソート（グループなしは最後）
+  return days.sort((a, b) => {
+    // 両方グループあり
+    if (a.groupInfo && b.groupInfo) {
+      // グループIDで比較
+      if (a.groupInfo.id !== b.groupInfo.id) {
+        return a.groupInfo.id - b.groupInfo.id
+      }
+      // 同じグループ内では日付順
+      return a.date.localeCompare(b.date)
+    }
+    // aにグループあり、bになし
+    if (a.groupInfo && !b.groupInfo) return -1
+    // aになし、bにグループあり
+    if (!a.groupInfo && b.groupInfo) return 1
+    // 両方グループなし - 日付順
+    return a.date.localeCompare(b.date)
+  })
 })
+
+// グループヘッダーを表示すべきかチェック
+const shouldShowGroupHeader = (index: number): boolean => {
+  if (index === 0) {
+    // 最初のカードで、グループがある場合
+    const firstDay = activeWorkDays.value[0] as GroupedWorkDay
+    return !!firstDay.groupInfo
+  }
+
+  const currentDay = activeWorkDays.value[index] as GroupedWorkDay
+  const prevDay = activeWorkDays.value[index - 1] as GroupedWorkDay
+
+  // 前のカードと異なるグループIDの場合、ヘッダーを表示
+  const currentGroupId = currentDay.groupInfo?.id
+  const prevGroupId = prevDay.groupInfo?.id
+
+  return currentGroupId !== prevGroupId
+}
+
+// 指定インデックスのグループ情報を取得
+const getGroupHeaderInfo = (index: number) => {
+  const day = activeWorkDays.value[index] as GroupedWorkDay
+  return day.groupInfo
+}
 
 // 選択条件に該当する勤務日かどうかを判定
 const isHighlighted = (workDay: WorkDay) => {
@@ -1536,6 +1622,44 @@ const confirmTimeEdit = () => {
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+}
+
+/* グループヘッダー */
+.group-header-separator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0 1rem 0;
+}
+
+.group-header-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--group-color), transparent);
+  box-shadow: 0 0 8px var(--group-shadow);
+}
+
+.group-header-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 2px solid var(--group-color);
+  border-radius: 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #333;
+  box-shadow: 0 0 15px var(--group-shadow);
+  white-space: nowrap;
+}
+
+.group-header-label .group-indicator-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+  flex-shrink: 0;
 }
 
 .work-day-card {
