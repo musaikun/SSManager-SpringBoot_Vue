@@ -55,6 +55,13 @@
                     <span v-if="group.dates.length > 0" class="group-count">{{ group.dates.length }}</span>
                   </button>
                   <button
+                    @click="openGroupEditModal(group.id as GroupId)"
+                    class="group-edit-btn"
+                    title="グループ編集"
+                  >
+                    ✎
+                  </button>
+                  <button
                     v-if="isGroupActive(group.id as GroupId)"
                     @click="clearGroupDates(group.id as GroupId)"
                     class="group-clear-btn"
@@ -63,6 +70,12 @@
                     ×
                   </button>
                 </div>
+
+                <!-- グループ追加ボタン -->
+                <button @click="addNewGroup" class="add-group-btn">
+                  <span class="plus-icon">＋</span>
+                  <span>グループを追加</span>
+                </button>
               </div>
             </div>
           </transition>
@@ -166,12 +179,50 @@
             </ol>
             <p><strong>特徴：</strong></p>
             <ul>
-              <li>最大4つのグループで管理できます</li>
+              <li>最大10個のグループで管理できます</li>
               <li>各グループには蛍光色が自動割り当てされます</li>
+              <li>グループごとに時給を設定できます</li>
               <li>時間設定画面ではグループ別にソートされます</li>
             </ul>
           </div>
           <button @click="closeGroupingHelp" class="close-btn">閉じる</button>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- グループ編集モーダル -->
+    <Teleport to="body">
+      <div v-if="showGroupEditModal" class="modal-overlay" @click="closeGroupEditModal">
+        <div class="modal-content group-edit-modal" @click.stop>
+          <h3 class="modal-title">グループ編集</h3>
+          <div class="edit-form">
+            <div class="form-group">
+              <label for="group-name">グループ名</label>
+              <input
+                id="group-name"
+                v-model="editingGroupName"
+                type="text"
+                class="form-input"
+                placeholder="グループ名を入力"
+              />
+            </div>
+            <div class="form-group">
+              <label for="hourly-wage">時給（円）</label>
+              <input
+                id="hourly-wage"
+                v-model.number="editingGroupHourlyWage"
+                type="number"
+                class="form-input"
+                min="0"
+                step="10"
+              />
+            </div>
+          </div>
+          <div class="modal-buttons">
+            <button @click="deleteGroup(editingGroupId as GroupId)" class="btn-delete">削除</button>
+            <button @click="closeGroupEditModal" class="btn-cancel">キャンセル</button>
+            <button @click="saveGroupEdit" class="btn-save">保存</button>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -224,6 +275,10 @@ const weekdays = ['日', '月', '火', '水', '木', '金', '土']
 const isGroupingOpen = ref(false)
 const showGroupingHelpModal = ref(false)
 const selectedGroupId = ref<GroupId | null>(null)
+const showGroupEditModal = ref(false)
+const editingGroupId = ref<GroupId | null>(null)
+const editingGroupName = ref('')
+const editingGroupHourlyWage = ref(1000)
 
 // グループ化アコーディオンのトグル
 const toggleGrouping = () => {
@@ -266,6 +321,49 @@ const isGroupActive = (groupId: GroupId) => {
 const clearGroupDates = (groupId: GroupId) => {
   if (confirm('このグループのすべての日付を解除しますか？')) {
     groupStore.clearGroup(groupId)
+  }
+}
+
+// グループ編集モーダルを開く
+const openGroupEditModal = (groupId: GroupId) => {
+  const group = groupStore.getGroupById(groupId)
+  if (!group) return
+
+  editingGroupId.value = groupId
+  editingGroupName.value = group.name
+  editingGroupHourlyWage.value = group.hourlyWage
+  showGroupEditModal.value = true
+}
+
+// グループ編集を保存
+const saveGroupEdit = () => {
+  if (editingGroupId.value === null) return
+
+  groupStore.updateGroupName(editingGroupId.value, editingGroupName.value)
+  groupStore.updateGroupHourlyWage(editingGroupId.value, editingGroupHourlyWage.value)
+  closeGroupEditModal()
+}
+
+// グループ編集モーダルを閉じる
+const closeGroupEditModal = () => {
+  showGroupEditModal.value = false
+  editingGroupId.value = null
+  editingGroupName.value = ''
+  editingGroupHourlyWage.value = 1000
+}
+
+// グループを追加
+const addNewGroup = () => {
+  const newId = groupStore.addGroup()
+  if (newId === null) {
+    alert('グループは最大10個まで追加できます')
+  }
+}
+
+// グループを削除
+const deleteGroup = (groupId: GroupId) => {
+  if (confirm('このグループを削除しますか？\n（日付の割り当ても解除されます）')) {
+    groupStore.deleteGroup(groupId)
   }
 }
 
@@ -727,6 +825,57 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
+.group-edit-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.group-edit-btn:hover {
+  background: #764ba2;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.add-group-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.add-group-btn:hover {
+  background: linear-gradient(135deg, #059669, #10b981);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.plus-icon {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
 /* アコーディオントランジション */
 .accordion-enter-active,
 .accordion-leave-active {
@@ -1173,6 +1322,102 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
 }
 
 .close-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* グループ編集モーダル */
+.group-edit-modal {
+  max-width: 450px;
+}
+
+.edit-form {
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.btn-delete {
+  padding: 0.75rem 1.5rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: auto;
+}
+
+.btn-delete:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-cancel {
+  padding: 0.75rem 1.5rem;
+  background: #9ca3af;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+  background: #6b7280;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(156, 163, 175, 0.3);
+}
+
+.btn-save {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-save:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }

@@ -5,14 +5,29 @@
 import type { DateString } from './calendar'
 
 /**
- * グループID（0-3の4グループ）
+ * グループの最大数
  */
-export type GroupId = 0 | 1 | 2 | 3
+export const MAX_GROUPS = 10
+
+/**
+ * グループID（動的に追加可能）
+ */
+export type GroupId = number
 
 /**
  * グループカラー（蛍光色）
  */
-export type GroupColor = 'fluorescent-black' | 'fluorescent-yellow' | 'fluorescent-pink' | 'fluorescent-purple'
+export type GroupColor =
+  | 'fluorescent-black'
+  | 'fluorescent-yellow'
+  | 'fluorescent-pink'
+  | 'fluorescent-purple'
+  | 'fluorescent-blue'
+  | 'fluorescent-green'
+  | 'fluorescent-orange'
+  | 'fluorescent-red'
+  | 'fluorescent-cyan'
+  | 'fluorescent-magenta'
 
 /**
  * グループカラーの設定
@@ -44,6 +59,8 @@ export interface Group {
   dates: DateString[]
   /** アクティブか（使用中か） */
   isActive: boolean
+  /** 時給（円） */
+  hourlyWage: number
 }
 
 /**
@@ -116,4 +133,24 @@ export interface GroupBorder {
   cells: CellPosition[]
   /** 連続した範囲か */
   isConnected: boolean
+}
+
+/**
+ * 時間重複情報
+ */
+export interface TimeOverlap {
+  /** 日付 */
+  date: DateString
+  /** 重複しているグループIDのペア */
+  overlappingGroups: Array<{
+    group1Id: GroupId
+    group2Id: GroupId
+    group1Name: string
+    group2Name: string
+  }>
+  /** 重複している時間帯 */
+  overlappingTime: {
+    start: string
+    end: string
+  }
 }

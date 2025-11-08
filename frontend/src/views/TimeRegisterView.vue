@@ -535,6 +535,7 @@ interface GroupedWorkDay extends WorkDay {
     id: number
     name: string
     color: string
+    hourlyWage: number
   }
 }
 
@@ -551,7 +552,8 @@ const activeWorkDays = computed(() => {
       day.groupInfo = {
         id: primaryGroup.id,
         name: primaryGroup.name,
-        color: GROUP_COLOR_CONFIGS[primaryGroup.color].borderColor
+        color: GROUP_COLOR_CONFIGS[primaryGroup.color].borderColor,
+        hourlyWage: primaryGroup.hourlyWage
       }
     }
   })

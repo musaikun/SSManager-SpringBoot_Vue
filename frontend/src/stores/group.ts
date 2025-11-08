@@ -3,19 +3,22 @@
  */
 
 import { defineStore } from 'pinia'
-import type {
-  Group,
-  GroupId,
-  GroupColor,
-  GroupColorConfig,
-  GroupState,
-  DateGroupMapping,
-  DateRange
+import {
+  MAX_GROUPS,
+  type Group,
+  type GroupId,
+  type GroupColor,
+  type GroupColorConfig,
+  type GroupState,
+  type DateGroupMapping,
+  type DateRange,
+  type TimeOverlap
 } from '../types/group'
 import type { DateString } from '../types/calendar'
+import { useTimeRegisterStore } from './timeRegister'
 
 /**
- * グループカラーの定義（蛍光色4種）
+ * グループカラーの定義（蛍光色10種）
  */
 export const GROUP_COLOR_CONFIGS: Record<GroupColor, GroupColorConfig> = {
   'fluorescent-black': {
@@ -45,34 +48,84 @@ export const GROUP_COLOR_CONFIGS: Record<GroupColor, GroupColorConfig> = {
     borderColor: '#9d4edd',
     gradientColor: 'linear-gradient(135deg, #9d4edd, #c77dff)',
     shadowColor: 'rgba(157, 78, 221, 0.6)'
+  },
+  'fluorescent-blue': {
+    name: 'fluorescent-blue',
+    displayName: '蛍光ブルー',
+    borderColor: '#0ea5e9',
+    gradientColor: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+    shadowColor: 'rgba(14, 165, 233, 0.6)'
+  },
+  'fluorescent-green': {
+    name: 'fluorescent-green',
+    displayName: '蛍光グリーン',
+    borderColor: '#10b981',
+    gradientColor: 'linear-gradient(135deg, #10b981, #34d399)',
+    shadowColor: 'rgba(16, 185, 129, 0.6)'
+  },
+  'fluorescent-orange': {
+    name: 'fluorescent-orange',
+    displayName: '蛍光オレンジ',
+    borderColor: '#f97316',
+    gradientColor: 'linear-gradient(135deg, #f97316, #fb923c)',
+    shadowColor: 'rgba(249, 115, 22, 0.6)'
+  },
+  'fluorescent-red': {
+    name: 'fluorescent-red',
+    displayName: '蛍光レッド',
+    borderColor: '#ef4444',
+    gradientColor: 'linear-gradient(135deg, #ef4444, #f87171)',
+    shadowColor: 'rgba(239, 68, 68, 0.6)'
+  },
+  'fluorescent-cyan': {
+    name: 'fluorescent-cyan',
+    displayName: '蛍光シアン',
+    borderColor: '#06b6d4',
+    gradientColor: 'linear-gradient(135deg, #06b6d4, #22d3ee)',
+    shadowColor: 'rgba(6, 182, 212, 0.6)'
+  },
+  'fluorescent-magenta': {
+    name: 'fluorescent-magenta',
+    displayName: '蛍光マゼンタ',
+    borderColor: '#d946ef',
+    gradientColor: 'linear-gradient(135deg, #d946ef, #e879f9)',
+    shadowColor: 'rgba(217, 70, 239, 0.6)'
   }
 }
+
+/**
+ * 利用可能なカラーのリスト
+ */
+const AVAILABLE_COLORS: GroupColor[] = [
+  'fluorescent-black',
+  'fluorescent-yellow',
+  'fluorescent-pink',
+  'fluorescent-purple',
+  'fluorescent-blue',
+  'fluorescent-green',
+  'fluorescent-orange',
+  'fluorescent-red',
+  'fluorescent-cyan',
+  'fluorescent-magenta'
+]
 
 /**
  * グループIDに対応するカラーを取得
  */
 const getColorForGroupId = (groupId: GroupId): GroupColor => {
-  const colors: GroupColor[] = ['fluorescent-black', 'fluorescent-yellow', 'fluorescent-pink', 'fluorescent-purple']
-  return colors[groupId]
+  return AVAILABLE_COLORS[groupId % AVAILABLE_COLORS.length]
 }
 
 /**
- * 初期グループを作成
+ * デフォルトの時給
+ */
+const DEFAULT_HOURLY_WAGE = 1000
+
+/**
+ * 初期グループを作成（空の状態）
  */
 const createInitialGroups = (): Group[] => {
-  const groups: Group[] = []
-  for (let i = 0; i < 4; i++) {
-    const id = i as GroupId
-    const color = getColorForGroupId(id)
-    groups.push({
-      id,
-      name: `グループ ${i + 1}`,
-      color,
-      dates: [],
-      isActive: false
-    })
-  }
-  return groups
+  return []
 }
 
 export const useGroupStore = defineStore('group', {
@@ -195,6 +248,70 @@ export const useGroupStore = defineStore('group', {
         }
       }
       return allRanges
+    },
+
+    /**
+     * 時間重複を検出
+     */
+    timeOverlaps: (state): TimeOverlap[] => {
+      const overlaps: TimeOverlap[] = []
+      const timeRegisterStore = useTimeRegisterStore()
+
+      // 各日付について、複数のグループに属している場合に時間重複をチェック
+      for (const mapping of state.dateGroupMappings) {
+        if (mapping.groupIds.length < 2) continue // 2つ以上のグループがないと重複しない
+
+        const date = mapping.date
+        const workDay = timeRegisterStore.workDays.find(wd => wd.date === date)
+        if (!workDay || workDay.isRemoved) continue
+
+        // グループIDのペアで時間重複をチェック
+        const overlappingPairs: TimeOverlap['overlappingGroups'] = []
+
+        for (let i = 0; i < mapping.groupIds.length; i++) {
+          for (let j = i + 1; j < mapping.groupIds.length; j++) {
+            const group1 = state.groups.find(g => g.id === mapping.groupIds[i])
+            const group2 = state.groups.find(g => g.id === mapping.groupIds[j])
+
+            if (!group1 || !group2) continue
+
+            // 時間が重複しているかチェック（同じ日に複数のグループ = 重複と判定）
+            overlappingPairs.push({
+              group1Id: group1.id,
+              group2Id: group2.id,
+              group1Name: group1.name,
+              group2Name: group2.name
+            })
+          }
+        }
+
+        if (overlappingPairs.length > 0) {
+          overlaps.push({
+            date,
+            overlappingGroups: overlappingPairs,
+            overlappingTime: {
+              start: workDay.startTime,
+              end: workDay.endTime
+            }
+          })
+        }
+      }
+
+      return overlaps
+    },
+
+    /**
+     * 特定のグループが時間重複を持つか
+     */
+    groupHasOverlaps: (state) => {
+      return (groupId: GroupId): boolean => {
+        const overlaps = (useGroupStore().timeOverlaps as TimeOverlap[])
+        return overlaps.some(overlap =>
+          overlap.overlappingGroups.some(
+            pair => pair.group1Id === groupId || pair.group2Id === groupId
+          )
+        )
+      }
     }
   },
 
@@ -318,6 +435,59 @@ export const useGroupStore = defineStore('group', {
       if (!group) return
 
       group.name = newName
+      this.saveToLocalStorage()
+    },
+
+    /**
+     * 新しいグループを追加
+     */
+    addGroup(name?: string): GroupId | null {
+      // 最大数をチェック
+      if (this.groups.length >= MAX_GROUPS) {
+        return null
+      }
+
+      // 新しいIDを生成（既存のIDの最大値+1）
+      const newId = this.groups.length === 0
+        ? 0
+        : Math.max(...this.groups.map(g => g.id)) + 1
+
+      const color = getColorForGroupId(newId)
+      const newGroup: Group = {
+        id: newId,
+        name: name || `グループ ${newId + 1}`,
+        color,
+        dates: [],
+        isActive: false,
+        hourlyWage: DEFAULT_HOURLY_WAGE
+      }
+
+      this.groups.push(newGroup)
+      this.saveToLocalStorage()
+
+      return newId
+    },
+
+    /**
+     * グループを削除
+     */
+    deleteGroup(groupId: GroupId) {
+      // グループをクリア
+      this.clearGroup(groupId)
+
+      // グループを削除
+      this.groups = this.groups.filter(g => g.id !== groupId)
+      this.saveToLocalStorage()
+    },
+
+    /**
+     * グループの時給を更新
+     */
+    updateGroupHourlyWage(groupId: GroupId, hourlyWage: number) {
+      const group = this.groups.find(g => g.id === groupId)
+      if (!group) return
+
+      group.hourlyWage = hourlyWage
       this.saveToLocalStorage()
     },
 
