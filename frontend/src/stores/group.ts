@@ -149,6 +149,10 @@ export const useGroupStore = defineStore('group', {
           ...g,
           isVisible: g.isVisible ?? true
         }))
+        // 後方互換性：ungroupedNameが未定義の場合はデフォルト値を設定
+        if (!parsed.ungroupedName) {
+          parsed.ungroupedName = 'グループなし'
+        }
         return parsed
       } catch (e) {
         console.error('Failed to parse saved group state', e)
@@ -157,7 +161,8 @@ export const useGroupStore = defineStore('group', {
 
     return {
       groups: createInitialGroups(),
-      dateGroupMappings: []
+      dateGroupMappings: [],
+      ungroupedName: 'グループなし'
     }
   },
 
@@ -542,6 +547,15 @@ export const useGroupStore = defineStore('group', {
     reset() {
       this.groups = createInitialGroups()
       this.dateGroupMappings = []
+      this.ungroupedName = 'グループなし'
+      this.saveToLocalStorage()
+    },
+
+    /**
+     * 「グループなし」の名前を更新
+     */
+    updateUngroupedName(newName: string) {
+      this.ungroupedName = newName || 'グループなし'
       this.saveToLocalStorage()
     },
 

@@ -257,7 +257,10 @@
 
             <!-- グループなしの日付用の時給 -->
             <div v-if="hasUngroupedDays" class="group-wage-item">
-              <label class="group-wage-label">グループなし</label>
+              <label class="group-wage-label">
+                <span class="group-color-dot" :style="{ background: '#9ca3af' }"></span>
+                グループなし
+              </label>
               <input
                 type="number"
                 v-model.number="ungroupedWage"
@@ -644,20 +647,29 @@ interface GroupedWorkDay extends WorkDay {
 
 // アクティブな勤務日（削除されていない）をグループ別にソート
 const activeWorkDays = computed(() => {
-  const days: GroupedWorkDay[] = [...workDays.value]
+  const days: GroupedWorkDay[] = []
 
-  // 各日付にグループ情報を追加
-  days.forEach(day => {
+  // 各日付について、属するグループごとにカードを作成
+  workDays.value.forEach(day => {
     const groups = groupStore.getGroupsForDate(day.date)
+
     if (groups.length > 0) {
-      // 最初のグループを優先グループとして使用
-      const primaryGroup = groups[0]
-      day.groupInfo = {
-        id: primaryGroup.id,
-        name: primaryGroup.name,
-        color: GROUP_COLOR_CONFIGS[primaryGroup.color].borderColor,
-        hourlyWage: primaryGroup.hourlyWage
-      }
+      // 複数グループに属する場合、グループごとにカードを作成
+      groups.forEach(group => {
+        const groupedDay: GroupedWorkDay = {
+          ...day,
+          groupInfo: {
+            id: group.id,
+            name: group.name,
+            color: GROUP_COLOR_CONFIGS[group.color].borderColor,
+            hourlyWage: group.hourlyWage
+          }
+        }
+        days.push(groupedDay)
+      })
+    } else {
+      // グループなしの場合
+      days.push({ ...day })
     }
   })
 
@@ -2365,7 +2377,6 @@ const confirmTimeEdit = () => {
   font-size: 0.9rem;
   font-weight: 600;
   color: #333;
-  text-align: right;
   transition: all 0.3s ease;
 }
 

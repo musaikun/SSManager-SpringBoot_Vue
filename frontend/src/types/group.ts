@@ -83,6 +83,8 @@ export interface GroupState {
   groups: Group[]
   /** 日付とグループのマッピング */
   dateGroupMappings: DateGroupMapping[]
+  /** グループなしの表示名 */
+  ungroupedName?: string
 }
 
 /**

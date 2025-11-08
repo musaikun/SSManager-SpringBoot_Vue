@@ -364,11 +364,16 @@ const deleteOrHideGroup = (groupId: GroupId) => {
   const group = groupStore.getGroupById(groupId)
   if (!group) return
 
-  // 日付が割り当てられている場合は非表示
-  if (group.dates.length > 0) {
+  // 日付の割り当てがある場合
+  const hasDates = group.dates.length > 0
+
+  // 日付のグループ化をクリア（[クリア]ボタンと同じ挙動）
+  groupStore.clearGroup(groupId)
+
+  // 日付が割り当てられていた場合は非表示、なかった場合は削除
+  if (hasDates) {
     groupStore.hideGroup(groupId)
   } else {
-    // 日付が割り当てられていない場合は削除
     groupStore.deleteGroup(groupId)
   }
 }
@@ -504,6 +509,9 @@ const isInAnyGroup = (dateString: string): boolean => {
 const handleSelectAll = () => {
   // 選択を解除する日付を確認
   const currentMonthCells = calendarCells.value.filter(cell => cell.isCurrentMonth && !cell.isPast)
+  const allFutureDates = currentMonthCells.map(cell => cell.dateString)
+  const allSelected = allFutureDates.every(date => store.isDateSelected(date))
+
   const datesToDeselect = currentMonthCells.filter(cell => cell.isSelected).map(cell => cell.dateString)
 
   // 時間設定がある日付が含まれているか確認
@@ -515,15 +523,18 @@ const handleSelectAll = () => {
     }
   }
 
+  // 既に全選択されている場合は解除時、グループからも削除
+  if (allSelected && selectedGroupId.value !== null) {
+    allFutureDates.forEach(date => {
+      groupStore.removeDateFromGroup(selectedGroupId.value as GroupId, date)
+    })
+  }
+
   selectAll()
 
   // グループが選択されている場合、選択した日付をグループに追加
-  if (selectedGroupId.value !== null) {
-    const selectedDates = calendarCells.value
-      .filter(cell => cell.isCurrentMonth && !cell.isPast && cell.isSelected)
-      .map(cell => cell.dateString)
-
-    selectedDates.forEach(date => {
+  if (selectedGroupId.value !== null && !allSelected) {
+    allFutureDates.forEach(date => {
       groupStore.addDateToGroup(selectedGroupId.value as GroupId, date)
     })
   }
@@ -532,6 +543,17 @@ const handleSelectAll = () => {
 // 平日のみ選択（確認付き）
 const handleSelectWeekdaysOnly = () => {
   const currentMonthCells = calendarCells.value.filter(cell => cell.isCurrentMonth && !cell.isPast)
+
+  // 平日の日付を取得
+  const weekdayDates = currentMonthCells
+    .filter(cell => {
+      const isWeekday = cell.dayOfWeek >= 1 && cell.dayOfWeek <= 5
+      return isWeekday && !cell.isHoliday
+    })
+    .map(cell => cell.dateString)
+
+  // 平日が全て選択されているかチェック
+  const allWeekdaysSelected = weekdayDates.every(date => store.isDateSelected(date))
 
   // 選択を解除される日付（土日祝日）を取得
   const datesToDeselect = currentMonthCells
@@ -551,19 +573,18 @@ const handleSelectWeekdaysOnly = () => {
     }
   }
 
+  // 既に平日が全選択されている場合は解除時、グループからも削除
+  if (allWeekdaysSelected && selectedGroupId.value !== null) {
+    weekdayDates.forEach(date => {
+      groupStore.removeDateFromGroup(selectedGroupId.value as GroupId, date)
+    })
+  }
+
   selectWeekdaysOnly()
 
   // グループが選択されている場合、選択した日付をグループに追加
-  if (selectedGroupId.value !== null) {
-    const selectedDates = calendarCells.value
-      .filter(cell => {
-        if (!cell.isCurrentMonth || cell.isPast || !cell.isSelected) return false
-        const isWeekday = cell.dayOfWeek >= 1 && cell.dayOfWeek <= 5
-        return isWeekday && !cell.isHoliday
-      })
-      .map(cell => cell.dateString)
-
-    selectedDates.forEach(date => {
+  if (selectedGroupId.value !== null && !allWeekdaysSelected) {
+    weekdayDates.forEach(date => {
       groupStore.addDateToGroup(selectedGroupId.value as GroupId, date)
     })
   }
@@ -609,17 +630,20 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
         return
       }
     }
+
+    // 解除時、グループからも削除
+    if (selectedGroupId.value !== null) {
+      targetDates.forEach(date => {
+        groupStore.removeDateFromGroup(selectedGroupId.value as GroupId, date)
+      })
+    }
   }
 
   selectByWeekday(dayOfWeek)
 
   // グループが選択されている場合、選択した日付をグループに追加
   if (selectedGroupId.value !== null && !allSelected) {
-    const selectedDates = currentMonthCells
-      .filter(cell => cell.dayOfWeek === dayOfWeek && cell.isSelected)
-      .map(cell => cell.dateString)
-
-    selectedDates.forEach(date => {
+    targetDates.forEach(date => {
       groupStore.addDateToGroup(selectedGroupId.value as GroupId, date)
     })
   }
