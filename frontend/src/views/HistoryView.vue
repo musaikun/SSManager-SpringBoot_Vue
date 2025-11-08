@@ -157,9 +157,11 @@ const { formatMinutesToHours } = useTimeFormat()
 
 import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
+import { useGroupStore } from '../stores/group'
 
 const calendarStore = useCalendarStore()
 const timeRegisterStore = useTimeRegisterStore()
+const groupStore = useGroupStore()
 
 interface SavedShift {
   workDays: any[]
@@ -167,6 +169,10 @@ interface SavedShift {
   remarks: string
   submittedAt: string
   isFavorite?: boolean
+  groupState?: {
+    groups: any[]
+    dateGroupMappings: any[]
+  }
 }
 
 const savedShifts = ref<SavedShift[]>([])
@@ -322,6 +328,70 @@ const createFromBase = () => {
   // 備考欄も復元
   if (selectedShift.value!.remarks) {
     timeRegisterStore.remarks = selectedShift.value!.remarks
+  }
+
+  // グループ情報を復元
+  if (selectedShift.value!.groupState) {
+    // グループストアの状態をリセット
+    groupStore.reset()
+
+    // 保存されたグループ情報を復元
+    const savedGroupState = selectedShift.value!.groupState
+
+    // グループを復元
+    groupStore.groups = savedGroupState.groups.map(group => ({ ...group }))
+
+    // 日付マッピングを現在の月に合わせて変換
+    const newDateGroupMappings: any[] = []
+
+    savedGroupState.dateGroupMappings.forEach(mapping => {
+      // 保存された日付の曜日と週番号を取得
+      const savedDate = new Date(mapping.date)
+      const savedDayOfWeek = savedDate.getDay()
+      const savedWeekNumber = selectedShift.value!.workDays.find(
+        wd => wd.date === mapping.date
+      )?.weekNumber
+
+      if (savedWeekNumber === undefined) return
+
+      // 現在の月で同じ曜日・週番号の日付を探す
+      const matchedDate = datesToSelect.find(dateStr => {
+        const date = new Date(dateStr)
+        const dayOfWeek = date.getDay()
+
+        // 週番号を計算
+        const firstDay = new Date(currentYear, currentMonth, 1)
+        const firstDayOfWeek = firstDay.getDay()
+        const firstSunday = new Date(firstDay)
+        firstSunday.setDate(firstDay.getDate() - firstDayOfWeek)
+        const diffTime = date.getTime() - firstSunday.getTime()
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        const weekNumber = Math.floor(diffDays / 7) + 1
+
+        return dayOfWeek === savedDayOfWeek && weekNumber === savedWeekNumber
+      })
+
+      if (matchedDate) {
+        newDateGroupMappings.push({
+          date: matchedDate,
+          groupIds: [...mapping.groupIds]
+        })
+      }
+    })
+
+    // 新しいマッピングを設定
+    groupStore.dateGroupMappings = newDateGroupMappings
+
+    // グループの日付リストを更新
+    groupStore.groups.forEach(group => {
+      group.dates = newDateGroupMappings
+        .filter(mapping => mapping.groupIds.includes(group.id))
+        .map(mapping => mapping.date)
+      group.isActive = group.dates.length > 0
+    })
+
+    // ローカルストレージに保存
+    groupStore.saveToLocalStorage()
   }
 
   // 詳細モーダルを閉じて、カレンダー画面へ遷移

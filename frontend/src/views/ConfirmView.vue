@@ -112,12 +112,14 @@
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useTimeRegisterStore } from '../stores/timeRegister'
+import { useGroupStore } from '../stores/group'
 import { useTimeFormat } from '../composables/useTimeFormat'
 import { useTimeCalculation } from '../composables/useTimeCalculation'
 import { useHolidays } from '../composables/useHolidays'
 import type { WorkDay } from '../types/timeRegister'
 
 const timeRegisterStore = useTimeRegisterStore()
+const groupStore = useGroupStore()
 const { isHoliday } = useHolidays()
 
 const { includeBreak, workDays, showSubmitModal } = storeToRefs(timeRegisterStore)
@@ -240,7 +242,12 @@ const saveShiftData = () => {
     workDays: activeWorkDays.value,
     totalSummary: totalSummary.value,
     remarks: timeRegisterStore.remarks,
-    submittedAt: new Date().toISOString()
+    submittedAt: new Date().toISOString(),
+    // グループ情報を保存
+    groupState: {
+      groups: groupStore.groups,
+      dateGroupMappings: groupStore.dateGroupMappings
+    }
   }
 
   // LocalStorageに保存
