@@ -79,6 +79,11 @@
                 {{ bulkApplyEndLabel }}
               </button>
             </div>
+
+            <!-- 説明テキスト -->
+            <div class="bulk-note">
+              ※週・曜日を選択すると該当カードがマークされます
+            </div>
           </div>
         </transition>
       </div>
@@ -97,9 +102,14 @@
             <div class="legend-card">一括設定</div>
           </div>
           <div class="legend-item base-style">
-            <div class="legend-card">過去のシフトベース</div>
+            <div class="legend-card">過去ベース</div>
           </div>
         </div>
+      </div>
+
+      <!-- 個別設定ヘッダー -->
+      <div class="individual-settings-header">
+        <h3>日別に設定</h3>
       </div>
 
       <!-- 勤務日カードリスト -->
@@ -1376,7 +1386,15 @@ const confirmTimeEdit = () => {
   transform: translateY(0);
 }
 
-/* 注意書き */
+/* 一括設定の説明テキスト */
+.bulk-note {
+  font-size: 0.7rem;
+  color: #666;
+  text-align: center;
+  padding: 0.5rem 0.25rem 0.25rem 0.25rem;
+  line-height: 1.4;
+}
+
 /* 時間表示凡例 */
 .time-display-legend {
   padding: 0.75rem 1rem;
@@ -1402,9 +1420,9 @@ const confirmTimeEdit = () => {
 }
 
 .legend-card {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  padding: 0.4rem 0.6rem;
+  padding: 0.35rem 0.5rem;
   border-radius: 6px;
   border-left-width: 3px;
   border-left-style: solid;
@@ -1437,6 +1455,20 @@ const confirmTimeEdit = () => {
   background: #fee2e2;
   color: #991b1b;
   border-left-color: #ef4444;
+}
+
+/* 個別設定ヘッダー */
+.individual-settings-header {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.individual-settings-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #667eea;
+  text-align: left;
 }
 
 /* 休憩時間設定 */

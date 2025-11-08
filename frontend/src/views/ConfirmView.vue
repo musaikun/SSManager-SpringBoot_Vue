@@ -61,7 +61,7 @@
           id="remarks"
           v-model="remarks"
           class="remarks-input"
-          placeholder="上長への連絡事項や希望休暇の理由など"
+          placeholder="未ログインの場合、氏名の情報は含まれないので入力しましょう"
           rows="4"
         ></textarea>
       </div>
