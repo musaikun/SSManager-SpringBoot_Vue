@@ -23,7 +23,7 @@
         <!-- グループ化設定アコーディオン -->
         <div class="grouping-section">
           <div class="grouping-header" @click="toggleGrouping">
-            <span class="grouping-title">グループ化設定</span>
+            <span class="grouping-title">掛け持ち設定</span>
             <div class="grouping-controls">
               <button @click.stop="showGroupingHelp" class="help-icon-btn">?</button>
               <span class="accordion-icon">{{ isGroupingOpen ? '▲' : '▼' }}</span>
@@ -31,7 +31,7 @@
           </div>
           <transition name="accordion">
             <div v-show="isGroupingOpen" class="grouping-content">
-              <p class="grouping-note">※グループ化機能は準備中です</p>
+              <p class="grouping-note">※掛け持ち機能は準備中です</p>
             </div>
           </transition>
         </div>
