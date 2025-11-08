@@ -7,7 +7,7 @@ import type { DateString } from './calendar'
 /**
  * グループの最大数
  */
-export const MAX_GROUPS = 10
+export const MAX_GROUPS = 4
 
 /**
  * グループID（動的に追加可能）

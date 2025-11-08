@@ -122,10 +122,19 @@ const getColorForGroupId = (groupId: GroupId): GroupColor => {
 const DEFAULT_HOURLY_WAGE = 1000
 
 /**
- * 初期グループを作成（空の状態）
+ * 初期グループを作成（1個のデフォルトグループ）
  */
 const createInitialGroups = (): Group[] => {
-  return []
+  return [
+    {
+      id: 0,
+      name: 'グループ 1',
+      color: getColorForGroupId(0),
+      dates: [],
+      isActive: false,
+      hourlyWage: DEFAULT_HOURLY_WAGE
+    }
+  ]
 }
 
 export const useGroupStore = defineStore('group', {
