@@ -26,8 +26,8 @@
                   }">
                     <div class="group-header-line"></div>
                     <div class="group-header-label">
-                      <span class="group-indicator-dot" :style="{ background: getGroupHeaderInfo(index)?.color }"></span>
-                      {{ getGroupHeaderInfo(index)?.name || 'グループなし' }}
+                      <span class="group-indicator-dot" :style="{ background: getGroupHeaderInfo(index)?.color || '#9ca3af' }"></span>
+                      {{ getGroupHeaderInfo(index)?.name || groupStore.ungroupedName }}
                     </div>
                     <div class="group-header-line"></div>
                   </div>
@@ -189,9 +189,9 @@ const activeWorkDays = computed(() => {
 
 // グループヘッダーを表示すべきかチェック
 const shouldShowGroupHeader = (index: number): boolean => {
+  // 最初のアイテムは常にヘッダーを表示
   if (index === 0) {
-    const firstDay = activeWorkDays.value[0] as GroupedWorkDay
-    return !!firstDay.groupInfo
+    return true
   }
 
   const currentDay = activeWorkDays.value[index] as GroupedWorkDay
@@ -346,8 +346,8 @@ const generateShiftText = (): string => {
       const groupInfo = getGroupHeaderInfo(index)
       if (groupInfo) {
         text += `\n【${groupInfo.name}】\n`
-      } else if (index === 0 && !groupedDay.groupInfo) {
-        text += `\n【グループなし】\n`
+      } else {
+        text += `\n【${groupStore.ungroupedName}】\n`
       }
     }
 

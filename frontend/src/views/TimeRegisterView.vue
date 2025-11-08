@@ -126,8 +126,8 @@
           >
             <div class="group-header-line"></div>
             <div class="group-header-label">
-              <span class="group-indicator-dot" :style="{ background: getGroupHeaderInfo(index)?.color }"></span>
-              {{ getGroupHeaderInfo(index)?.name || 'グループなし' }}
+              <span class="group-indicator-dot" :style="{ background: getGroupHeaderInfo(index)?.color || '#9ca3af' }"></span>
+              {{ getGroupHeaderInfo(index)?.name || groupStore.ungroupedName }}
               <button
                 v-if="getGroupHeaderInfo(index) && groupHasOverlaps(getGroupHeaderInfo(index)!.id)"
                 @click="openOverlapModal(getGroupHeaderInfo(index)!.id)"
@@ -257,10 +257,16 @@
 
             <!-- グループなしの日付用の時給 -->
             <div v-if="hasUngroupedDays" class="group-wage-item">
-              <label class="group-wage-label">
+              <div class="group-wage-label">
                 <span class="group-color-dot" :style="{ background: '#9ca3af' }"></span>
-                グループなし
-              </label>
+                <input
+                  type="text"
+                  :value="groupStore.ungroupedName"
+                  @change="(e) => groupStore.updateUngroupedName((e.target as HTMLInputElement).value)"
+                  class="ungrouped-name-input"
+                  placeholder="グループなし"
+                />
+              </div>
               <input
                 type="number"
                 v-model.number="ungroupedWage"
@@ -839,7 +845,7 @@ const calculateGroupSalaries = () => {
     if (ungroupedSalary > 0) {
       results.push({
         groupId: null,
-        groupName: 'グループなし',
+        groupName: groupStore.ungroupedName || 'グループなし',
         color: '#999',
         salary: ungroupedSalary
       })
@@ -2357,6 +2363,28 @@ const confirmTimeEdit = () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ungrouped-name-input {
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  padding: 0.25rem;
+  min-width: 0;
+  flex: 1;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.ungrouped-name-input:hover {
+  border-bottom-color: #cbd5e1;
+}
+
+.ungrouped-name-input:focus {
+  outline: none;
+  border-bottom-color: #3b82f6;
 }
 
 .group-color-dot {
