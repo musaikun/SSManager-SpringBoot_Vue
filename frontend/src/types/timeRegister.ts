@@ -3,6 +3,7 @@
  */
 
 import type { DateString, DayOfWeek } from './calendar'
+import type { GroupId } from './group'
 
 /**
  * 時刻（HH:MM形式）
@@ -51,6 +52,25 @@ export interface WorkDay {
   isBulkApplied: boolean
   /** 過去のシフトベースから作成されたか */
   isFromBase?: boolean
+  /** 開始時刻の設定方法 */
+  startTimeSetBy: 'default' | 'bulk' | 'custom' | 'base'
+  /** 終了時刻の設定方法 */
+  endTimeSetBy: 'default' | 'bulk' | 'custom' | 'base'
+}
+
+/**
+ * グループごとの時間設定
+ * 同じ日付が複数グループに属する場合、グループごとに異なる時間を設定できる
+ */
+export interface GroupedWorkTime {
+  /** 日付（YYYY-MM-DD形式） */
+  date: DateString
+  /** グループID */
+  groupId: GroupId
+  /** 開始時刻 */
+  startTime: TimeString
+  /** 終了時刻 */
+  endTime: TimeString
   /** 開始時刻の設定方法 */
   startTimeSetBy: 'default' | 'bulk' | 'custom' | 'base'
   /** 終了時刻の設定方法 */
@@ -140,6 +160,8 @@ export interface TotalSummary {
 export interface TimeRegisterState {
   /** 勤務日のリスト */
   workDays: WorkDay[]
+  /** グループごとの時間設定リスト */
+  groupedWorkTimes: GroupedWorkTime[]
   /** 一括設定 */
   bulkSettings: BulkSettings
   /** 休憩時間を加味するか */

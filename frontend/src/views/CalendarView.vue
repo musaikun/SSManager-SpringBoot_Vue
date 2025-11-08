@@ -34,7 +34,7 @@
               <p class="grouping-note">※グループを選択してから日付をクリックすると、その日付をグループに追加できます</p>
               <div class="group-buttons">
                 <div
-                  v-for="group in groupStore.visibleGroups"
+                  v-for="group in displayGroups"
                   :key="group.id"
                   class="group-item"
                 >
@@ -43,7 +43,8 @@
                     class="group-btn"
                     :class="{
                       active: selectedGroupId === group.id,
-                      'has-dates': isGroupActive(group.id as GroupId)
+                      'has-dates': isGroupActive(group.id as GroupId),
+                      'ungrouped': group.id < 0
                     }"
                     :style="{
                       '--group-color': getGroupColorConfig(group.id as GroupId)?.borderColor,
@@ -51,7 +52,9 @@
                     }"
                   >
                     <span class="group-color-indicator" :style="{ background: getGroupColorConfig(group.id as GroupId)?.gradientColor }"></span>
+                    <span v-if="group.id < 0" class="group-name-text">{{ group.name }}</span>
                     <input
+                      v-else
                       type="text"
                       :value="group.name"
                       @click.stop
@@ -62,6 +65,7 @@
                     <span v-if="group.dates.length > 0" class="group-count">{{ group.dates.length }}</span>
                   </button>
                   <button
+                    v-if="group.id >= 0"
                     @click="deleteOrHideGroup(group.id as GroupId)"
                     class="group-delete-or-hide-btn"
                     :title="isGroupActive(group.id as GroupId) ? 'グループを非表示' : 'グループを削除'"
@@ -217,7 +221,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useCalendar } from '../composables/useCalendar'
 import { useHolidays } from '../composables/useHolidays'
 import { useCalendarStore } from '../stores/calendar'
@@ -403,12 +407,38 @@ const isNextMonth = computed(() => {
   return store.currentYear === nextMonth.year && store.currentMonth === nextMonth.month
 })
 
+// アコーディオンに表示するグループリスト（グループなしを含む）
+const displayGroups = computed(() => {
+  const normalGroups = groupStore.visibleGroups.filter(g => g.id >= 0)
+  const ungroupedGroup = groupStore.ungroupedGroup
+
+  // 他のグループがある場合のみグループなしを含める
+  if (groupStore.hasAnyGroupedDates && ungroupedGroup) {
+    return [ungroupedGroup, ...normalGroups]
+  }
+
+  return normalGroups
+})
+
 // 初期化
 onMounted(async () => {
   // 祝日データを取得してストアに保存
   await fetchHolidaysWithCache()
   store.setHolidays(holidaysData.value)
+
+  // 初回のグループなし同期
+  groupStore.syncUngroupedDates(store.selectedDatesArray)
 })
+
+// 選択された日付が変わったときに「グループなし」を同期
+watch(() => store.selectedDatesArray, (newDates) => {
+  groupStore.syncUngroupedDates(newDates)
+}, { deep: true })
+
+// グループが変更されたときに「グループなし」を同期
+watch(() => groupStore.groups, () => {
+  groupStore.syncUngroupedDates(store.selectedDatesArray)
+}, { deep: true })
 
 // イベントハンドラ
 const handleDateClick = (cell: CalendarCell) => {
@@ -890,6 +920,12 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   outline: none;
   background: rgba(255, 255, 255, 0.5);
   border-radius: 4px;
+}
+
+.group-name-text {
+  flex: 1;
+  text-align: left;
+  padding: 0.25rem;
 }
 
 .group-count {
