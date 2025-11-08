@@ -1362,13 +1362,27 @@ const handleCardClick = (event: MouseEvent, index: number) => {
     ripple.remove()
   }, 600)
 
+  // activeWorkDaysのインデックスから元のworkDaysのインデックスを取得
+  const clickedDate = activeWorkDays.value[index]?.date
+  if (!clickedDate) return
+
+  const actualIndex = workDays.value.findIndex(wd => wd.date === clickedDate)
+  if (actualIndex === -1) return
+
   // 時刻選択モーダルを開く
-  handleTimeClick(index, 'both')
+  handleTimeClick(actualIndex, 'both')
 }
 
 // シフトを外す/戻す
 const toggleRemoveDay = (index: number) => {
-  timeRegisterStore.toggleRemoveDay(index)
+  // activeWorkDaysのインデックスから元のworkDaysのインデックスを取得
+  const clickedDate = activeWorkDays.value[index]?.date
+  if (!clickedDate) return
+
+  const actualIndex = workDays.value.findIndex(wd => wd.date === clickedDate)
+  if (actualIndex === -1) return
+
+  timeRegisterStore.toggleRemoveDay(actualIndex)
 }
 
 // 時刻選択モーダルをキャンセル
@@ -2324,6 +2338,7 @@ const confirmTimeEdit = () => {
   gap: 0.5rem;
   flex: 0 0 auto;
   max-width: 50%;
+  padding-left: 0.5rem;
   font-size: 0.9rem;
   font-weight: 600;
   color: #333;
@@ -2350,6 +2365,7 @@ const confirmTimeEdit = () => {
   font-size: 0.9rem;
   font-weight: 600;
   color: #333;
+  text-align: right;
   transition: all 0.3s ease;
 }
 

@@ -336,7 +336,21 @@ const saveShiftData = () => {
 const generateShiftText = (): string => {
   let text = '【シフト提出】\n\n'
 
-  activeWorkDays.value.forEach(day => {
+  let currentGroupId: number | null = null
+
+  activeWorkDays.value.forEach((day, index) => {
+    const groupedDay = day as GroupedWorkDay
+
+    // グループヘッダーを表示
+    if (shouldShowGroupHeader(index)) {
+      const groupInfo = getGroupHeaderInfo(index)
+      if (groupInfo) {
+        text += `\n【${groupInfo.name}】\n`
+      } else if (index === 0 && !groupedDay.groupInfo) {
+        text += `\n【グループなし】\n`
+      }
+    }
+
     text += `${day.displayDate}: ${day.startTime}〜${day.endTime}\n`
   })
 
