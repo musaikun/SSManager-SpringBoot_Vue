@@ -816,9 +816,9 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
       title: '一括設定の確認',
       message: `${selectedLabel}で個別設定した箇所が${modifiedCount}日あります。`,
       options: [
-        { label: '個別設定の日は<span style="color: #3b82f6; font-weight: 700;">除いて</span>適用', value: 'unmodified' },
-        { label: '個別設定も<span style="color: #3b82f6; font-weight: 700;">上書き</span>して適用', value: 'all' },
-        { label: 'キャンセル', value: 'cancel' }
+        { label: '個別設定の日は<span style="color: #ca8a04; font-weight: 700;">除いて</span>適用', value: 'unmodified' },
+        { label: '個別設定も<span style="color: #ca8a04; font-weight: 700;">上書き</span>して適用', value: 'all' },
+        { label: '<span style="color: #ef4444;">キャンセル</span>', value: 'cancel' }
       ],
       onConfirm: (value: string) => {
         if (value !== 'cancel') {
