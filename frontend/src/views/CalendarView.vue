@@ -62,17 +62,9 @@
                     ✎
                   </button>
                   <button
-                    @click="hideGroupDirect(group.id as GroupId)"
-                    class="group-hide-btn"
-                    title="グループを非表示"
-                  >
-                    👁️‍🗨️
-                  </button>
-                  <button
-                    v-if="isGroupActive(group.id as GroupId)"
-                    @click="clearGroupDates(group.id as GroupId)"
-                    class="group-clear-btn"
-                    title="グループをクリア"
+                    @click="deleteOrHideGroup(group.id as GroupId)"
+                    class="group-delete-or-hide-btn"
+                    :title="isGroupActive(group.id as GroupId) ? 'グループを非表示' : 'グループを削除'"
                   >
                     ×
                   </button>
@@ -215,7 +207,6 @@
             </div>
           </div>
           <div class="modal-buttons">
-            <button @click="deleteGroup(editingGroupId as GroupId)" class="btn-delete">削除</button>
             <button @click="closeGroupEditModal" class="btn-cancel">キャンセル</button>
             <button @click="saveGroupEdit" class="btn-save">保存</button>
           </div>
@@ -368,9 +359,18 @@ const deleteGroup = (groupId: GroupId) => {
   }
 }
 
-// グループを非表示にする（アコーディオンから）
-const hideGroupDirect = (groupId: GroupId) => {
-  groupStore.hideGroup(groupId)
+// グループを非表示または削除（アコーディオンから）
+const deleteOrHideGroup = (groupId: GroupId) => {
+  const group = groupStore.getGroupById(groupId)
+  if (!group) return
+
+  // 日付が割り当てられている場合は非表示
+  if (group.dates.length > 0) {
+    groupStore.hideGroup(groupId)
+  } else {
+    // 日付が割り当てられていない場合は削除
+    groupStore.deleteGroup(groupId)
+  }
 }
 
 // 今月・来月の判定
@@ -516,6 +516,17 @@ const handleSelectAll = () => {
   }
 
   selectAll()
+
+  // グループが選択されている場合、選択した日付をグループに追加
+  if (selectedGroupId.value !== null) {
+    const selectedDates = calendarCells.value
+      .filter(cell => cell.isCurrentMonth && !cell.isPast && cell.isSelected)
+      .map(cell => cell.dateString)
+
+    selectedDates.forEach(date => {
+      groupStore.addDateToGroup(selectedGroupId.value as GroupId, date)
+    })
+  }
 }
 
 // 平日のみ選択（確認付き）
@@ -541,6 +552,21 @@ const handleSelectWeekdaysOnly = () => {
   }
 
   selectWeekdaysOnly()
+
+  // グループが選択されている場合、選択した日付をグループに追加
+  if (selectedGroupId.value !== null) {
+    const selectedDates = calendarCells.value
+      .filter(cell => {
+        if (!cell.isCurrentMonth || cell.isPast || !cell.isSelected) return false
+        const isWeekday = cell.dayOfWeek >= 1 && cell.dayOfWeek <= 5
+        return isWeekday && !cell.isHoliday
+      })
+      .map(cell => cell.dateString)
+
+    selectedDates.forEach(date => {
+      groupStore.addDateToGroup(selectedGroupId.value as GroupId, date)
+    })
+  }
 }
 
 // クリア（確認付き）
@@ -586,6 +612,17 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   }
 
   selectByWeekday(dayOfWeek)
+
+  // グループが選択されている場合、選択した日付をグループに追加
+  if (selectedGroupId.value !== null && !allSelected) {
+    const selectedDates = currentMonthCells
+      .filter(cell => cell.dayOfWeek === dayOfWeek && cell.isSelected)
+      .map(cell => cell.dateString)
+
+    selectedDates.forEach(date => {
+      groupStore.addDateToGroup(selectedGroupId.value as GroupId, date)
+    })
+  }
 }
 </script>
 
@@ -855,14 +892,15 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-.group-hide-btn {
+.group-delete-or-hide-btn {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #8b5cf6;
+  background: #f97316;
   color: white;
   border: none;
-  font-size: 1.1rem;
+  font-size: 1.5rem;
+  font-weight: 300;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -871,10 +909,10 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   flex-shrink: 0;
 }
 
-.group-hide-btn:hover {
-  background: #7c3aed;
+.group-delete-or-hide-btn:hover {
+  background: #ea580c;
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
 }
 
 .add-group-btn {

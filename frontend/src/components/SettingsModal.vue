@@ -33,6 +33,16 @@
             <p class="settings-note">※ 一括設定の初期値として使用されます</p>
           </div>
 
+          <!-- グループ管理 -->
+          <div class="settings-section">
+            <h3 class="section-title">グループ管理</h3>
+            <button @click="deleteAllGroups" class="action-btn delete-groups-btn">
+              <span class="action-icon">🗑️</span>
+              <span class="action-label">グループをすべて削除</span>
+            </button>
+            <p class="settings-note">※ すべてのグループと日付の割り当てが削除されます</p>
+          </div>
+
           <!-- 履歴管理 -->
           <div class="settings-section">
             <h3 class="section-title">履歴管理</h3>
@@ -172,6 +182,7 @@
 import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useTimeRegisterStore } from '../stores/timeRegister'
+import { useGroupStore } from '../stores/group'
 
 const props = defineProps<{
   isOpen: boolean
@@ -182,6 +193,7 @@ const emit = defineEmits<{
 }>()
 
 const timeRegisterStore = useTimeRegisterStore()
+const groupStore = useGroupStore()
 
 // デフォルト時刻（LocalStorageから読み込み、独立管理）
 const loadDefaultTimes = () => {
@@ -303,6 +315,24 @@ const applyTime = () => {
   })
 
   closeTimePicker()
+}
+
+// グループをすべて削除
+const deleteAllGroups = () => {
+  if (!confirm('すべてのグループと日付の割り当てを削除してもよろしいですか？\nこの操作は取り消せません。')) {
+    return
+  }
+
+  // すべてのグループを削除
+  const groupCount = groupStore.groups.length
+  groupStore.groups.forEach(group => {
+    groupStore.deleteGroup(group.id)
+  })
+
+  // 初期グループを1つ追加
+  groupStore.addGroup('グループ 1')
+
+  alert(`${groupCount}個のグループを削除し、初期状態に戻しました`)
 }
 
 // お気に入り以外の履歴を削除
