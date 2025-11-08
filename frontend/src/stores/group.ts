@@ -5,6 +5,7 @@
 import { defineStore } from 'pinia'
 import {
   MAX_GROUPS,
+  UNGROUPED_GROUP_ID,
   type Group,
   type GroupId,
   type GroupColor,
@@ -338,6 +339,21 @@ export const useGroupStore = defineStore('group', {
           )
         )
       }
+    },
+
+    /**
+     * グループ化が1つでも存在するかチェック
+     */
+    hasAnyGroupedDates: (state): boolean => {
+      // 通常のグループ（ID >= 0）にアクティブな日付が存在するかチェック
+      return state.groups.some(g => g.id >= 0 && g.dates.length > 0)
+    },
+
+    /**
+     * 「グループなし」グループを取得
+     */
+    ungroupedGroup: (state): Group | undefined => {
+      return state.groups.find(g => g.id === UNGROUPED_GROUP_ID)
     }
   },
 
@@ -566,6 +582,94 @@ export const useGroupStore = defineStore('group', {
         localStorage.setItem('groupState', JSON.stringify(this.$state))
       } catch (e) {
         console.error('Failed to save group state to localStorage', e)
+      }
+    },
+
+    /**
+     * 「グループなし」グループを確保
+     */
+    ensureUngroupedGroup() {
+      // すでに存在する場合は何もしない
+      if (this.ungroupedGroup) return
+
+      // 「グループなし」グループを作成
+      this.groups.push({
+        id: UNGROUPED_GROUP_ID,
+        name: this.ungroupedName || 'グループなし',
+        color: 'fluorescent-white',
+        dates: [],
+        isActive: false,
+        hourlyWage: 1000,
+        isVisible: true
+      })
+    },
+
+    /**
+     * 選択済みだがグループ化されていない日付を「グループなし」に自動追加
+     */
+    syncUngroupedDates(selectedDates: DateString[]) {
+      // 他のグループ化がない場合は何もしない
+      if (!this.hasAnyGroupedDates) {
+        // グループなしグループを削除
+        this.removeUngroupedGroup()
+        return
+      }
+
+      // グループなしグループを確保
+      this.ensureUngroupedGroup()
+
+      const ungroupedGroup = this.ungroupedGroup
+      if (!ungroupedGroup) return
+
+      // 選択済みの日付のうち、通常のグループに属していない日付を取得
+      const ungroupedDates = selectedDates.filter(date => {
+        const groups = this.getGroupsForDate(date)
+        // 通常のグループ（ID >= 0）に属していない日付
+        return !groups.some(g => g.id >= 0)
+      })
+
+      // グループなしグループの日付を更新
+      ungroupedGroup.dates = ungroupedDates
+      ungroupedGroup.isActive = ungroupedDates.length > 0
+
+      // dateGroupMappingsを更新
+      ungroupedDates.forEach(date => {
+        let mapping = this.dateGroupMappings.find(m => m.date === date)
+        if (!mapping) {
+          mapping = { date, groupIds: [] }
+          this.dateGroupMappings.push(mapping)
+        }
+        if (!mapping.groupIds.includes(UNGROUPED_GROUP_ID)) {
+          mapping.groupIds.push(UNGROUPED_GROUP_ID)
+        }
+      })
+
+      // グループなしグループから外れた日付のマッピングを削除
+      this.dateGroupMappings.forEach(mapping => {
+        if (!ungroupedDates.includes(mapping.date)) {
+          mapping.groupIds = mapping.groupIds.filter(id => id !== UNGROUPED_GROUP_ID)
+        }
+      })
+
+      // 空のマッピングを削除
+      this.dateGroupMappings = this.dateGroupMappings.filter(m => m.groupIds.length > 0)
+
+      this.saveToLocalStorage()
+    },
+
+    /**
+     * 「グループなし」グループを削除
+     */
+    removeUngroupedGroup() {
+      const index = this.groups.findIndex(g => g.id === UNGROUPED_GROUP_ID)
+      if (index !== -1) {
+        this.groups.splice(index, 1)
+        // マッピングからも削除
+        this.dateGroupMappings.forEach(mapping => {
+          mapping.groupIds = mapping.groupIds.filter(id => id !== UNGROUPED_GROUP_ID)
+        })
+        this.dateGroupMappings = this.dateGroupMappings.filter(m => m.groupIds.length > 0)
+        this.saveToLocalStorage()
       }
     }
   }

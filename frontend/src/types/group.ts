@@ -10,6 +10,11 @@ import type { DateString } from './calendar'
 export const MAX_GROUPS = 4
 
 /**
+ * 「グループなし」専用のグループID
+ */
+export const UNGROUPED_GROUP_ID = -1
+
+/**
  * グループID（動的に追加可能）
  */
 export type GroupId = number
