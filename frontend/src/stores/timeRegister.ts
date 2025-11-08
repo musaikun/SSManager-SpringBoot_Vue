@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import type {
   TimeRegisterState,
   WorkDay,
+  GroupedWorkTime,
   BulkSettings,
   TotalSummary,
   TimePickerState,
@@ -11,6 +12,7 @@ import type {
   TimeString
 } from '../types/timeRegister'
 import type { DateString } from '../types/calendar'
+import type { GroupId } from '../types/group'
 
 // LocalStorageからデフォルト時刻を読み込む
 const loadDefaultTimes = () => {
@@ -36,6 +38,7 @@ export const useTimeRegisterStore = defineStore('timeRegister', {
     const defaultTimes = loadDefaultTimes()
     return {
       workDays: [],
+      groupedWorkTimes: [],
       bulkSettings: {
         startTime: defaultTimes.startTime,
         endTime: defaultTimes.endTime
