@@ -1,144 +1,348 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import axios from 'axios'
-import HelloWorld from './components/HelloWorld.vue'
+import { ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import PageSlider from './components/PageSlider.vue'
+import ProgressIndicator from './components/ProgressIndicator.vue'
+import SettingsModal from './components/SettingsModal.vue'
+import CalendarView from './views/CalendarView.vue'
+import TimeRegisterView from './views/TimeRegisterView.vue'
+import ConfirmView from './views/ConfirmView.vue'
+import HomeView from './views/HomeView.vue'
+import HistoryView from './views/HistoryView.vue'
+import { useNavigationStore } from './stores/navigation'
+import { useTimeRegisterStore } from './stores/timeRegister'
 
-const apiResponse = ref<string>('')
-const loading = ref<boolean>(false)
-const error = ref<string>('')
+const route = useRoute()
+const router = useRouter()
+const navigationStore = useNavigationStore()
+const timeRegisterStore = useTimeRegisterStore()
+const { workDays, totalSummary } = storeToRefs(timeRegisterStore)
 
-const API_BASE_URL = 'http://localhost:8080/api'
+const showSettingsModal = ref(false)
 
-/**
- * Backend API疎通テスト - /api/hello
- */
-const testApiHello = async () => {
-  loading.value = true
-  error.value = ''
-  try {
-    const response = await axios.get(`${API_BASE_URL}/hello`)
-    apiResponse.value = JSON.stringify(response.data, null, 2)
-  } catch (e: any) {
-    error.value = `Error: ${e.message}`
-    apiResponse.value = ''
-  } finally {
-    loading.value = false
+// スライド対象のページ
+const sliderPages = [
+  { name: 'calendar', path: '/calendar', component: CalendarView },
+  { name: 'time-register', path: '/time-register', component: TimeRegisterView },
+  { name: 'confirm', path: '/confirm', component: ConfirmView }
+]
+
+// ホーム画面かどうか
+const isHomePage = computed(() => route.path === '/')
+
+// スライドページかどうか
+const isSliderPage = computed(() =>
+  sliderPages.some(page => page.path === route.path)
+)
+
+// 現在のページに応じたボタン設定
+const showBackButton = computed(() =>
+  route.path === '/time-register' || route.path === '/confirm'
+)
+
+const nextButtonLabel = computed(() => {
+  if (route.path === '/calendar') return '次へ'
+  if (route.path === '/time-register') return '次へ'
+  if (route.path === '/confirm') return '提出'
+  return '次へ'
+})
+
+// ボタンハンドラー
+const handleBack = () => {
+  navigationStore.setBackward()
+  if (route.path === '/time-register') {
+    router.push('/calendar')
+  } else if (route.path === '/confirm') {
+    router.push('/time-register')
   }
 }
 
-/**
- * Backend API疎通テスト - /api/ping
- */
-const testApiPing = async () => {
-  loading.value = true
-  error.value = ''
-  try {
-    const response = await axios.get(`${API_BASE_URL}/ping`)
-    apiResponse.value = response.data
-  } catch (e: any) {
-    error.value = `Error: ${e.message}`
-    apiResponse.value = ''
-  } finally {
-    loading.value = false
+const handleNext = () => {
+  if (route.path === '/calendar') {
+    navigationStore.setForward()
+    router.push('/time-register')
+  } else if (route.path === '/time-register') {
+    navigationStore.setForward()
+    router.push('/confirm')
+  } else if (route.path === '/confirm') {
+    // 提出方法選択モーダルを開く
+    timeRegisterStore.openSubmitModal()
   }
+}
+
+// ヘッダーアイコンのハンドラー
+const handleHistoryClick = () => {
+  router.push('/history')
+}
+
+const handleLogoClick = () => {
+  router.push('/')
+}
+
+const handleSettingsClick = () => {
+  showSettingsModal.value = true
+}
+
+const closeSettingsModal = () => {
+  showSettingsModal.value = false
 }
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
+  <div id="app">
+    <!-- ホーム画面は通常表示 -->
+    <HomeView v-if="isHomePage" />
 
-  <!-- API連携テストセクション -->
-  <div class="api-test">
-    <h2>Backend API 疎通テスト</h2>
-    <div class="button-group">
-      <button @click="testApiHello" :disabled="loading">Test /api/hello</button>
-      <button @click="testApiPing" :disabled="loading">Test /api/ping</button>
+    <!-- 履歴画面 -->
+    <HistoryView v-else-if="route.path === '/history'" />
+
+    <!-- カレンダー・時間設定・確認画面 -->
+    <div v-else-if="isSliderPage" class="slider-layout">
+      <!-- ヘッダー（固定） -->
+      <div class="fixed-header">
+        <div class="header-icons">
+          <button class="header-icon-btn" @click="handleHistoryClick" title="過去の作成記録">
+            <span class="icon">📋</span>
+          </button>
+          <button class="header-logo-btn" @click="handleLogoClick" title="ホームに戻る">
+            <span class="logo-text">
+              <span class="title-s">S</span>
+              <span class="shine-x">×</span>
+              <span class="title-s2">S Manager</span>
+            </span>
+          </button>
+          <button class="header-icon-btn" @click="handleSettingsClick" title="初期値設定">
+            <span class="icon">⚙️</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- メインコンテンツ（スライド） -->
+      <div class="slider-content">
+        <PageSlider :pages="sliderPages" />
+      </div>
+
+      <!-- フッター（固定） -->
+      <div class="fixed-footer">
+        <ProgressIndicator />
+      </div>
     </div>
-    <div v-if="loading" class="loading">Loading...</div>
-    <div v-if="error" class="error">{{ error }}</div>
-    <pre v-if="apiResponse" class="response">{{ apiResponse }}</pre>
+
+    <!-- 設定モーダル -->
+    <SettingsModal :isOpen="showSettingsModal" @close="closeSettingsModal" />
   </div>
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+<style>
+/* グローバルスタイル */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* API Test Styles */
-.api-test {
-  margin-top: 2rem;
-  padding: 2rem;
-  border: 1px solid #ccc;
+body {
+  font-family: 'Inter', 'Noto Sans JP', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+/* スライドレイアウト */
+.slider-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  overflow: hidden;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+}
+
+.fixed-header {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  z-index: 100;
+}
+
+.header-icons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-icon-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
-  background: #f9f9f9;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
 }
 
-.api-test h2 {
-  margin-bottom: 1rem;
-  color: #333;
+.header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.button-group {
+.header-icon-btn .icon {
+  font-size: 1.25rem;
+}
+
+.header-logo-btn {
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.header-logo-btn:hover {
+  transform: translateY(-2px);
+}
+
+.logo-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+  gap: 4px;
+}
+
+.title-s, .title-s2 {
+  background: linear-gradient(-60deg, rgba(255,255,255,0.9), rgba(220,250,255,0.4), rgba(255,255,255,0.9));
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: windFlow 5s linear infinite;
+}
+
+@keyframes windFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.shine-x {
+  background: linear-gradient(120deg, #3a0d6f, #7c3aff, #d9b3ff, #6f3ad0);
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 2px #b393ff)
+          drop-shadow(0 0 6px #d9b3ff)
+          drop-shadow(0 0 12px #6f3ad0);
+  animation: shineMove 3s ease-in-out infinite, flicker 0.8s infinite;
+  display: inline-block;
+  position: relative;
+}
+
+@keyframes shineMove {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.slider-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fixed-footer {
+  flex-shrink: 0;
+  padding: 1rem;
+  z-index: 100;
+}
+
+.footer-buttons {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
+  justify-content: center;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
-.button-group button {
-  padding: 0.5rem 1rem;
-  background: #42b883;
-  color: white;
+.action-btn {
+  padding: 1rem 2rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 50px;
+  font-size: 1.125rem;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 1rem;
+  transition: all 0.3s ease;
+  flex: 1;
+  max-width: 200px;
 }
 
-.button-group button:hover:not(:disabled) {
-  background: #35a372;
+.back-btn {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
 }
 
-.button-group button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
+.back-btn:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-.loading {
-  color: #646cff;
-  font-weight: bold;
-  margin: 1rem 0;
+.next-btn {
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: white;
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
 }
 
-.error {
-  color: #ff4444;
-  font-weight: bold;
-  margin: 1rem 0;
+.next-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
 }
 
-.response {
-  background: #2d2d2d;
-  color: #00ff00;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-top: 1rem;
-  overflow-x: auto;
+.submit-btn {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.submit-btn:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .fixed-header {
+    padding: 0.75rem 0.75rem 0 0.75rem;
+  }
+
+  .fixed-footer {
+    padding: 0.75rem;
+  }
+
+  .action-btn {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
 }
 </style>
