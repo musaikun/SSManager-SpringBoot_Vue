@@ -39,8 +39,8 @@
         </table>
       </div>
 
-      <!-- 合計統計 -->
-      <div class="total-summary-section">
+      <!-- 合計統計と備考の統合カード -->
+      <div class="summary-remarks-section">
         <div class="summary-compact">
           <div class="summary-item">
             <span class="summary-label">勤務日数</span>
@@ -52,18 +52,18 @@
             <span class="summary-value">{{ formatMinutesToHours(totalSummary.totalWorkMinutes) }}</span>
           </div>
         </div>
-      </div>
 
-      <!-- 備考入力欄 -->
-      <div class="remarks-section">
-        <label for="remarks" class="remarks-label">備考</label>
-        <textarea
-          id="remarks"
-          v-model="remarks"
-          class="remarks-input"
-          placeholder="上長への連絡事項や希望休暇の理由など"
-          rows="4"
-        ></textarea>
+        <!-- 備考入力欄 -->
+        <div class="remarks-area">
+          <label for="remarks" class="remarks-label">備考</label>
+          <textarea
+            id="remarks"
+            v-model="timeRegisterStore.remarks"
+            class="remarks-input"
+            placeholder="未ログインの場合、氏名の情報は含まれないので入力しましょう"
+            rows="4"
+          ></textarea>
+        </div>
       </div>
 
       <!-- 提出ボタン -->
@@ -112,12 +112,14 @@
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useTimeRegisterStore } from '../stores/timeRegister'
+import { useGroupStore } from '../stores/group'
 import { useTimeFormat } from '../composables/useTimeFormat'
 import { useTimeCalculation } from '../composables/useTimeCalculation'
 import { useHolidays } from '../composables/useHolidays'
 import type { WorkDay } from '../types/timeRegister'
 
 const timeRegisterStore = useTimeRegisterStore()
+const groupStore = useGroupStore()
 const { isHoliday } = useHolidays()
 
 const { includeBreak, workDays, showSubmitModal } = storeToRefs(timeRegisterStore)
@@ -125,9 +127,6 @@ const { totalSummary } = storeToRefs(timeRegisterStore)
 
 const { formatMinutesToHours } = useTimeFormat()
 const { calculateBreakTime } = useTimeCalculation()
-
-// ローカル状態
-const remarks = ref<string>('')
 
 // アクティブな勤務日（削除されていない）
 const activeWorkDays = computed(() => {
@@ -242,8 +241,13 @@ const saveShiftData = () => {
   const shiftData = {
     workDays: activeWorkDays.value,
     totalSummary: totalSummary.value,
-    remarks: remarks.value,
-    submittedAt: new Date().toISOString()
+    remarks: timeRegisterStore.remarks,
+    submittedAt: new Date().toISOString(),
+    // グループ情報を保存
+    groupState: {
+      groups: groupStore.groups,
+      dateGroupMappings: groupStore.dateGroupMappings
+    }
   }
 
   // LocalStorageに保存
@@ -263,8 +267,8 @@ const generateShiftText = (): string => {
   text += `\n【合計】\n`
   text += `勤務日数: ${totalSummary.value.workDays}日\n`
 
-  if (remarks.value.trim()) {
-    text += `\n【備考】\n${remarks.value}\n`
+  if (timeRegisterStore.remarks.trim()) {
+    text += `\n【備考】\n${timeRegisterStore.remarks}\n`
   }
 
   return text
@@ -310,8 +314,8 @@ const downloadCSV = () => {
   csv += `総勤務時間,${formatMinutesToHours(totalSummary.value.totalWorkMinutes)}\n`
   csv += `実働時間,${formatMinutesToHours(totalSummary.value.totalActualWorkMinutes)}\n`
 
-  if (remarks.value.trim()) {
-    csv += `\n備考\n${remarks.value}\n`
+  if (timeRegisterStore.remarks.trim()) {
+    csv += `\n備考\n${timeRegisterStore.remarks}\n`
   }
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -615,13 +619,19 @@ const copyToClipboard = async () => {
   }
 }
 
-/* 備考入力欄 */
-.remarks-section {
+/* 統合カード */
+.summary-remarks-section {
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 1rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.remarks-area {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #e0e0e0;
 }
 
 .remarks-label {

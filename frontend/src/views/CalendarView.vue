@@ -20,6 +20,67 @@
           </button>
         </div>
 
+        <!-- グループ化設定アコーディオン -->
+        <div class="grouping-section">
+          <div class="grouping-header" @click="toggleGrouping">
+            <span class="grouping-title">グループ化設定</span>
+            <div class="grouping-controls">
+              <button @click.stop="showGroupingHelp" class="help-icon-btn">?</button>
+              <span class="accordion-icon">{{ isGroupingOpen ? '▲' : '▼' }}</span>
+            </div>
+          </div>
+          <transition name="accordion">
+            <div v-show="isGroupingOpen" class="grouping-content">
+              <p class="grouping-note">※グループを選択してから日付をクリックすると、その日付をグループに追加できます</p>
+              <div class="group-buttons">
+                <div
+                  v-for="group in groupStore.groups"
+                  :key="group.id"
+                  class="group-item"
+                >
+                  <button
+                    @click="toggleGroupSelection(group.id as GroupId)"
+                    class="group-btn"
+                    :class="{
+                      active: selectedGroupId === group.id,
+                      'has-dates': isGroupActive(group.id as GroupId)
+                    }"
+                    :style="{
+                      '--group-color': getGroupColorConfig(group.id as GroupId)?.borderColor,
+                      '--group-shadow': getGroupColorConfig(group.id as GroupId)?.shadowColor
+                    }"
+                  >
+                    <span class="group-color-indicator" :style="{ background: getGroupColorConfig(group.id as GroupId)?.gradientColor }"></span>
+                    <span class="group-name">{{ group.name }}</span>
+                    <span v-if="group.dates.length > 0" class="group-count">{{ group.dates.length }}</span>
+                  </button>
+                  <button
+                    @click="openGroupEditModal(group.id as GroupId)"
+                    class="group-edit-btn"
+                    title="グループ編集"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    v-if="isGroupActive(group.id as GroupId)"
+                    @click="clearGroupDates(group.id as GroupId)"
+                    class="group-clear-btn"
+                    title="グループをクリア"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <!-- グループ追加ボタン -->
+                <button @click="addNewGroup" class="add-group-btn">
+                  <span class="plus-icon">＋</span>
+                  <span>グループを追加</span>
+                </button>
+              </div>
+            </div>
+          </transition>
+        </div>
+
         <!-- アクションボタン：休日基準で選択・平日のみ選択・クリア -->
         <div class="action-buttons">
           <button @click="handleSelectAll" class="action-btn" :class="{ selected: isAllSelected }">休日基準で選択</button>
@@ -75,11 +136,22 @@
               'removed': isRemovedDate(cell.dateString),
               'from-base': isFromBase(cell.dateString),
               'custom-time': hasCustomTime(cell.dateString),
-              'bulk-applied': hasBulkApplied(cell.dateString)
+              'bulk-applied': hasBulkApplied(cell.dateString),
+              'in-group': isInAnyGroup(cell.dateString)
             }"
+            :style="getGroupBorderStyle(cell.dateString)"
             @click="handleDateClick(cell)"
           >
             <div class="date-number">{{ cell.date.getDate() }}</div>
+            <!-- グループインジケーター -->
+            <div v-if="isInAnyGroup(cell.dateString)" class="group-indicators">
+              <span
+                v-for="group in getDateGroups(cell.dateString)"
+                :key="group.id"
+                class="group-indicator-dot"
+                :style="{ background: GROUP_COLOR_CONFIGS[group.color].borderColor }"
+              ></span>
+            </div>
           </div>
         </div>
 
@@ -91,6 +163,58 @@
           </div>
         </div>
       </div>
+
+    <!-- グループ化ヘルプモーダル -->
+    <Teleport to="body">
+      <div v-if="showGroupingHelpModal" class="modal-overlay" @click="closeGroupingHelp">
+        <div class="modal-content help-modal" @click.stop>
+          <h3 class="modal-title">グループ化設定について</h3>
+          <div class="help-content">
+            <p><strong>グループ化機能の使い方：</strong></p>
+            <ol>
+              <li>グループボタンをクリックして選択状態にします</li>
+              <li>カレンダーの日付をクリックしてグループに追加します</li>
+              <li>同じ日付に複数のグループを割り当てることができます</li>
+              <li>隣り合う日付は蛍光色の囲い線で接続されます</li>
+            </ol>
+            <p><strong>特徴：</strong></p>
+            <ul>
+              <li>最大4個のグループで管理できます</li>
+              <li>各グループには蛍光色が自動割り当てされます</li>
+              <li>時間設定画面ではグループ別にソートされます</li>
+              <li>グループごとに時給を設定して給与を計算できます</li>
+            </ul>
+          </div>
+          <button @click="closeGroupingHelp" class="close-btn">閉じる</button>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- グループ編集モーダル -->
+    <Teleport to="body">
+      <div v-if="showGroupEditModal" class="modal-overlay" @click="closeGroupEditModal">
+        <div class="modal-content group-edit-modal" @click.stop>
+          <h3 class="modal-title">グループ編集</h3>
+          <div class="edit-form">
+            <div class="form-group">
+              <label for="group-name">グループ名</label>
+              <input
+                id="group-name"
+                v-model="editingGroupName"
+                type="text"
+                class="form-input"
+                placeholder="グループ名を入力"
+              />
+            </div>
+          </div>
+          <div class="modal-buttons">
+            <button @click="deleteGroup(editingGroupId as GroupId)" class="btn-delete">削除</button>
+            <button @click="closeGroupEditModal" class="btn-cancel">キャンセル</button>
+            <button @click="saveGroupEdit" class="btn-save">保存</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -100,11 +224,14 @@ import { useCalendar } from '../composables/useCalendar'
 import { useHolidays } from '../composables/useHolidays'
 import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
+import { useGroupStore, GROUP_COLOR_CONFIGS } from '../stores/group'
 import type { CalendarCell } from '../types/calendar'
+import type { GroupId } from '../types/group'
 import SwipeTutorial from '../components/SwipeTutorial.vue'
 
 const store = useCalendarStore()
 const timeRegisterStore = useTimeRegisterStore()
+const groupStore = useGroupStore()
 
 // 今月と来月の情報
 const today = new Date()
@@ -134,6 +261,96 @@ const { fetchHolidaysWithCache, holidays: holidaysData } = useHolidays()
 
 // ローカル状態
 const weekdays = ['日', '月', '火', '水', '木', '金', '土']
+const isGroupingOpen = ref(false)
+const showGroupingHelpModal = ref(false)
+const selectedGroupId = ref<GroupId | null>(null)
+const showGroupEditModal = ref(false)
+const editingGroupId = ref<GroupId | null>(null)
+const editingGroupName = ref('')
+
+// グループ化アコーディオンのトグル
+const toggleGrouping = () => {
+  isGroupingOpen.value = !isGroupingOpen.value
+}
+
+// グループ化ヘルプモーダルを表示
+const showGroupingHelp = () => {
+  showGroupingHelpModal.value = true
+}
+
+// グループ化ヘルプモーダルを閉じる
+const closeGroupingHelp = () => {
+  showGroupingHelpModal.value = false
+}
+
+// グループ選択のトグル
+const toggleGroupSelection = (groupId: GroupId) => {
+  if (selectedGroupId.value === groupId) {
+    selectedGroupId.value = null
+  } else {
+    selectedGroupId.value = groupId
+  }
+}
+
+// グループのカラー設定を取得
+const getGroupColorConfig = (groupId: GroupId) => {
+  const group = groupStore.getGroupById(groupId)
+  if (!group) return null
+  return GROUP_COLOR_CONFIGS[group.color]
+}
+
+// グループがアクティブかチェック
+const isGroupActive = (groupId: GroupId) => {
+  const group = groupStore.getGroupById(groupId)
+  return group?.isActive ?? false
+}
+
+// グループをクリア
+const clearGroupDates = (groupId: GroupId) => {
+  if (confirm('このグループのすべての日付を解除しますか？')) {
+    groupStore.clearGroup(groupId)
+  }
+}
+
+// グループ編集モーダルを開く
+const openGroupEditModal = (groupId: GroupId) => {
+  const group = groupStore.getGroupById(groupId)
+  if (!group) return
+
+  editingGroupId.value = groupId
+  editingGroupName.value = group.name
+  showGroupEditModal.value = true
+}
+
+// グループ編集を保存
+const saveGroupEdit = () => {
+  if (editingGroupId.value === null) return
+
+  groupStore.updateGroupName(editingGroupId.value, editingGroupName.value)
+  closeGroupEditModal()
+}
+
+// グループ編集モーダルを閉じる
+const closeGroupEditModal = () => {
+  showGroupEditModal.value = false
+  editingGroupId.value = null
+  editingGroupName.value = ''
+}
+
+// グループを追加
+const addNewGroup = () => {
+  const newId = groupStore.addGroup()
+  if (newId === null) {
+    alert('グループは最大4個まで追加できます')
+  }
+}
+
+// グループを削除
+const deleteGroup = (groupId: GroupId) => {
+  if (confirm('このグループを削除しますか？\n（日付の割り当ても解除されます）')) {
+    groupStore.deleteGroup(groupId)
+  }
+}
 
 // 今月・来月の判定
 const isThisMonth = computed(() => {
@@ -156,6 +373,17 @@ const handleDateClick = (cell: CalendarCell) => {
   if (!cell.isCurrentMonth) return
   if (cell.isPast) return // 過去の日付は選択できない
 
+  // グループが選択されている場合、グループに日付を追加/削除
+  if (selectedGroupId.value !== null) {
+    // 日付が選択されていない場合は選択する
+    if (!store.isDateSelected(cell.dateString)) {
+      toggleDate(cell.dateString)
+    }
+    // グループに日付を追加/削除
+    groupStore.toggleDateGroup(selectedGroupId.value, cell.dateString)
+    return
+  }
+
   // 日付を外す場合（選択済み→未選択）、設定がある場合は確認
   if (store.isDateSelected(cell.dateString)) {
     const workDay = timeRegisterStore.workDays.find(wd => wd.date === cell.dateString)
@@ -166,6 +394,9 @@ const handleDateClick = (cell: CalendarCell) => {
         return // キャンセルされた場合は何もしない
       }
     }
+
+    // 日付を外す際、その日付をすべてのグループから削除
+    groupStore.removeDateFromAllGroups(cell.dateString)
   }
 
   toggleDate(cell.dateString)
@@ -221,6 +452,31 @@ const hasTimeSettings = (dateString: string): boolean => {
   if (!workDay) return false
   // デフォルト以外の設定方法がある場合
   return workDay.startTimeSetBy !== 'default' || workDay.endTimeSetBy !== 'default'
+}
+
+// 日付が属するグループを取得
+const getDateGroups = (dateString: string) => {
+  return groupStore.getGroupsForDate(dateString)
+}
+
+// 日付のグループボーダースタイルを取得
+const getGroupBorderStyle = (dateString: string) => {
+  const groups = getDateGroups(dateString)
+  if (groups.length === 0) return {}
+
+  // 最初のグループの色を使用（複数の場合は後で対応）
+  const group = groups[0]
+  const colorConfig = GROUP_COLOR_CONFIGS[group.color]
+
+  return {
+    '--group-border-color': colorConfig.borderColor,
+    '--group-shadow-color': colorConfig.shadowColor
+  }
+}
+
+// 日付がグループに属しているかチェック
+const isInAnyGroup = (dateString: string): boolean => {
+  return getDateGroups(dateString).length > 0
 }
 
 // 休日基準で選択（確認付き）
@@ -280,6 +536,10 @@ const handleClearAll = () => {
   }
 
   clearAll()
+  // グループもクリア
+  groupStore.clearAllGroups()
+  // 備考欄もクリア
+  timeRegisterStore.remarks = ''
 }
 
 // 曜日別選択（確認付き）
@@ -382,6 +642,239 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* グループ化設定アコーディオン */
+.grouping-section {
+  margin-bottom: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.grouping-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  user-select: none;
+}
+
+.grouping-header:hover {
+  background: #e9ecef;
+}
+
+.grouping-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.grouping-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.help-icon-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-icon-btn:hover {
+  background: #764ba2;
+  transform: scale(1.1);
+}
+
+.accordion-icon {
+  font-size: 0.875rem;
+  color: #667eea;
+  font-weight: 700;
+}
+
+.grouping-content {
+  padding: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.grouping-note {
+  margin: 0 0 1rem 0;
+  font-size: 0.85rem;
+  color: #666;
+  text-align: center;
+}
+
+/* グループボタン */
+.group-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.group-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.group-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.group-btn:hover {
+  border-color: var(--group-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--group-shadow);
+}
+
+.group-btn.active {
+  border-color: var(--group-color);
+  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+  box-shadow: 0 0 20px var(--group-shadow), inset 0 0 10px var(--group-shadow);
+  transform: scale(1.02);
+}
+
+.group-btn.has-dates {
+  border-width: 3px;
+}
+
+.group-color-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--group-shadow);
+  flex-shrink: 0;
+}
+
+.group-name {
+  flex: 1;
+  text-align: left;
+}
+
+.group-count {
+  background: var(--group-color);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: center;
+  box-shadow: 0 2px 8px var(--group-shadow);
+}
+
+.group-clear-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.group-clear-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.group-edit-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.group-edit-btn:hover {
+  background: #764ba2;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.add-group-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.add-group-btn:hover {
+  background: linear-gradient(135deg, #059669, #10b981);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.plus-icon {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* アコーディオントランジション */
+.accordion-enter-active,
+.accordion-leave-active {
+  transition: all 0.3s ease;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.accordion-enter-from,
+.accordion-leave-to {
+  max-height: 0;
+  opacity: 0;
 }
 
 /* アクションボタン */
@@ -622,9 +1115,46 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   font-weight: 700;
 }
 
+/* グループに属する日付 - 蛍光色のボーダーとグロー効果 */
+.date-cell.in-group {
+  border: 3px solid var(--group-border-color);
+  box-shadow:
+    0 0 15px var(--group-shadow-color),
+    inset 0 0 10px var(--group-shadow-color);
+  position: relative;
+}
+
+.date-cell.in-group:hover:not(.other-month):not(.past) {
+  box-shadow:
+    0 0 25px var(--group-shadow-color),
+    inset 0 0 15px var(--group-shadow-color),
+    0 0 15px rgba(102, 126, 234, 0.3);
+  transform: scale(1.08);
+}
+
+/* グループインジケーター（ドット） */
+.group-indicators {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 3px;
+  z-index: 10;
+}
+
+.group-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px currentColor;
+}
+
 .date-number {
   font-size: 1.125rem;
   font-weight: 600;
+  position: relative;
+  z-index: 5;
 }
 
 /* レスポンシブ */
@@ -704,5 +1234,178 @@ const handleSelectByWeekday = (dayOfWeek: number) => {
   .date-number {
     font-size: 0.9rem;
   }
+}
+
+/* ヘルプモーダル */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease;
+  max-width: 400px;
+  width: 100%;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.help-modal {
+  max-width: 400px;
+}
+
+.modal-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #667eea;
+  text-align: center;
+}
+
+.help-content {
+  margin-bottom: 1.5rem;
+}
+
+.help-content p {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+  color: #333;
+  line-height: 1.6;
+}
+
+.close-btn {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* グループ編集モーダル */
+.group-edit-modal {
+  max-width: 450px;
+}
+
+.edit-form {
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.btn-delete {
+  padding: 0.75rem 1.5rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: auto;
+}
+
+.btn-delete:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-cancel {
+  padding: 0.75rem 1.5rem;
+  background: #9ca3af;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+  background: #6b7280;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(156, 163, 175, 0.3);
+}
+
+.btn-save {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-save:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 </style>

@@ -79,6 +79,11 @@
                 {{ bulkApplyEndLabel }}
               </button>
             </div>
+
+            <!-- 説明テキスト -->
+            <div class="bulk-note">
+              ※週・曜日を選択すると該当カードがマークされます
+            </div>
           </div>
         </transition>
       </div>
@@ -97,26 +102,57 @@
             <div class="legend-card">一括設定</div>
           </div>
           <div class="legend-item base-style">
-            <div class="legend-card">過去のシフトベース</div>
+            <div class="legend-card">過去ベース</div>
           </div>
         </div>
       </div>
 
+      <!-- 個別設定ヘッダー -->
+      <div class="individual-settings-header">
+        <h3>日別に設定</h3>
+      </div>
+
       <!-- 勤務日カードリスト -->
       <div class="work-days-list">
-        <div
-          v-for="(workDay, index) in activeWorkDays"
-          :key="workDay.date"
-          class="work-day-card"
-          :class="[
-            getCardBackgroundClass(workDay),
-            getBorderClass(workDay),
-            {
-              removed: workDay.isRemoved,
-              highlighted: isHighlighted(workDay)
-            }
-          ]"
-        >
+        <template v-for="(workDay, index) in activeWorkDays" :key="workDay.date">
+          <!-- グループヘッダー -->
+          <div
+            v-if="shouldShowGroupHeader(index)"
+            class="group-header-separator"
+            :style="{
+              '--group-color': getGroupHeaderInfo(index)?.color,
+              '--group-shadow': getGroupHeaderInfo(index)?.color + '66'
+            }"
+          >
+            <div class="group-header-line"></div>
+            <div class="group-header-label">
+              <span class="group-indicator-dot" :style="{ background: getGroupHeaderInfo(index)?.color }"></span>
+              {{ getGroupHeaderInfo(index)?.name || 'グループなし' }}
+              <button
+                v-if="getGroupHeaderInfo(index) && groupHasOverlaps(getGroupHeaderInfo(index)!.id)"
+                @click="openOverlapModal(getGroupHeaderInfo(index)!.id)"
+                class="overlap-warning-icon"
+                title="時間重複あり"
+              >
+                ！
+              </button>
+            </div>
+            <div class="group-header-line"></div>
+          </div>
+
+          <!-- 勤務日カード -->
+          <div
+            class="work-day-card"
+            :class="[
+              getCardBackgroundClass(workDay),
+              getBorderClass(workDay),
+              {
+                removed: workDay.isRemoved,
+                highlighted: isHighlighted(workDay),
+                'has-overlap': hasTimeOverlap(workDay.date)
+              }
+            ]"
+          >
           <div class="card-main" @click="handleCardClick($event, index)">
             <div class="card-content-single-line">
               <div class="card-date-section">
@@ -146,7 +182,8 @@
             <span v-if="!workDay.isRemoved" class="remove-icon">×</span>
             <span v-else class="restore-icon">↶</span>
           </button>
-        </div>
+          </div>
+        </template>
       </div>
 
       <!-- 合計統計 -->
@@ -184,33 +221,95 @@
             </span>
           </div>
 
-          <!-- 給与簡易概算 -->
+          <!-- 給与簡易概算（グループ別） -->
           <div class="salary-calc-section">
-            <div class="salary-input-row">
+            <div class="salary-header">
+              <h4>給与の簡易概算</h4>
+              <button @click="calculateGroupSalaries" class="salary-calc-btn-small">
+                計算
+              </button>
+            </div>
+
+            <!-- グループ別時給設定 -->
+            <div v-if="activeGroups.length > 0" class="group-wage-settings">
+              <div
+                v-for="group in activeGroups"
+                :key="group.id"
+                class="group-wage-item"
+              >
+                <label class="group-wage-label">
+                  <span
+                    class="group-color-dot"
+                    :style="{ background: GROUP_COLOR_CONFIGS[group.color].borderColor }"
+                  ></span>
+                  {{ group.name }}
+                </label>
+                <input
+                  type="number"
+                  v-model.number="groupWages[group.id]"
+                  class="wage-input-small"
+                  min="0"
+                  step="10"
+                  placeholder="時給（円）"
+                />
+              </div>
+            </div>
+
+            <!-- グループなしの日付用の時給 -->
+            <div v-if="hasUngroupedDays" class="group-wage-item">
+              <label class="group-wage-label">グループなし</label>
               <input
                 type="number"
-                v-model.number="hourlyWage"
-                class="wage-input"
+                v-model.number="ungroupedWage"
+                class="wage-input-small"
                 min="0"
                 step="10"
                 placeholder="時給（円）"
               />
-              <button @click="calculateSalary" class="salary-calc-btn">
-                給与の簡易概算
-              </button>
             </div>
 
             <!-- 給与計算結果 -->
-            <div v-if="calculatedSalary > 0" class="salary-result">
-              <div class="salary-result-row">
-                <span class="salary-result-label">概算給与:</span>
-                <span class="salary-result-value">{{ calculatedSalary.toLocaleString() }}円</span>
+            <div v-if="showGroupSalaries" class="group-salary-results">
+              <!-- グループ別給与 -->
+              <div
+                v-for="result in groupSalaryResults"
+                :key="result.groupId"
+                class="group-salary-row"
+              >
+                <span class="group-salary-label">
+                  <span
+                    v-if="result.groupId !== null"
+                    class="group-color-dot"
+                    :style="{ background: result.color }"
+                  ></span>
+                  {{ result.groupName }}
+                </span>
+                <span class="group-salary-value">{{ result.salary.toLocaleString() }}円</span>
               </div>
+
+              <!-- 合計給与 -->
+              <div class="total-salary-row">
+                <span class="total-salary-label">合計給与:</span>
+                <span class="total-salary-value">{{ totalSalary.toLocaleString() }}円</span>
+              </div>
+
               <div class="salary-result-note">
                 ※ 深夜給（22:00～05:00は25%増）を含む概算です。<br>
                 ※ 各種税金や社会保険料などの控除を考慮していません。
               </div>
             </div>
+          </div>
+
+          <!-- 備考欄 -->
+          <div class="remarks-section-time">
+            <label for="remarks-time" class="remarks-label-time">備考</label>
+            <textarea
+              id="remarks-time"
+              v-model="timeRegisterStore.remarks"
+              class="remarks-input-time"
+              placeholder="未ログインの場合、氏名の情報は含まれないので入力しましょう"
+              rows="4"
+            ></textarea>
           </div>
         </div>
       </div>
@@ -260,6 +359,38 @@
             </div>
           </div>
           <button @click="showHelpModal = false" class="close-btn">閉じる</button>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 重複詳細モーダル（Teleportでbody直下に配置） -->
+    <Teleport to="body">
+      <div v-if="showOverlapModal" class="modal-overlay" @click="closeOverlapModal" @touchmove.prevent>
+        <div class="modal-content overlap-modal" @click.stop>
+          <h3 class="modal-title">時間重複の詳細</h3>
+          <div class="overlap-content">
+            <p class="overlap-description">以下の日付で時間が重複しています</p>
+            <div class="overlap-list">
+              <div
+                v-for="overlap in getOverlapsForSelectedGroup()"
+                :key="overlap.date"
+                class="overlap-item"
+              >
+                <div class="overlap-date">{{ formatOverlapDate(overlap.date) }}</div>
+                <div class="overlap-time">{{ overlap.overlappingTime.start }} 〜 {{ overlap.overlappingTime.end }}</div>
+                <div class="overlap-groups">
+                  <div
+                    v-for="(pair, idx) in overlap.overlappingGroups"
+                    :key="idx"
+                    class="overlap-pair"
+                  >
+                    {{ pair.group1Name }} × {{ pair.group2Name }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button @click="closeOverlapModal" class="close-btn">閉じる</button>
         </div>
       </div>
     </Teleport>
@@ -405,6 +536,7 @@ import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useCalendarStore } from '../stores/calendar'
 import { useTimeRegisterStore } from '../stores/timeRegister'
+import { useGroupStore, GROUP_COLOR_CONFIGS } from '../stores/group'
 import { useTimeFormat } from '../composables/useTimeFormat'
 import { useTimeCalculation } from '../composables/useTimeCalculation'
 import { useHolidays } from '../composables/useHolidays'
@@ -413,6 +545,7 @@ import type { BulkApplyType, WorkDay } from '../types/timeRegister'
 const route = useRoute()
 const calendarStore = useCalendarStore()
 const timeRegisterStore = useTimeRegisterStore()
+const groupStore = useGroupStore()
 const { isHoliday } = useHolidays()
 
 const { bulkSettings, includeBreak, workDays } = storeToRefs(timeRegisterStore)
@@ -480,17 +613,279 @@ const confirmModalData = ref({
 // ヘルプモーダルの状態
 const showHelpModal = ref(false)
 
-// 給与計算の状態
-const hourlyWage = ref<number>(1000) // 時給（デフォルト1000円）
-const calculatedSalary = ref<number>(0)
+// 重複詳細モーダルの状態
+const showOverlapModal = ref(false)
+const selectedOverlapGroupId = ref<number | null>(null)
+
+// 給与計算の状態（グループ別）
+const groupWages = ref<Record<number, number>>({}) // グループIDごとの時給
+const ungroupedWage = ref<number>(1000) // グループなしの日付の時給
+const showGroupSalaries = ref(false)
+const groupSalaryResults = ref<Array<{
+  groupId: number | null
+  groupName: string
+  color: string
+  salary: number
+}>>([])
+const totalSalary = ref<number>(0)
 
 // モーダル状態をPageSliderに提供（スライド制御用）
-provide('isModalOpen', computed(() => showTimeModal.value || showConfirmModal.value || showHelpModal.value))
+provide('isModalOpen', computed(() => showTimeModal.value || showConfirmModal.value || showHelpModal.value || showOverlapModal.value))
 
-// アクティブな勤務日（削除されていない）
+// グループ別にソートされた勤務日を作成
+interface GroupedWorkDay extends WorkDay {
+  groupInfo?: {
+    id: number
+    name: string
+    color: string
+    hourlyWage: number
+  }
+}
+
+// アクティブな勤務日（削除されていない）をグループ別にソート
 const activeWorkDays = computed(() => {
-  return workDays.value
+  const days: GroupedWorkDay[] = [...workDays.value]
+
+  // 各日付にグループ情報を追加
+  days.forEach(day => {
+    const groups = groupStore.getGroupsForDate(day.date)
+    if (groups.length > 0) {
+      // 最初のグループを優先グループとして使用
+      const primaryGroup = groups[0]
+      day.groupInfo = {
+        id: primaryGroup.id,
+        name: primaryGroup.name,
+        color: GROUP_COLOR_CONFIGS[primaryGroup.color].borderColor,
+        hourlyWage: primaryGroup.hourlyWage
+      }
+    }
+  })
+
+  // グループIDでソート（グループなしは最後）
+  return days.sort((a, b) => {
+    // 両方グループあり
+    if (a.groupInfo && b.groupInfo) {
+      // グループIDで比較
+      if (a.groupInfo.id !== b.groupInfo.id) {
+        return a.groupInfo.id - b.groupInfo.id
+      }
+      // 同じグループ内では日付順
+      return a.date.localeCompare(b.date)
+    }
+    // aにグループあり、bになし
+    if (a.groupInfo && !b.groupInfo) return -1
+    // aになし、bにグループあり
+    if (!a.groupInfo && b.groupInfo) return 1
+    // 両方グループなし - 日付順
+    return a.date.localeCompare(b.date)
+  })
 })
+
+// グループヘッダーを表示すべきかチェック
+const shouldShowGroupHeader = (index: number): boolean => {
+  if (index === 0) {
+    // 最初のカードで、グループがある場合
+    const firstDay = activeWorkDays.value[0] as GroupedWorkDay
+    return !!firstDay.groupInfo
+  }
+
+  const currentDay = activeWorkDays.value[index] as GroupedWorkDay
+  const prevDay = activeWorkDays.value[index - 1] as GroupedWorkDay
+
+  // 前のカードと異なるグループIDの場合、ヘッダーを表示
+  const currentGroupId = currentDay.groupInfo?.id
+  const prevGroupId = prevDay.groupInfo?.id
+
+  return currentGroupId !== prevGroupId
+}
+
+// 指定インデックスのグループ情報を取得
+const getGroupHeaderInfo = (index: number) => {
+  const day = activeWorkDays.value[index] as GroupedWorkDay
+  return day.groupInfo
+}
+
+// 日付が時間重複しているかチェック
+const hasTimeOverlap = (date: string): boolean => {
+  const overlaps = groupStore.timeOverlaps
+  return overlaps.some(overlap => overlap.date === date)
+}
+
+// グループが時間重複を持つかチェック
+const groupHasOverlaps = (groupId: number): boolean => {
+  return groupStore.groupHasOverlaps(groupId)
+}
+
+// 重複モーダルを開く
+const openOverlapModal = (groupId: number) => {
+  selectedOverlapGroupId.value = groupId
+  showOverlapModal.value = true
+}
+
+// 重複モーダルを閉じる
+const closeOverlapModal = () => {
+  showOverlapModal.value = false
+  selectedOverlapGroupId.value = null
+}
+
+// 選択されたグループの重複リストを取得
+const getOverlapsForSelectedGroup = () => {
+  if (selectedOverlapGroupId.value === null) return []
+
+  const overlaps = groupStore.timeOverlaps
+  return overlaps.filter(overlap =>
+    overlap.overlappingGroups.some(
+      pair => pair.group1Id === selectedOverlapGroupId.value || pair.group2Id === selectedOverlapGroupId.value
+    )
+  )
+}
+
+// 重複日付をフォーマット
+const formatOverlapDate = (dateString: string): string => {
+  const date = new Date(dateString)
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const weekdays = ['日', '月', '火', '水', '木', '金', '土']
+  const weekday = weekdays[date.getDay()]
+  return `${month}月${day}日(${weekday})`
+}
+
+// アクティブなグループを取得
+const activeGroups = computed(() => {
+  return groupStore.groups.filter(g => g.isActive)
+})
+
+// グループなしの日付が存在するかチェック
+const hasUngroupedDays = computed(() => {
+  return activeWorkDays.value.some(day => !(day as GroupedWorkDay).groupInfo)
+})
+
+// グループ別給与計算
+const calculateGroupSalaries = () => {
+  const results: Array<{
+    groupId: number | null
+    groupName: string
+    color: string
+    salary: number
+  }> = []
+
+  let total = 0
+
+  // グループごとに給与計算
+  for (const group of activeGroups.value) {
+    const wage = groupWages.value[group.id] || group.hourlyWage
+    const groupDays = activeWorkDays.value.filter(
+      day => (day as GroupedWorkDay).groupInfo?.id === group.id && !day.isRemoved
+    )
+
+    let groupSalary = 0
+    for (const day of groupDays) {
+      const workMinutes = includeBreak.value
+        ? day.workMinutes - calculateBreakTime(day.workMinutes)
+        : day.workMinutes
+      const workHours = workMinutes / 60
+
+      // 深夜給を考慮した給与計算
+      const nightWorkHours = calculateNightWorkHours(day.startTime, day.endTime)
+      const regularHours = workHours - nightWorkHours
+      const salary = (regularHours * wage) + (nightWorkHours * wage * 1.25)
+
+      groupSalary += Math.floor(salary)
+    }
+
+    if (groupSalary > 0) {
+      results.push({
+        groupId: group.id,
+        groupName: group.name,
+        color: GROUP_COLOR_CONFIGS[group.color].borderColor,
+        salary: groupSalary
+      })
+      total += groupSalary
+    }
+  }
+
+  // グループなしの日付の給与計算
+  const ungroupedDays = activeWorkDays.value.filter(
+    day => !(day as GroupedWorkDay).groupInfo && !day.isRemoved
+  )
+
+  if (ungroupedDays.length > 0 && ungroupedWage.value > 0) {
+    let ungroupedSalary = 0
+    for (const day of ungroupedDays) {
+      const workMinutes = includeBreak.value
+        ? day.workMinutes - calculateBreakTime(day.workMinutes)
+        : day.workMinutes
+      const workHours = workMinutes / 60
+
+      const nightWorkHours = calculateNightWorkHours(day.startTime, day.endTime)
+      const regularHours = workHours - nightWorkHours
+      const salary = (regularHours * ungroupedWage.value) + (nightWorkHours * ungroupedWage.value * 1.25)
+
+      ungroupedSalary += Math.floor(salary)
+    }
+
+    if (ungroupedSalary > 0) {
+      results.push({
+        groupId: null,
+        groupName: 'グループなし',
+        color: '#999',
+        salary: ungroupedSalary
+      })
+      total += ungroupedSalary
+    }
+  }
+
+  groupSalaryResults.value = results
+  totalSalary.value = total
+  showGroupSalaries.value = results.length > 0
+}
+
+// 深夜勤務時間を計算（22:00〜05:00）
+const calculateNightWorkHours = (startTime: string, endTime: string): number => {
+  const start = parseTime(startTime)
+  let end = parseTime(endTime)
+
+  // 終了時刻が開始時刻より早い場合は翌日とみなす
+  if (end <= start) {
+    end += 24 * 60
+  }
+
+  const nightStart = 22 * 60 // 22:00
+  const nightEnd = (24 + 5) * 60 // 翌5:00
+
+  let nightMinutes = 0
+
+  // 22:00-24:00の深夜時間
+  if (start < 24 * 60 && end > nightStart) {
+    const nightRangeStart = Math.max(start, nightStart)
+    const nightRangeEnd = Math.min(end, 24 * 60)
+    nightMinutes += Math.max(0, nightRangeEnd - nightRangeStart)
+  }
+
+  // 0:00-5:00の深夜時間
+  if (end > 24 * 60) {
+    const nextDayStart = Math.max(start, 24 * 60)
+    const nextDayEnd = Math.min(end, nightEnd)
+    nightMinutes += Math.max(0, nextDayEnd - nextDayStart)
+  }
+
+  return nightMinutes / 60
+}
+
+// 時刻文字列を分に変換
+const parseTime = (timeStr: string): number => {
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+// グループの時給を初期化
+watch(activeGroups, (groups) => {
+  for (const group of groups) {
+    if (!(group.id in groupWages.value)) {
+      groupWages.value[group.id] = group.hourlyWage
+    }
+  }
+}, { immediate: true })
 
 // 選択条件に該当する勤務日かどうかを判定
 const isHighlighted = (workDay: WorkDay) => {
@@ -578,11 +973,6 @@ const getCardBackgroundClass = (workDay: WorkDay) => {
 
 // 開始時刻のテキスト色クラスを取得
 const getStartTimeClass = (workDay: WorkDay) => {
-  const defaultTimes = loadDefaultTimes()
-  // デフォルト時刻と同じ場合は黒
-  if (workDay.startTime === defaultTimes.startTime) {
-    return 'default-time'
-  }
   // 設定方法によって色を変える
   switch (workDay.startTimeSetBy) {
     case 'custom':
@@ -598,11 +988,6 @@ const getStartTimeClass = (workDay: WorkDay) => {
 
 // 終了時刻のテキスト色クラスを取得
 const getEndTimeClass = (workDay: WorkDay) => {
-  const defaultTimes = loadDefaultTimes()
-  // デフォルト時刻と同じ場合は黒
-  if (workDay.endTime === defaultTimes.endTime) {
-    return 'default-time'
-  }
   // 設定方法によって色を変える
   switch (workDay.endTimeSetBy) {
     case 'custom':
@@ -619,6 +1004,7 @@ const getEndTimeClass = (workDay: WorkDay) => {
 // 左ボーダーの色配列を取得（最大2色）
 const getBorderColors = (workDay: WorkDay) => {
   const colors = new Set<string>()
+  const defaultTimes = loadDefaultTimes()
 
   // 設定方法を収集
   if (workDay.startTimeSetBy === 'custom' || workDay.endTimeSetBy === 'custom') {
@@ -629,10 +1015,18 @@ const getBorderColors = (workDay: WorkDay) => {
   }
   if (workDay.startTimeSetBy === 'base' || workDay.endTimeSetBy === 'base') {
     colors.add('base')
+
+    // baseの場合、デフォルト時刻と同じかチェック
+    const startIsDefault = workDay.startTime === defaultTimes.startTime && workDay.startTimeSetBy === 'base'
+    const endIsDefault = workDay.endTime === defaultTimes.endTime && workDay.endTimeSetBy === 'base'
+
+    if (startIsDefault || endIsDefault) {
+      colors.add('default')
+    }
   }
 
-  // 優先順位: custom → bulk → base
-  const priority = ['custom', 'bulk', 'base']
+  // 優先順位: custom → base → bulk → default
+  const priority = ['custom', 'base', 'bulk', 'default']
   const result = priority.filter(color => colors.has(color))
 
   // 最大2色まで
@@ -816,9 +1210,9 @@ const handleBulkApplyAll = (type: BulkApplyType) => {
       title: '一括設定の確認',
       message: `${selectedLabel}で個別設定した箇所が${modifiedCount}日あります。`,
       options: [
-        { label: '個別設定の日は<span style="color: #3b82f6; font-weight: 700;">除いて</span>適用', value: 'unmodified' },
-        { label: '個別設定も<span style="color: #3b82f6; font-weight: 700;">上書き</span>して適用', value: 'all' },
-        { label: 'キャンセル', value: 'cancel' }
+        { label: '個別設定の日は<span style="color: #ca8a04; font-weight: 700;">除いて</span>適用', value: 'unmodified' },
+        { label: '個別設定も<span style="color: #ca8a04; font-weight: 700;">上書き</span>して適用', value: 'all' },
+        { label: '<span style="color: #ef4444;">キャンセル</span>', value: 'cancel' }
       ],
       onConfirm: (value: string) => {
         if (value !== 'cancel') {
@@ -1376,7 +1770,15 @@ const confirmTimeEdit = () => {
   transform: translateY(0);
 }
 
-/* 注意書き */
+/* 一括設定の説明テキスト */
+.bulk-note {
+  font-size: 0.7rem;
+  color: #666;
+  text-align: center;
+  padding: 0.5rem 0.25rem 0.25rem 0.25rem;
+  line-height: 1.4;
+}
+
 /* 時間表示凡例 */
 .time-display-legend {
   padding: 0.75rem 1rem;
@@ -1402,9 +1804,9 @@ const confirmTimeEdit = () => {
 }
 
 .legend-card {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  padding: 0.4rem 0.6rem;
+  padding: 0.35rem 0.5rem;
   border-radius: 6px;
   border-left-width: 3px;
   border-left-style: solid;
@@ -1437,6 +1839,24 @@ const confirmTimeEdit = () => {
   background: #fee2e2;
   color: #991b1b;
   border-left-color: #ef4444;
+}
+
+/* 個別設定ヘッダー */
+.individual-settings-header {
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.individual-settings-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* 休憩時間設定 */
@@ -1489,6 +1909,79 @@ const confirmTimeEdit = () => {
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+}
+
+/* グループヘッダー */
+.group-header-separator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0 1rem 0;
+}
+
+.group-header-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--group-color), transparent);
+  box-shadow: 0 0 8px var(--group-shadow);
+}
+
+.group-header-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 2px solid var(--group-color);
+  border-radius: 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #333;
+  box-shadow: 0 0 15px var(--group-shadow);
+  white-space: nowrap;
+}
+
+.group-header-label .group-indicator-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+  flex-shrink: 0;
+}
+
+/* 重複警告アイコン */
+.overlap-warning-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ff0000;
+  color: white;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-warning 2s ease-in-out infinite;
+  margin-left: 0.25rem;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(255, 0, 0, 0.9);
+    transform: scale(1.1);
+  }
+}
+
+.overlap-warning-icon:hover {
+  background: #dc2626;
+  transform: scale(1.2);
 }
 
 .work-day-card {
@@ -1639,10 +2132,37 @@ const confirmTimeEdit = () => {
   border-image: linear-gradient(to bottom, #3b82f6 50%, #ef4444 50%) 1;
 }
 
+.work-day-card.border-base-default {
+  border-left: 4px solid;
+  border-image: linear-gradient(to bottom, #ef4444 50%, #e5e7eb 50%) 1;
+}
+
 /* 選択条件に該当するカードは蛍光緑色の枠 */
 .work-day-card.highlighted {
   border: 3px solid #00ff00;
   border-left-width: 4px !important;
+}
+
+/* 時間重複があるカードは赤い蛍光色の囲い */
+.work-day-card.has-overlap {
+  border: 3px solid #ff0000 !important;
+  box-shadow:
+    0 0 20px rgba(255, 0, 0, 0.6),
+    inset 0 0 15px rgba(255, 0, 0, 0.3);
+  animation: pulse-red 2s ease-in-out infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow:
+      0 0 20px rgba(255, 0, 0, 0.6),
+      inset 0 0 15px rgba(255, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 30px rgba(255, 0, 0, 0.8),
+      inset 0 0 20px rgba(255, 0, 0, 0.5);
+  }
 }
 
 /* 時刻テキストの色 */
@@ -1837,63 +2357,99 @@ const confirmTimeEdit = () => {
   transform: scale(1.1);
 }
 
-/* 給与計算セクション */
+/* 給与計算セクション（グループ別） */
 .salary-calc-section {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 2px solid #e0e0e0;
 }
 
-.salary-input-row {
+.salary-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
 
-.wage-input {
+.salary-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.salary-calc-btn-small {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.salary-calc-btn-small:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.group-wage-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.group-wage-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-wage-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.group-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+  flex-shrink: 0;
+}
+
+.wage-input-small {
   flex: 1;
-  padding: 0.75rem;
+  padding: 0.5rem;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #333;
   transition: all 0.3s ease;
-  min-width: 0; /* flexで縮小可能にする */
 }
 
-.wage-input:focus {
+.wage-input-small:focus {
   outline: none;
   border-color: #10b981;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
-.wage-input::placeholder {
+.wage-input-small::placeholder {
   color: #999;
   font-weight: 500;
 }
 
-.salary-calc-btn {
-  padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, #10b981, #34d399);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.salary-calc-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-/* 給与計算結果表示 */
-.salary-result {
+/* グループ別給与結果表示 */
+.group-salary-results {
   margin-top: 1rem;
   padding: 1rem;
   background: #f0f9ff;
@@ -1901,29 +2457,98 @@ const confirmTimeEdit = () => {
   border-left: 4px solid #10b981;
 }
 
-.salary-result-row {
+.group-salary-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e0f2fe;
+}
+
+.group-salary-row:last-of-type {
+  border-bottom: 2px solid #0ea5e9;
   margin-bottom: 0.5rem;
 }
 
-.salary-result-label {
-  font-size: 0.95rem;
+.group-salary-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #666;
 }
 
-.salary-result-value {
+.group-salary-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0ea5e9;
+}
+
+.total-salary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.total-salary-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.total-salary-value {
   font-size: 1.5rem;
   font-weight: 700;
   color: #10b981;
 }
 
 .salary-result-note {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e0f2fe;
   font-size: 0.75rem;
   color: #999;
   line-height: 1.5;
+}
+
+/* 備考欄（時間設定ページ） */
+.remarks-section-time {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #e0e0e0;
+}
+
+.remarks-label-time {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.remarks-input-time {
+  width: 100%;
+  padding: 0.875rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #333;
+  resize: vertical;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.remarks-input-time:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.remarks-input-time::placeholder {
+  color: #999;
 }
 
 /* モーダル共通 */
@@ -2050,6 +2675,66 @@ const confirmTimeEdit = () => {
 .close-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* 重複モーダル */
+.overlap-modal {
+  max-width: 500px;
+  width: 100%;
+}
+
+.overlap-content {
+  margin-bottom: 1.5rem;
+}
+
+.overlap-description {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  color: #666;
+  text-align: center;
+}
+
+.overlap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.overlap-item {
+  padding: 1rem;
+  background: #fff5f5;
+  border: 2px solid #fecaca;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.1);
+}
+
+.overlap-date {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #991b1b;
+  margin-bottom: 0.5rem;
+}
+
+.overlap-time {
+  font-size: 0.95rem;
+  color: #7f1d1d;
+  margin-bottom: 0.5rem;
+}
+
+.overlap-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.overlap-pair {
+  padding: 0.25rem 0.75rem;
+  background: white;
+  border: 1px solid #f87171;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  color: #991b1b;
+  font-weight: 600;
 }
 
 /* 時刻選択モーダル */
